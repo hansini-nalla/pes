@@ -28,7 +28,7 @@ export default function Home() {
   };
 
   return (
-    <div className={`relative min-h-screen flex items-center justify-center transition-colors duration-500 ${darkMode ? 'dark bg-gray-900' : 'bg-gradient-to-r from-purple-100 to-indigo-200'}`}>
+    <div className={`relative min-h-screen flex items-center justify-center overflow-hidden transition-colors duration-500 ${darkMode ? 'dark bg-gray-900' : 'bg-gradient-to-r from-purple-100 to-indigo-200'}`}>
       {/* Animated Blobs */}
       <div className="absolute w-72 h-72 bg-purple-300 opacity-30 rounded-full mix-blend-multiply filter blur-2xl animate-[blob_7s_infinite] -top-20 -left-20 dark:bg-purple-800"></div>
       <div className="absolute w-72 h-72 bg-pink-300 opacity-30 rounded-full mix-blend-multiply filter blur-2xl animate-[blob_7s_infinite_2s] -bottom-20 -right-10 dark:bg-pink-800"></div>

@@ -1,10 +1,21 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaChalkboardTeacher, FaBook, FaUserGraduate, FaUserShield, FaBoxes, FaHome } from 'react-icons/fa';
 
 type Tab = 'home' | 'course' | 'batch' | 'role';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<Tab>('home');
+  const navigate = useNavigate();
+  const [showModal, setShowModal] = useState(false);
+
+  const handleLogout = () => {
+    //localStorage.removeItem('authToken'); // or whatever key you use
+
+    //localStorage.clear(); // if you want to wipe everything
+
+    navigate('/');
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -134,7 +145,39 @@ const AdminDashboard = () => {
         <button onClick={() => setActiveTab('batch')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
           <FaBoxes /> Batch Manager
         </button>
-        <button className="mt-10 text-red-300 hover:text-red-500">Logout</button>
+        {/*<button className="mt-10 text-red-300 hover:text-red-500"
+        onClick={handleLogout}
+        >Logout</button>*/}
+        {/* Logout Button */}
+        <button
+          onClick={() => setShowModal(true)}
+          className="mt-10 text-red-300 hover:text-red-500"
+        >
+          Logout
+        </button>
+
+      {/* Confirmation Modal */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm bg-opacity-100 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-2xl max-w-sm text-center">
+            <h2 className="text-lg text-black font-semibold mb-4">Are you sure you want to logout?</h2>
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleLogout}
+                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </aside>
       <main className="flex-grow bg-gray-100">{renderContent()}</main>
     </div>
