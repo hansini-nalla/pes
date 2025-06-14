@@ -10,11 +10,9 @@ export const getSubmissions = async (
     const { studentId, examId } = req.query;
 
     if (!studentId || !examId) {
-      res
-        .status(400)
-        .json({
-          error: "studentId and examId are required as query parameters",
-        });
+      res.status(400).json({
+        error: "studentId and examId are required as query parameters",
+      });
       return;
     }
 
