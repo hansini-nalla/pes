@@ -6,6 +6,7 @@ export interface IExam extends Document {
   batch: Types.ObjectId;
   startTime: Date;
   endTime: Date;
+  numQuestions: number; // ✅ NEW FIELD
 }
 
 const examSchema = new Schema<IExam>({
@@ -14,6 +15,7 @@ const examSchema = new Schema<IExam>({
   batch: { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
+  numQuestions: { type: Number, required: true }, // ✅ NEW FIELD
 });
 
 export const Exam = model<IExam>('Exam', examSchema);
