@@ -7,6 +7,7 @@ import { getPendingEvaluations } from "../../controllers/student/getPendingEvalu
 import { getEvaluationResults } from "../../controllers/student/getEvaluationResults.controller.ts";
 import { submitAnswer } from "../../controllers/student/submitAnswer.controller.ts";
 import { getSubmissions } from "../../controllers/student/getSubmissions.controller.ts";
+import { flagEvaluation } from "../../controllers/student/flag.controller.ts";
 
 const router = Router();
 const upload = multer();
@@ -18,5 +19,6 @@ router.get("/pending-evaluations", getPendingEvaluations);
 router.get("/results", getEvaluationResults);
 router.post("/submit-answer", upload.single("pdf"), submitAnswer);
 router.get("/submissions", getSubmissions);
+router.post("/flag-evaluation", flagEvaluation);
 
 export default router;
