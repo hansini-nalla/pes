@@ -46,8 +46,8 @@ For details about student-related API endpoints, check:
    ```
 
 2. Create a `.env` file and define the following environment variables:
-```env
-   VITE_BACKEND_PORT= your_port_number #You need this only if you used a custom backend port.
+   ```env
+   VITE_BACKEND_PORT= your_port_number #You need this incase you used a custom backend port.
    ```
 
 2. Install dependencies:
