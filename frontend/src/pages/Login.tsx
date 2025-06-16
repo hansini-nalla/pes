@@ -3,6 +3,8 @@ import { useState,useEffect } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 export default function Login() {
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -31,9 +33,11 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', {
+      const res = await axios.post(`http://localhost:${PORT}/api/auth/login`, {
         email,
         password,
+      }, {
+        withCredentials: true 
       });
 
       const { token, role } = res.data;
@@ -42,11 +46,15 @@ export default function Login() {
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
 
+      console.log('Login successful:', res.data);
+      console.log('Token:', token);
+      console.log('Role:', role);
+
       // Navigate according to role
       if (role === 'admin') navigate('/admin');
       else if (role === 'teacher') navigate('/teacher');
       else if (role === 'ta') navigate('/ta');
-      else navigate('/student');
+      else navigate('/dashboard');
     } catch (err) {
       showMessage('Login failed. Please check your credentials.');
       console.error(err);

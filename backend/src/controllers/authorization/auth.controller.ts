@@ -23,7 +23,9 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       role,
     });
 
-    res.status(201).json({ message: 'User registered successfully' });
+    const token = jwt.sign({ id: newUser._id, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.status(201).json({ message: 'User registered successfully', token, role: newUser.role });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Registration failed' });
@@ -44,7 +46,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       expiresIn: '7d',
     });
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, role: user.role } });
+    res.json({message: "Login successful",token,role: user.role,user: {id: user._id,name: user.name,email: user.email,},});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Login failed' });
