@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 export default function Register() {
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -61,17 +63,23 @@ export default function Register() {
     }
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/register', {
+      const res = await axios.post(`http://localhost:${PORT}/api/auth/register`, {
         name,
         email,
         password,
         role,
+      }, {
+        withCredentials: true 
       });
 
       const { token, role: userRole } = res.data;
 
       localStorage.setItem('token', token);
       localStorage.setItem('role', userRole);
+
+      console.log('Registration successful:', res.data);
+      console.log('Token:', token);
+      console.log('Role:', userRole);
 
       if (userRole === 'admin') navigate('/admin');
       else if (userRole === 'teacher') navigate('/teacher');
