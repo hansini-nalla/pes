@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { User } from "../models/User.js";
+import { User } from "../models/User.ts";
 
 
 export const authMiddleware = async (req: any, res: Response, next: NextFunction): Promise<void> => {
@@ -16,7 +16,7 @@ export const authMiddleware = async (req: any, res: Response, next: NextFunction
     req.user = await User.findById(decoded.id);
     
     if (!req.user) {
-      return res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "User not found" });
     }
    
     next();
