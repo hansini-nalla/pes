@@ -10,8 +10,8 @@ import {
   deleteBatch,
 } from "../../controllers/admin/course.controller.ts";
 
-import { authMiddleware } from "../../middlewares/authMiddleware.js";      
-import { authorizeRoles } from "../../middlewares/authorizeRoles.js";      
+import { authMiddleware } from "../../middlewares/authMiddleware.ts";      
+import { authorizeRoles } from "../../middlewares/authorizeRoles.ts";      
 
 const router = express.Router();
 
