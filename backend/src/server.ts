@@ -8,9 +8,16 @@ import "./models/Exam.ts";
 import "./models/User.ts";
 import "./models/Flag.ts"; // Ensure Flag model is imported
 import "./jobs/evaluationReminder.job.ts";
-import authRoutes from "./routes/authorization/auth.routes.ts"; // Keep this line
-import adminroutes from './routes/admin/admin.routes.ts'; // Add admin routes
+
+import authRoutes from './routes/authorization/auth.routes.ts';
+import adminroutes from './routes/admin/admin.routes.ts';
+import adminstudentroutes from './routes/admin/student_admin.routes.ts';
+import adminteachroutes from './routes/admin/teacher.routes.ts';
 import cors from 'cors';
+import dotenv from "dotenv";
+dotenv.config();
+
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,10 +45,15 @@ app.use(express.json());
 connectDB();
 
 // Routes
-app.use("/api/admin", adminroutes); // Keep admin route
+
+app.use("/api/admin",adminroutes);
+app.use("/api/admin/student",adminstudentroutes);
+app.use("/api/admin/teachers",adminteachroutes);
 app.use("/api/student", studentRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/ta", taRoutes); // Keep TA route
+app.use('/api/auth', authRoutes);
+app.use('/api/ta', taRoutes); 
+// Add TA routes
+
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

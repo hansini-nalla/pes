@@ -6,9 +6,13 @@ import jwt from "jsonwebtoken";
 
 
 
+
 // Add a new course
 export const addCourse = async (req: Request, res: Response): Promise<void> => {
   try {
+   // console.log(req);
+    console.log(req.body);
+
     const { name, code } = req.body;
 
     const existing = await Course.findOne({ code });
@@ -20,6 +24,7 @@ export const addCourse = async (req: Request, res: Response): Promise<void> => {
     const course = await Course.create({ name, code });
     res.status(201).json(course);
   } catch (err) {
+    console.log(err);
     res.status(500).json({ message: "Failed to add course", error: err });
   }
 };
@@ -79,7 +84,7 @@ export const getCourseById = async (req: Request, res: Response) => {
 export const createBatch = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, courseId, students } = req.body;
-
+    console.log(courseId);
     const course = await Course.findById(courseId);
     if (!course) {
       res.status(404).json({ message: "Course not found" });

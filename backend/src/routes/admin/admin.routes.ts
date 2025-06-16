@@ -17,20 +17,22 @@ const router = express.Router();
 
 
 //kept few middleware in comments for testing purpose
+
 //Course operations
 router.post(
   "/courses",
-  //authMiddleware,
-  //authorizeRoles("admin"),
+  authMiddleware,
+  authorizeRoles("admin"),
   addCourse
 );
 
 router.put(
   "/courses/:courseId",
-  //authMiddleware,
-  //authorizeRoles("admin"),
+  authMiddleware,
+  authorizeRoles("admin"),
   updateCourse
 );
+
 
 router.delete(
   "/courses/:courseId",
@@ -39,13 +41,15 @@ router.delete(
   deleteCourse
 );
 
+
 //Batch operations
 router.post(
   "/batches",
-  //authMiddleware,
-  //authorizeRoles("admin"),
+  authMiddleware,
+  authorizeRoles("admin"),
   createBatch
 );
+
 
 router.put(
   "/batches/:batchId",
@@ -53,6 +57,7 @@ router.put(
   authorizeRoles("admin"),
   updateBatch
 );
+
 
 router.delete(
   "/batches/:batchId",
