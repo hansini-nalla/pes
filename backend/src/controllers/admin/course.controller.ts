@@ -77,6 +77,30 @@ export const getCourseById = async (req: Request, res: Response) => {
   course ? res.json(course) : res.status(404).json({ message: 'Course not found' });
 };
 
+export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const batches = await Batch.find().populate('course', 'code name'); 
+    console.log("All batches:", batches.map(b => ({ id: b._id, name: b.name })));
+    res.json(batches);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to retrieve batches', error: err });
+  }
+};
+export const getBatchById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    console.log("Searching for batch with ID:", req.params.id);
+    const batch = await Batch.findById(req.params.id).populate('course', 'code name');
+    console.log("Batch found:", batch);
+
+    if (batch) {
+      res.json(batch);
+    } else {
+      res.status(404).json({ message: 'Batch not found' });
+    }
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to retrieve batch', error: err });
+  }
+};
 
 
 

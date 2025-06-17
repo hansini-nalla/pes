@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import catchAsync from '../../utils/catchAsync.ts';
-import { authMiddleware } from "../../middlewares/authMiddleware.js";      
-import { authorizeRoles } from "../../middlewares/authorizeRoles.js";     
+import { authMiddleware } from "../../middlewares/authMiddleware.ts";      
+import { authorizeRoles } from "../../middlewares/authorizeRoles.ts";     
 
 import {
   getAllStudents,
