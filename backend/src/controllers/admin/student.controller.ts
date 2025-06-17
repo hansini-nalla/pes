@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {User} from '../../models/User.ts';
 import bcrypt from 'bcryptjs';
 
+
 export const getAllStudents = async (_req: Request, res: Response) => {
   try {
     const students = await User.find({ role: 'student' });

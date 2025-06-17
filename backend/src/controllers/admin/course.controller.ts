@@ -10,8 +10,7 @@ import jwt from "jsonwebtoken";
 // Add a new course
 export const addCourse = async (req: Request, res: Response): Promise<void> => {
   try {
-   // console.log(req);
-    console.log(req.body);
+   
 
     const { name, code } = req.body;
 
@@ -76,7 +75,7 @@ export const getCourseById = async (req: Request, res: Response) => {
   console.log("Course found:", course);
   course ? res.json(course) : res.status(404).json({ message: 'Course not found' });
 };
-
+//get all batches
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
     const batches = await Batch.find().populate('course', 'code name'); 
@@ -86,6 +85,7 @@ export const getAllBatches = async (_req: Request, res: Response): Promise<void>
     res.status(500).json({ message: 'Failed to retrieve batches', error: err });
   }
 };
+//get batchId
 export const getBatchById = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("Searching for batch with ID:", req.params.id);
