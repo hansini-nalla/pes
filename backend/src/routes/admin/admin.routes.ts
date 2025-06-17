@@ -5,6 +5,10 @@ import {
   addCourse,
   updateCourse,
   deleteCourse,
+  getAllCourses,
+  getCourseById,
+  getAllBatches,
+  getBatchById,
   createBatch,
   updateBatch,
   deleteBatch,
@@ -40,6 +44,10 @@ router.delete(
   authorizeRoles("admin"),
   deleteCourse
 );
+router.get('/courses/',authMiddleware,
+  authorizeRoles("admin"), getAllCourses);
+router.get('/courses/:id',authMiddleware,
+  authorizeRoles("admin"), getCourseById);
 
 
 //Batch operations
@@ -65,5 +73,9 @@ router.delete(
   authorizeRoles("admin"),
   deleteBatch
 );
+router.get('/batches/',authMiddleware,
+  authorizeRoles("admin"), getAllBatches);
+router.get('/batches/:id',authMiddleware,
+  authorizeRoles("admin"), getBatchById);
 
 export default router;
