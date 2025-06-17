@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { User } from "../../models/User.ts";
 import { Course } from "../../models/Course.ts";
-import { Batch } from "../../models/Batch.js";
+import { Batch } from "../../models/Batch.ts";
 import jwt from "jsonwebtoken";
 
 
