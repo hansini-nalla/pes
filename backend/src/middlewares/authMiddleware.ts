@@ -22,7 +22,7 @@ export const authMiddleware = async (req: any, res: Response, next: NextFunction
       res.status(404).json({ message: "User not found" });
 
       return;
-   
+    }
     next();
   } catch (err) {
     console.log(err);
