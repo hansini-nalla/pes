@@ -1,5 +1,7 @@
 import { useState,useEffect } from 'react';
 import './StudentDashboard.css';
+import ProfileSection from '../components/student/ProfileSection';
+import ViewMarks from '../components/student/ViewMarks';
 
 const menuItems = [
   { label: 'Dashboard' },
@@ -78,14 +80,7 @@ export default function StudentDashboard() {
         );
       case 'View Marks':
         return (
-          <div className="card">
-            <h2>Marks Overview</h2>
-            <ul>
-              <li>AI & ML - 89/100</li>
-              <li>Web Dev - 92/100</li>
-              <li>DSA - 85/100</li>
-            </ul>
-          </div>
+          <ViewMarks />
         );
       case 'Raise Ticket':
         return (
@@ -98,12 +93,7 @@ export default function StudentDashboard() {
         );
       case 'Profile':
         return (
-          <div className="card">
-            <h2>Your Profile</h2>
-            <p>Name: Jahnavi</p>
-            <p>Roll No: 21AIML1234</p>
-            <p>Branch: AIML</p>
-          </div>
+          <ProfileSection />
         );
       case 'Logout':
         return (
