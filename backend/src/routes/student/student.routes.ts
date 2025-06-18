@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { getStudentById } from '../../controllers/student/student.controller.ts';
+import { getStudentProfile } from '../../controllers/student/student.controller.ts';
 import { getStudentExams } from '../../controllers/student/exam.controller.ts';
 import { submitEvaluation } from '../../controllers/student/submitEvaluation.controller.ts';
 import { getPendingEvaluations } from '../../controllers/student/getPendingEvaluations.controller.ts';
@@ -13,7 +13,7 @@ import { authMiddleware } from '../../middlewares/authMiddleware.ts';
 const router = Router();
 const upload = multer();
 
-router.get('/:id', authMiddleware, getStudentById);
+router.get('/profile', authMiddleware, getStudentProfile);
 router.get('/exams', getStudentExams);
 router.post('/evaluate', submitEvaluation);
 router.get('/pending-evaluations', getPendingEvaluations);

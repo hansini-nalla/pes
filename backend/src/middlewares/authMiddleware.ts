@@ -28,7 +28,7 @@ export const authMiddleware = async (
       return;
     }
 
-    req.user = user; // ✅ Only set if user found
+    req.user = user; 
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid token" });
