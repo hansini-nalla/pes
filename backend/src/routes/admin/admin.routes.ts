@@ -50,7 +50,7 @@ router.get('/courses/:id',authMiddleware,
   authorizeRoles("admin"), getCourseById);
 
 
-//Batch operations
+//Batch operations (routes for batches)
 router.post(
   "/batches",
   authMiddleware,
