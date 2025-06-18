@@ -1,5 +1,6 @@
 import { useState,useEffect } from 'react';
 import './StudentDashboard.css';
+import ProfileSection from '../components/student/ProfileSection';
 
 const menuItems = [
   { label: 'Dashboard' },
@@ -98,12 +99,7 @@ export default function StudentDashboard() {
         );
       case 'Profile':
         return (
-          <div className="card">
-            <h2>Your Profile</h2>
-            <p>Name: Jahnavi</p>
-            <p>Roll No: 21AIML1234</p>
-            <p>Branch: AIML</p>
-          </div>
+          <ProfileSection />
         );
       case 'Logout':
         return (
