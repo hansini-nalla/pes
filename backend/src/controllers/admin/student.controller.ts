@@ -64,6 +64,7 @@ export const updateStudent = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to update student', error });
   }
 };
+
 //Delete a Student
 export const deleteStudent = async (req: Request, res: Response) => {
   try {
