@@ -14,6 +14,8 @@ import adminroutes from './routes/admin/admin.routes.ts';
 import adminstudentroutes from './routes/admin/student_admin.routes.ts';
 import adminteachroutes from './routes/admin/teacher.routes.ts';
 import cors from 'cors';
+
+// Load environment variables from the .env file into process.env
 import dotenv from "dotenv";
 dotenv.config();
 
