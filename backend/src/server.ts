@@ -10,9 +10,27 @@ import "./models/Flag.ts"; // Ensure Flag model is imported
 import "./jobs/evaluationReminder.job.ts";
 import authRoutes from "./routes/authorization/auth.routes.ts"; // Keep this line
 import adminroutes from './routes/admin/admin.routes.ts'; // Add admin routes
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+const corsOptions = {
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+  } else {
+    next();
+  }
+});
 
 app.use(express.json());
 

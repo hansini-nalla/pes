@@ -10,9 +10,11 @@ Peer Evaluation System is an open-source web application currently in developmen
    ```bash
    cd backend
 
-2. Create a `.env` file and define the following environment variable:
+2. Create a `.env` file and define the following environment variables:
    ```env
    MONGO_URI=your_mongodb_connection_string
+   JWT_SECRET=your_JWT_key
+   PORT=your_port_number # Omit this line to use default
    ```
 
 3. Install dependencies:
@@ -22,7 +24,7 @@ Peer Evaluation System is an open-source web application currently in developmen
 
 4. Start the backend server:
    ```bash
-   npm start
+   npm run dev
    ```
 
 > The backend runs on **port 5000** by default.
@@ -41,6 +43,11 @@ For details about student-related API endpoints, check:
 1. Navigate to the frontend folder:
    ```bash
    cd frontend
+   ```
+
+2. Create a `.env` file and define the following environment variables:
+   ```env
+   VITE_BACKEND_PORT= your_port_number #You need this incase you used a custom backend port.
    ```
 
 2. Install dependencies:
