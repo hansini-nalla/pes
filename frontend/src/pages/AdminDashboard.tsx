@@ -1,8 +1,8 @@
 import { useState,useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaChalkboardTeacher, FaBook, FaUserGraduate, FaUserShield, FaBoxes, FaHome } from 'react-icons/fa';
+import { FaChalkboardTeacher, FaBook, FaUserGraduate,  FaBoxes, FaHome } from 'react-icons/fa';
 
-type Tab = 'home' | 'course' | 'batch' | 'role';
+type Tab = 'home' | 'course' | 'batch' | 'role' | 'student' | 'teacher';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<Tab>('home');
@@ -37,110 +37,276 @@ const AdminDashboard = () => {
       case 'home':
         return (
           <div className="p-6">
-            <h1 className="text-2xl font-bold text-center mb-8">Welcome to the Admin Dashboard</h1>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-6 rounded-2xl shadow-md text-center">
-                <FaChalkboardTeacher size={36} className="mx-auto mb-2" />
-                <h2 className="text-xl font-semibold">Teachers</h2>
-                <p className="text-lg">2</p>
-              </div>
-              <div className="bg-gradient-to-r from-green-500 to-emerald-700 text-white p-6 rounded-2xl shadow-md text-center">
-                <FaBook size={36} className="mx-auto mb-2" />
-                <h2 className="text-xl font-semibold">Courses</h2>
-                <p className="text-lg">2</p>
-              </div>
-              <div className="bg-gradient-to-r from-sky-500 to-cyan-700 text-white p-6 rounded-2xl shadow-md text-center">
-                <FaUserGraduate size={36} className="mx-auto mb-2" />
-                <h2 className="text-xl font-semibold">Students</h2>
-                <p className="text-lg">40</p>
-              </div>
-            </div>
-          </div>
+  <h1 className="text-2xl font-bold text-center mb-8">Welcome to the Admin Dashboard</h1>
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div
+      onClick={() => setActiveTab('teacher')}
+      className="cursor-pointer bg-indigo-600 text-white p-4 rounded-lg shadow-md text-center hover:bg-indigo-700 transition"
+    >
+      <FaChalkboardTeacher size={28} className="mx-auto mb-1" />
+      <h2 className="text-lg font-semibold">Teachers</h2>
+      <p className="text-sm">2</p>
+    </div>
+
+    <div
+      onClick={() => setActiveTab('course')}
+      className="cursor-pointer bg-green-600 text-white p-4 rounded-lg shadow-md text-center hover:bg-green-700 transition"
+    >
+      <FaBook size={28} className="mx-auto mb-1" />
+      <h2 className="text-lg font-semibold">Courses</h2>
+      <p className="text-sm">2</p>
+    </div>
+
+    <div
+      onClick={() => setActiveTab('student')}
+      className="cursor-pointer bg-sky-600 text-white p-4 rounded-lg shadow-md text-center hover:bg-sky-700 transition"
+    >
+      <FaUserGraduate size={28} className="mx-auto mb-1" />
+      <h2 className="text-lg font-semibold">Students</h2>
+      <p className="text-sm">40</p>
+    </div>
+  </div>
+</div>
+
         );
        
-      case 'course':
-        return (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h2 className="text-xl font-bold mb-4">Add New Course</h2>
-              <input type="text" placeholder="Enter course ID" className="input mb-2 w-full" />
-              <input type="text" placeholder="Enter course name" className="input mb-2 w-full" />
-              <div className="flex items-center gap-2 mb-2">
-                <input type="checkbox" />
-                <label>Open Course</label>
-              </div>
-              <input type="date" className="input mb-2 w-full" placeholder="Course Start Date" />
-              <input type="date" className="input mb-4 w-full" placeholder="Course End Date" />
-              <button className="bg-purple-700 text-white py-2 px-4 rounded">Add Course</button>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold mb-4">Delete Course</h2>
-              <select className="input mb-4 w-full">
-                <option>Select Course</option>
-              </select>
-              <button className="bg-purple-700 text-white py-2 px-4 rounded">Delete Course</button>
-            </div>
-          </div>
-        );
+      case "course":
+  return (
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Add Course */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Add New Course</h2>
+        <input
+          type="text"
+          placeholder="Enter Course Name"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="text"
+          placeholder="Enter Course Code"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          Add Course
+        </button>
+      </div>
 
-      case 'batch':
-        return (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h2 className="text-xl font-bold mb-4">Add New Batch</h2>
-              <input type="text" placeholder="Enter batch ID" className="input mb-2 w-full" />
-              <select className="input mb-2 w-full">
-                <option>Select Instructor</option>
-              </select>
-              <select className="input mb-4 w-full">
-                <option>Select Course</option>
-              </select>
-              <button className="bg-purple-700 text-white py-2 px-4 rounded">Add Batch</button>
-            </div>
-            <div>
-              <h2 className="text-xl font-bold mb-4">Delete Batch</h2>
-              <select className="input mb-4 w-full">
-                <option>Select Batch</option>
-              </select>
-              <button className="bg-purple-700 text-white py-2 px-4 rounded">Delete Batch</button>
-            </div>
-          </div>
-        );
+      {/* Delete Course */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Remove Course</h2>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Enter Course ID
+        </label>
+        <input
+          type="text"
+          placeholder="e.g., CSE101"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button
+          onClick={() => alert("Course deleted successfully.")}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Remove Course
+        </button>
+      </div>
+    </div>
+  );
 
-        case 'role':
-        return (
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-6">Role Manager</h2>
-            <p className="mb-6 text-gray-700">
-              Update the role of a user by providing their email ID and selecting a role.
-            </p>
+case "batch":
+  return (
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Add New Batch */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Add New Batch</h2>
+        <input
+          type="text"
+          placeholder="Enter Batch ID"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="text"
+          placeholder="Assign Course ID"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="text"
+          placeholder="Assign Instructor ID"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          Add Batch
+        </button>
+      </div>
 
-            <div className="max-w-md space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Email ID</label>
-                <input
-                  type="email"
-                  placeholder="Enter user email ID"
-                  className="w-full p-2 border border-gray-300 rounded"
-                />
-              </div>
+      {/* Remove Batch */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Remove Batch</h2>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Enter Batch ID
+        </label>
+        <input
+          type="text"
+          placeholder="e.g., B001"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button
+          onClick={() => alert("Batch deleted successfully.")}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Remove Batch
+        </button>
+      </div>
+    </div>
+  );
+  case "teacher":
+  return (
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Add New Teacher */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Add New Teacher</h2>
+        <input
+          type="text"
+          placeholder="Enter Teacher Name"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="email"
+          placeholder="Enter Teacher Email"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          Add Teacher
+        </button>
+      </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Select Role</label>
-                <select className="w-full p-2 border border-gray-300 rounded">
-                  <option>Admin</option>
-                  <option>Teacher</option>
-                  <option>Student</option>
-                  <option>TA</option>
-                </select>
-              </div>
+      {/* Remove Teacher */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Remove Teacher</h2>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Enter Teacher ID
+        </label>
+        <input
+          type="text"
+          placeholder="e.g., T001"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button
+          onClick={() => alert("Teacher deleted successfully.")}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Remove Teacher
+        </button>
+      </div>
 
-              <button className="bg-indigo-700 text-white px-4 py-2 rounded hover:bg-indigo-800">
-                Update Role
-              </button>
-            </div>
-          </div>
-        );
+      {/* Update Teacher */}
+      <div className="bg-white p-6 rounded-lg shadow col-span-full">
+        <h2 className="text-xl font-bold mb-4">Update Teacher Details</h2>
+        <input
+          type="text"
+          placeholder="Teacher ID"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="text"
+          placeholder="Updated Name"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="email"
+          placeholder="Updated Email"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button
+          onClick={() => alert("Teacher updated successfully.")}
+          className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+        >
+          Update Teacher
+        </button>
+      </div>
+
+      {/* View All Teachers */}
+      <div className="bg-white p-6 rounded-lg shadow col-span-full">
+        <h2 className="text-xl font-bold mb-4">All Teachers</h2>
+        <p className="text-sm text-gray-600">List of teachers will appear here after integration.</p>
+      </div>
+    </div>
+  );
+
+
+case "student":
+  return (
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Add New Student */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Add New Student</h2>
+        
+        <input
+          type="text"
+          placeholder="Enter Student Name"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="email"
+          placeholder="Enter Student Email"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          Add Student
+        </button>
+      </div>
+
+      {/* Remove Student */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-bold mb-4">Remove Student</h2>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Enter Student ID
+        </label>
+        <input
+          type="text"
+          placeholder="e.g., S001"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button
+          onClick={() => alert("Student deleted successfully.")}
+          className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+        >
+          Remove Student
+        </button>
+      </div>
+
+      {/* Update Student */}
+      <div className="bg-white p-6 rounded-lg shadow col-span-full">
+        <h2 className="text-xl font-bold mb-4">Update Student Details</h2>
+        <input
+          type="text"
+          placeholder="Student ID"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="text"
+          placeholder="Updated Name"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-2"
+        />
+        <input
+          type="email"
+          placeholder="Updated Email"
+          className="border border-gray-300 rounded px-3 py-2 w-full mb-4"
+        />
+        <button
+          onClick={() => alert("Student updated successfully.")}
+          className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+        >
+          Update Student
+        </button>
+      </div>
+
+      {/* View All Students */}
+      <div className="bg-white p-6 rounded-lg shadow col-span-full">
+        <h2 className="text-xl font-bold mb-4">All Students</h2>
+        <p className="text-sm text-gray-600">List of students will appear here after integration.</p>
+      </div>
+    </div>
+  );
     }
   };
 
@@ -150,16 +316,20 @@ const AdminDashboard = () => {
         <h1 className="text-2xl font-bold mb-4">Admin Panel</h1>
         <button onClick={() => setActiveTab('home')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
           <FaHome /> Home
-        </button>
-        <button onClick={() => setActiveTab('role')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
-          <FaUserShield /> Role Manager
-        </button>
+        </button> 
         <button onClick={() => setActiveTab('course')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
           <FaBook /> Course Manager
         </button>
         <button onClick={() => setActiveTab('batch')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
           <FaBoxes /> Batch Manager
         </button>
+        <button onClick={() => setActiveTab('teacher')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
+  <FaChalkboardTeacher /> Teacher Manager
+</button>
+<button onClick={() => setActiveTab('student')} className="flex items-center gap-2 hover:bg-indigo-800 px-3 py-2 rounded">
+  <FaUserGraduate /> Student Manager
+</button>
+
         {/*<button className="mt-10 text-red-300 hover:text-red-500"
         onClick={handleLogout}
         >Logout</button>*/}
