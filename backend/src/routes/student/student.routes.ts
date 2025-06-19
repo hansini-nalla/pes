@@ -21,7 +21,7 @@ router.get('/courses/:courseId/exams', authMiddleware, getStudentExamsByCourse);
 router.post('/evaluate', authMiddleware, submitEvaluation);
 router.get('/pending-evaluations', authMiddleware, getPendingEvaluations);
 router.get('/results', authMiddleware, getEvaluationResults);
-router.post('/submit-answer', upload.single('pdf'), submitAnswer);
+router.post('/submit-answer', authMiddleware,upload.single('pdf'), submitAnswer);
 router.get('/submissions', authMiddleware, getSubmissions);
 router.post('/flag-evaluation', authMiddleware, flagEvaluation);
 

@@ -22,12 +22,11 @@ export const authMiddleware = async (
   try {
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded._id || decoded.id);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
     }
-
     req.user = user; 
     next();
   } catch (err) {
