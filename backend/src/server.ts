@@ -13,11 +13,10 @@ import authRoutes from './routes/authorization/auth.routes.ts';
 import adminroutes from './routes/admin/admin.routes.ts';
 import adminstudentroutes from './routes/admin/student_admin.routes.ts';
 import adminteachroutes from './routes/admin/teacher.routes.ts';
+import dashboardRoutes from './routes/admin/dashboard.ts';
 import cors from 'cors';
 import dotenv from "dotenv";
 dotenv.config();
-
-
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,15 +44,13 @@ app.use(express.json());
 connectDB();
 
 // Routes
-
 app.use("/api/admin",adminroutes);
 app.use("/api/admin/student",adminstudentroutes);
 app.use("/api/admin/teachers",adminteachroutes);
 app.use("/api/student", studentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ta', taRoutes); 
-// Add TA routes
-
+app.use('/api/dashboard', dashboardRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

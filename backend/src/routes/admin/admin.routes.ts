@@ -1,16 +1,15 @@
 import express from "express";
 
 import {
-  
   addCourse,
-  updateCourse,
+  //updateCourse,
   deleteCourse,
   getAllCourses,
-  getCourseById,
+  //getCourseById,
   getAllBatches,
-  getBatchById,
+  //getBatchById,
   createBatch,
-  updateBatch,
+  //updateBatch,
   deleteBatch,
 } from "../../controllers/admin/course.controller.ts";
 
@@ -23,59 +22,17 @@ const router = express.Router();
 //kept few middleware in comments for testing purpose
 
 //Course operations
-router.post(
-  "/courses",
-  authMiddleware,
-  authorizeRoles("admin"),
-  addCourse
-);
-
-router.put(
-  "/courses/:courseId",
-  authMiddleware,
-  authorizeRoles("admin"),
-  updateCourse
-);
-
-
-router.delete(
-  "/courses/:courseId",
-  authMiddleware,
-  authorizeRoles("admin"),
-  deleteCourse
-);
-router.get('/courses/',authMiddleware,
-  authorizeRoles("admin"), getAllCourses);
-router.get('/courses/:id',authMiddleware,
-  authorizeRoles("admin"), getCourseById);
-
+router.post("/courses",authMiddleware,authorizeRoles("admin"),addCourse);
+//router.put("/courses/:courseId",authMiddleware,authorizeRoles("admin"),updateCourse);
+router.delete("/courses/code/:code",authMiddleware,authorizeRoles("admin"),deleteCourse);
+router.get('/courses/',authMiddleware,authorizeRoles("admin"), getAllCourses);
+//router.get('/courses/:id',authMiddleware,authorizeRoles("admin"), getCourseById);
 
 //Batch operations
-router.post(
-  "/batches",
-  authMiddleware,
-  authorizeRoles("admin"),
-  createBatch
-);
-
-
-router.put(
-  "/batches/:batchId",
-  authMiddleware,
-  authorizeRoles("admin"),
-  updateBatch
-);
-
-
-router.delete(
-  "/batches/:batchId",
-  authMiddleware,
-  authorizeRoles("admin"),
-  deleteBatch
-);
-router.get('/batches/',authMiddleware,
-  authorizeRoles("admin"), getAllBatches);
-router.get('/batches/:id',authMiddleware,
-  authorizeRoles("admin"), getBatchById);
+router.post("/batches",authMiddleware,authorizeRoles("admin"),createBatch);
+//router.put("/batches/:batchId",authMiddleware,authorizeRoles("admin"),updateBatch);
+router.delete("/batches/name/:name",authMiddleware,authorizeRoles("admin"),deleteBatch);
+router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
+//router.get('/batches/:id',authMiddleware,authorizeRoles("admin"), getBatchById);
 
 export default router;
