@@ -29,7 +29,7 @@ const CourseList = ({ onSelectCourse }: Props) => {
 
   return (
     <div className="cards-grid">
-      {courses.map((course) => (
+      {courses && courses.map((course) => (
         <div key={course._id} className="card">
           <h3>{course.name}</h3>
           <p>{course.code}</p>
