@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import {User} from '../../models/User.ts';
 import bcrypt from 'bcryptjs';
 
-
+//Get all Students
 export const getAllStudents = async (_req: Request, res: Response) => {
   try {
     const students = await User.find({ role: 'student' });
@@ -12,6 +12,7 @@ export const getAllStudents = async (_req: Request, res: Response) => {
   }
 };
 
+// Get student by id
 export const getStudentById = async (req: Request, res: Response) => {
   try {
     const student = await User.findOne({ _id: req.params.id, role: 'student' });
@@ -22,6 +23,7 @@ export const getStudentById = async (req: Request, res: Response) => {
   }
 };
 
+// Function to create a student
 export const createStudent = async (req: Request, res: Response) => {
   try {
     const { name, email, password, enrolledCourses = [], reputationScore = 0 } = req.body;
@@ -47,6 +49,7 @@ export const createStudent = async (req: Request, res: Response) => {
   }
 };
 
+//Update a student
 export const updateStudent = async (req: Request, res: Response) => {
   try {
     const updatedStudent = await User.findOneAndUpdate(
@@ -61,7 +64,7 @@ export const updateStudent = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to update student', error });
   }
 };
-
+//Delete a Student
 export const deleteStudent = async (req: Request, res: Response) => {
   try {
     const deletedStudent = await User.findOneAndDelete({ _id: req.params.id, role: 'student' });
