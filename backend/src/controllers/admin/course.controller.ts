@@ -1,11 +1,8 @@
 import { Request, Response } from "express";
-import { User } from "../../models/User.ts";
+//import { User } from "../../models/User.ts";
 import { Course } from "../../models/Course.ts";
 import { Batch } from "../../models/Batch.ts";
-import jwt from "jsonwebtoken";
-
-
-
+//import jwt from "jsonwebtoken";
 
 // Add a new course
 export const addCourse = async (req: Request, res: Response): Promise<void> => {
@@ -29,7 +26,7 @@ export const addCourse = async (req: Request, res: Response): Promise<void> => {
 };
 
 // Update an existing course
-export const updateCourse = async (req: Request, res: Response): Promise<void> => {
+/*export const updateCourse = async (req: Request, res: Response): Promise<void> => {
   try {
     const { courseId } = req.params;
     const updated = await Course.findByIdAndUpdate(courseId, req.body, { new: true });
@@ -43,13 +40,15 @@ export const updateCourse = async (req: Request, res: Response): Promise<void> =
   } catch (err) {
     res.status(500).json({ message: "Failed to update course", error: err });
   }
-};
+};*/
 
 // Delete a course
 export const deleteCourse = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { courseId } = req.params;
-    const deleted = await Course.findByIdAndDelete(courseId);
+    const { code } = req.params;
+    console.log("Trying to delete course with code:", code);
+
+    const deleted = await Course.findOneAndDelete({ code });
 
     if (!deleted) {
       res.status(404).json({ message: "Course not found" });
@@ -69,13 +68,13 @@ export const getAllCourses = async (_req: Request, res: Response) => {
 };
 
 // Get course by ID
-export const getCourseById = async (req: Request, res: Response) => {
+/*export const getCourseById = async (req: Request, res: Response) => {
   console.log("Searching for course with ID:", req.params.id);
   const course = await Course.findById(req.params.id);
   console.log("Course found:", course);
   course ? res.json(course) : res.status(404).json({ message: 'Course not found' });
-};
-//get all batches
+};*/
+
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
     const batches = await Batch.find().populate('course', 'code name'); 
@@ -85,8 +84,7 @@ export const getAllBatches = async (_req: Request, res: Response): Promise<void>
     res.status(500).json({ message: 'Failed to retrieve batches', error: err });
   }
 };
-//get batchId
-export const getBatchById = async (req: Request, res: Response): Promise<void> => {
+/*export const getBatchById = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("Searching for batch with ID:", req.params.id);
     const batch = await Batch.findById(req.params.id).populate('course', 'code name');
@@ -100,9 +98,7 @@ export const getBatchById = async (req: Request, res: Response): Promise<void> =
   } catch (err) {
     res.status(500).json({ message: 'Failed to retrieve batch', error: err });
   }
-};
-
-
+};*/
 
 // Create a batch for a course
 export const createBatch = async (req: Request, res: Response): Promise<void> => {
@@ -123,7 +119,7 @@ export const createBatch = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Update a batch
-export const updateBatch = async (req: Request, res: Response): Promise<void> => {
+/*export const updateBatch = async (req: Request, res: Response): Promise<void> => {
   try {
     const { batchId } = req.params;
     const updated = await Batch.findByIdAndUpdate(batchId, req.body, { new: true });
@@ -137,13 +133,15 @@ export const updateBatch = async (req: Request, res: Response): Promise<void> =>
   } catch (err) {
     res.status(500).json({ message: "Failed to update batch", error: err });
   }
-};
+};*/
 
 // Delete a batch
 export const deleteBatch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { batchId } = req.params;
-    const deleted = await Batch.findByIdAndDelete(batchId);
+    const { name } = req.params;
+    console.log("Trying to delete batch by name:", name);
+
+    const deleted = await Batch.findOneAndDelete({ name });
 
     if (!deleted) {
       res.status(404).json({ message: "Batch not found" });
