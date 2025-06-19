@@ -1,6 +1,8 @@
 import { useState,useEffect } from 'react';
 import './StudentDashboard.css';
 import ProfileSection from '../components/student/ProfileSection';
+import CourseList from '../components/student/CourseList';
+import CourseExams from '../components/student/CourseExams';
 import ViewMarks from '../components/student/ViewMarks';
 
 const menuItems = [
@@ -14,6 +16,7 @@ const menuItems = [
 ];
 
 export default function StudentDashboard() {
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -51,24 +54,13 @@ export default function StudentDashboard() {
           </div>
         );
       case 'Courses':
-        return (
-          <div className="cards-grid">
-            <div className="card">
-              <h3>AI & Machine Learning</h3>
-              <p> Test 1 Due:10:10AM</p>
-              <button className="btn">Submit Answers</button>
-            </div>
-            <div className="card">
-              <h3>Web Development</h3>
-              <p>Test 4 Due:15:00</p>
-              <button className="btn">Submit Answers</button>
-            </div>
-            <div className="card">
-              <h3>Data Structures</h3>
-              <p>Test 2 Due:11:30AM</p>
-              <button className="btn">Submit Answers</button>
-            </div>
-          </div>
+        return selectedCourseId ? (
+          <CourseExams
+            courseId={selectedCourseId}
+            onBack={() => setSelectedCourseId(null)}
+          />
+        ) : (
+          <CourseList onSelectCourse={(id) => setSelectedCourseId(id)} />
         );
       case 'Peer Evaluation':
         return (
