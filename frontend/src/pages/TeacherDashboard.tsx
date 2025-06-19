@@ -1,224 +1,205 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import type { JSX } from 'react';
 import {
   FiMenu, FiLogOut, FiHome,
-  FiBook, FiEdit, FiShield, FiUsers,
-  FiSend, FiEdit as FiEdit2, FiDownload, FiTrash2, FiUserPlus, FiUpload
+  FiBook, FiUsers, FiEdit, FiShield
 } from 'react-icons/fi';
+//import axios from 'axios';
 
-// Types
-type Student = { name: string; email: string; };
-type Exam = {
-  name: string;
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
+// Types for backend data
+interface ExamRecord {
   course: string;
   batch: string;
   date: string;
-  time: string;
-  numQuestions: number;
-  duration: number;
-  totalMarks: number;
-  k: number;
-  totalStudents: number;
-  solutions: string;
-};
-type CourseBatch = { course: string; batch: string };
-
-// Sample/mock data
-const sampleCourses = ["Artificial Intelligence", "Data Structures"];
-const sampleBatches = ["101", "103"];
-const sampleCourseBatchList: CourseBatch[] = [
-  { course: "Artificial Intelligence", batch: "101" },
-  { course: "Artificial Intelligence", batch: "103" },
-  { course: "Data Structures", batch: "101" }
-];
-const sampleExams: Exam[] = [
-  {
-    name: "Quiz_1",
-    course: "Artificial Intelligence",
-    batch: "101",
-    date: "2025-06-17",
-    time: "19:00",
-    numQuestions: 3,
-    duration: 30,
-    totalMarks: 30,
-    k: 3,
-    totalStudents: 20,
-    solutions: "",
-  },
-  {
-    name: "Quiz_2",
-    course: "Data Structures",
-    batch: "103",
-    date: "2025-06-18",
-    time: "10:00",
-    numQuestions: 4,
-    duration: 40,
-    totalMarks: 40,
-    k: 2,
-    totalStudents: 15,
-    solutions: "",
-  }
-];
-
-// Simulate login user info (replace with real login data)
-const loginUser = {
-  name: "Vinit Menaria",
-  email: "vinit.menaria@email.com"
+}
+/*interface SummaryData {
+  courses: number;
+  batches: number;
+  exams: number;
+}
+*/
+type CourseBatchItem = {
+  course: string;
+  batch: string;
 };
 
-const TeacherDashboard: React.FC = () => {
-  const [showSidebar, setShowSidebar] = useState(true);
+const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
+  const token = localStorage.getItem('token');
+
+  const [counts, setCounts] = useState({ courses: 0, batches: 0, exams: 0 });
+  // Data from backend (simulate with state/fetch)
+  const [courseBatchList, setCourseBatchList] = useState<CourseBatchItem[]>([]);
+  const [examRecords, setExamRecords] = useState<ExamRecord[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [batches, setBatches] = useState<any[]>([]);
+  const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
+
+  // UI state
   const [activePage, setActivePage] = useState("home");
-  const [selectedCourse, setSelectedCourse] = useState(sampleCourses[0]);
-  const [selectedBatch, setSelectedBatch] = useState(sampleBatches[0]);
-  const [showModal, setShowModal] = useState(false);
-  const [exams, setExams] = useState<Exam[]>(sampleExams);
-  const [showSendDialog, setShowSendDialog] = useState(false);
-  const [showExamDialog, setShowExamDialog] = useState(false);
-  const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
-
-  // Courses & Batches state
-  const [enrollments, setEnrollments] = useState<Record<string, Student[]>>({});
-
-  // Enroll modal state
-  const [showEnrollModal, setShowEnrollModal] = useState(false);
-  const [enrollCourse, setEnrollCourse] = useState("");
-  const [enrollBatch, setEnrollBatch] = useState("");
-  const [studentName, setStudentName] = useState("");
-  const [studentEmail, setStudentEmail] = useState("");
-  const [enrollSuccess, setEnrollSuccess] = useState(false);
-
-  // Modal form state
-  const [form, setForm] = useState<{
-    name: string;
-    course: string;
-    batch: string;
-    date: string;
-    time: string;
-    numQuestions: string;
-    duration: string;
-    totalMarks: string;
-    k: string;
-    solutions: File | undefined;
-  }>({
-    name: "",
-    course: sampleCourses[0],
-    batch: sampleBatches[0],
-    date: "",
-    time: "",
-    numQuestions: "",
-    duration: "",
-    totalMarks: "",
-    k: "",
-    solutions: undefined,
-  });
-
-  // Role management state
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedBatch, setSelectedBatch] = useState("");
+  const [showSidebar, setShowSidebar] = useState(true);
+  const [showExamMsg] = useState(false);
+  const [showRoleMsg, setShowRoleMsg] = useState(false);
+  const [showProfileMsg] = useState(false);
+  //const [profileSaved, setProfileSaved] = useState(false);
+  const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [roleEmail, setRoleEmail] = useState("");
   const [roleType, setRoleType] = useState("Student");
+  const [logoutDialog, setLogoutDialog] = useState(false);
 
-  // Modal open handler
-  const openModal = () => {
-    setForm({
-      name: "",
-      course: selectedCourse,
-      batch: selectedBatch,
-      date: "",
-      time: "",
-      numQuestions: "",
-      duration: "",
-      totalMarks: "",
-      k: "",
-      solutions: undefined,
-    });
-    setShowModal(true);
-  };
+  // Validation errors for profile
+  //const [profileErrors, setProfileErrors] = useState<{ name?: string, email?: string }>({});
 
-  // Modal close handler
-  const closeModal = () => setShowModal(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Modal form change handler
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, files } = e.target as any;
-    setForm(prev => ({
-      ...prev,
-      [name]: files ? files[0] : value,
-    }));
-  };
-
-  // Modal form submit handler
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setExams(prev => [
-      ...prev,
-      {
-        name: form.name,
-        course: form.course,
-        batch: form.batch,
-        date: form.date,
-        time: form.time,
-        numQuestions: Number(form.numQuestions),
-        duration: Number(form.duration),
-        totalMarks: Number(form.totalMarks),
-        k: Number(form.k),
-        totalStudents: Math.floor(Math.random() * 30) + 10,
-        solutions: form.solutions ? (form.solutions as File).name : "",
+  useEffect(() => {
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
-    ]);
-    setShowModal(false);
-    setShowExamDialog(true);
-    setTimeout(() => setShowExamDialog(false), 1200);
-  };
+    }, [darkMode]);
 
-  // Enroll Student Modal handlers
-  const openEnrollModal = (course: string, batch: string) => {
-    setEnrollCourse(course);
-    setEnrollBatch(batch);
-    setStudentName("");
-    setStudentEmail("");
-    setShowEnrollModal(true);
-    setEnrollSuccess(false);
-  };
-  const closeEnrollModal = () => setShowEnrollModal(false);
+    const toggleDarkMode = () => {
+      setDarkMode(!darkMode);
+      document.documentElement.classList.toggle('dark');
+    };
+  
+  //Dashboard counts
+  useEffect(() => {
+      fetch(`http://localhost:${PORT}/api/dashboard/counts`)
+        .then(res => res.json())
+        .then(data => {
+          setCounts({
+            courses: data.courses,
+            batches: data.batches,
+            exams: data.exams,
+          });
+        })
+        .catch(err => console.error('Failed to fetch dashboard counts:', err));
+    }, []);
 
-  const handleEnroll = (e: React.FormEvent) => {
-    e.preventDefault();
-    const key = `${enrollCourse}_${enrollBatch}`;
-    setEnrollments(prev => ({
-      ...prev,
-      [key]: [...(prev[key] || []), { name: studentName, email: studentEmail }]
-    }));
-    setEnrollSuccess(true);
-    setTimeout(() => {
-      setShowEnrollModal(false);
-      setEnrollSuccess(false);
-    }, 1000);
-  };
+  // Fetch profile data
+  useEffect(() => {
+    fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Unauthorized');
+        return res.json();
+      })
+      .then((data: { name: string, email: string, role: string }) => {
+        setProfileData(data);
+        //setProfileSaved(!!data.name && !!data.email && !!data.role);
+      })
+      .catch(err => {
+        console.error('Failed to fetch profile:', err);
+      });
+  }, []);
 
-  // Download CSV for a course/batch (frontend only)
-  const downloadCSV = (course: string, batch: string) => {
-    const key = `${course}_${batch}`;
-    const students = enrollments[key] || [];
-    let csv = "Name,Email,Course,Batch\n";
-    students.forEach(s => {
-      csv += `"${s.name}","${s.email}","${course}","${batch}"\n`;
+  // Fetch batches when a course is selected
+  useEffect(() => {
+  fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      setCourseBatchList(data);
+    })
+    .catch((err) => {
+      console.error('Failed to fetch teacher courses:', err);
     });
-    if (students.length === 0) {
-      csv += "No students enrolled,,,\n";
-    }
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${course}_${batch}_students.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+}, []);
+
+  // Exam scheduling
+  
+      useEffect(() => {
+      fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          setCourses(data.map((d: any) => d.course));
+          setBatches(data.map((d: any) => d.batch));
+        });
+    }, []);
+
+    const fetchExamRecords = () => {
+      fetch(`http://localhost:${PORT}/api/teacher/exams`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then(res => res.json())
+        .then(data => setExamRecords(data));
+    };
+
+    useEffect(() => {
+      fetchExamRecords();
+    }, []);
+
+  
+  const handleExamSchedule = () => {
+    fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        courseId: selectedCourse,
+        batchId: selectedBatch,
+      }),
+    })
+      .then(res => res.json())
+      .then(() => {
+        setSelectedCourse('');
+        setSelectedBatch('');
+        fetchExamRecords(); // refresh
+      });
   };
 
-  // Profile icon SVG
+
+  // Role update
+  const fetchAllUsers = () => {
+      fetch(`http://localhost:${PORT}/api/teacher/users`)
+        .then(res => res.json())
+        .then(data => {
+          setAllUsers(data);
+        })
+        .catch(err => console.error('Failed to fetch users:', err));
+    };
+  useEffect(() => {
+      fetchAllUsers();
+    }, []);
+  const handleRoleUpdate = () => {
+      fetch(`http://localhost:${PORT}/api/teacher/update-role`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: roleEmail, role: roleType })
+      })
+        .then(() => {
+          setShowRoleMsg(true);
+          setTimeout(() => setShowRoleMsg(false), 1200); // fast hide
+          fetchAllUsers();
+          setRoleEmail('');
+          setRoleType('student');
+        });
+  };
+
+  // Profile icon SVG (solid avatar style)
   const ProfileSVG = () => (
     <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
       <circle cx="19" cy="19" r="19" fill="#57418d" />
@@ -227,17 +208,41 @@ const TeacherDashboard: React.FC = () => {
     </svg>
   );
 
-  // Home Page
-  const HomePage = (
+  // Dialog Box
+  const DialogBox = ({
+    show,
+    message,
+    children
+  }: { show: boolean, message: string, children?: React.ReactNode }) => {
+    if (!show) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+        <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
+          <div className="mb-2">
+            <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="28" fill="#6ddf99" />
+              <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">{message}</div>
+          {children}
+        </div>
+      </div>
+    );
+  };
+
+  // Main pages
+  const pages: Record<string, JSX.Element> = {
+    home: (
     <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
       <h1 className="text-4xl font-bold text-[#38365e] text-center mb-6">
         Welcome to Teacher Dashboard
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mt-6 w-full max-w-5xl">
         {[
-          { icon: FiBook, label: 'Courses', count: sampleCourses.length, color: 'bg-blue-600' },
-          { icon: FiUsers, label: 'Batches', count: sampleBatches.length, color: 'bg-green-600' },
-          { icon: FiEdit, label: 'Exams', count: exams.length, color: 'bg-red-600' },
+          { icon: FiBook, label: 'Courses', count: counts.courses, color: 'bg-blue-600' },
+          { icon: FiUsers, label: 'Batches', count: counts.batches, color: 'bg-green-600' },
+          { icon: FiEdit, label: 'Exams', count: counts.exams, color: 'bg-red-600' },
         ].map(c => (
           <div key={c.label} className={`${c.color} p-6 rounded-3xl text-white flex flex-col justify-center items-center h-40`}>
             <c.icon className="mb-2" size={40} />
@@ -247,495 +252,215 @@ const TeacherDashboard: React.FC = () => {
         ))}
       </div>
       <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
-        <button
-          onClick={() => setActivePage('courses')}
-          className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-        >
-          Manage Courses
-        </button>
-        <button
-          onClick={() => setActivePage('exams')}
-          className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-        >
-          Schedule Exams
-        </button>
-      </div>
-    </div>
-  );
-
-  // Manage Roles Page
-  const RolesPage = (
-    <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-      <h2 className="text-3xl font-bold text-[#38365e] text-center mb-8">Role Manager</h2>
-      <div className="w-full flex flex-col items-start px-6 max-w-xl">
-        <p className="mb-8 text-[#38365e] text-left">
-          Update the role of a user by providing their email ID and selecting a role.
-        </p>
-        <form
-          className="flex flex-col gap-6 w-full"
-          onSubmit={e => {
-            e.preventDefault();
-            setShowRoleDialog(true);
-            setTimeout(() => setShowRoleDialog(false), 1200);
-          }}
-        >
-          <div className="flex flex-col items-start gap-1 w-full">
-            <label className="text-[#38365e] font-semibold mb-1">Email ID</label>
-            <input
-              type="email"
-              placeholder="Enter user email ID"
-              className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full"
-              value={roleEmail}
-              onChange={e => setRoleEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="flex flex-col items-start gap-1 w-full">
-            <label className="text-[#38365e] font-semibold mb-1">Select Role</label>
-            <select
-              className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full"
-              value={roleType}
-              onChange={e => setRoleType(e.target.value)}
-            >
-              <option>Student</option>
-              <option>Teaching Assistant (TA)</option>
-            </select>
-          </div>
-          <button
-            type="submit"
-            className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c] mt-2"
-            style={{ minWidth: 140 }}
-          >
-            Update Role
-          </button>
-        </form>
-      </div>
-      {/* Role Updated Dialog */}
-      {showRoleDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px]">
-            <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-              <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div className="text-lg text-[#235d3a] font-semibold text-center mb-1 mt-2">
-              Role Updated Successfully!
+      <button
+        onClick={() => setActivePage('courses')}
+        className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
+      >
+        Manage Courses
+      </button>
+      <button
+        onClick={() => setActivePage('exams')}
+        className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
+      >
+        Schedule Exams
+      </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // Courses and Batches Page
-  const CoursesPage = (
-    <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-      <h2 className="text-3xl font-bold mb-10 text-[#38365e] text-center">Courses and Batches</h2>
-      <div className="w-full max-w-5xl">
-        <table className="w-full border-separate border-spacing-y-4">
-          <thead>
-            <tr>
-              <th className="bg-[#57418d] text-white py-3 px-6 rounded-l-2xl text-lg font-semibold text-center">
-                Course Name
-              </th>
-              <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
-                Batch Name
-              </th>
-              <th className="bg-[#57418d] text-white py-3 px-6 rounded-r-2xl text-lg font-semibold text-center">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {sampleCourseBatchList.length > 0 ? (
-              sampleCourseBatchList.map((row, idx) => (
-                <tr key={idx}>
-                  <td className="px-6 py-4 text-center text-base">{row.course}</td>
-                  <td className="px-6 py-4 text-center text-base">{row.batch}</td>
-                  <td className="px-6 py-4 text-center text-base flex gap-4 justify-center">
-                    <button
-                      title="Enroll Student"
-                      className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition"
-                      onClick={() => openEnrollModal(row.course, row.batch)}
-                    >
-                      <FiUserPlus /> Enroll Student
-                    </button>
-                    <button
-                      title="Download CSV"
-                      className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition"
-                      onClick={() => downloadCSV(row.course, row.batch)}
-                    >
-                      <FiDownload /> Download CSV
-                    </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={3} className="text-center text-gray-500 py-4">
-                  No courses and batches added yet
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      {/* Enroll Student Modal */}
-      {showEnrollModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          ),
+    roleManager: (
+      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+        <h2 className="text-3xl font-bold text-[#38365e] text-center mb-8">Role Manager</h2>
+        <div className="w-full flex flex-col items-start px-6 max-w-xl">
+          <p className="mb-8 text-[#38365e] text-left">
+            Update the role of a user by selecting their name and their new role.
+          </p>
           <form
-            className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center w-[350px] max-w-full"
-            onSubmit={handleEnroll}
+            name="roleUpdateForm"
+            id="roleUpdateForm"
+            className="flex flex-col gap-6 w-full"
+            onSubmit={e => {
+              e.preventDefault();
+              handleRoleUpdate();
+            }}
           >
-            <h2 className="text-2xl font-bold mb-6 text-center">Enroll Student</h2>
-            <div className="flex flex-col gap-3 w-full">
-              <div>
-                <label className="font-semibold">Course:</label>
-                <input
-                  value={enrollCourse}
-                  disabled
-                  className="border px-3 py-2 rounded w-full mt-1 bg-gray-100"
-                />
-              </div>
-              <div>
-                <label className="font-semibold">Batch:</label>
-                <input
-                  value={enrollBatch}
-                  disabled
-                  className="border px-3 py-2 rounded w-full mt-1 bg-gray-100"
-                />
-              </div>
-              <div>
-                <label className="font-semibold">Student Name:</label>
-                <input
-                  value={studentName}
-                  onChange={e => setStudentName(e.target.value)}
-                  className="border px-3 py-2 rounded w-full mt-1"
+            <div className="flex flex-col items-start gap-1 w-full">
+              {/* <label className="text-[#38365e] font-semibold mb-1">Email ID</label> */}
+              {/* Drop down for selecting user */}
+              <div className="flex flex-col items-start gap-1 w-full">
+                <label className="text-[#38365e] font-semibold mb-1">Select User</label>
+                <select
+                  name="selectUser"
+                  id="selectUser"
+                  value={roleEmail}
+                  onChange={(e) => setRoleEmail(e.target.value)}
+                  className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full"
                   required
-                />
-              </div>
-              <div>
-                <label className="font-semibold">Student Email:</label>
-                <input
-                  type="email"
-                  value={studentEmail}
-                  onChange={e => setStudentEmail(e.target.value)}
-                  className="border px-3 py-2 rounded w-full mt-1"
-                  required
-                />
+                >
+                  <option value="">Select User</option>
+
+                  <optgroup label="Teaching Assistants (TAs)">
+                    {allUsers
+                      .filter(user => user.role === 'ta')
+                      .map(user => (
+                        <option key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                  </optgroup>
+
+                  <optgroup label="Students">
+                    {allUsers
+                      .filter(user => user.role === 'student')
+                      .map(user => (
+                        <option key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
               </div>
             </div>
-            <div className="flex gap-4 mt-6">
-              <button
-                type="submit"
-                className="bg-[#57418d] text-white px-8 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
+            <div className="flex flex-col items-start gap-1 w-full">
+              <label className="text-[#38365e] font-semibold mb-1">Select Role</label>
+              <select
+                name="selectRole"
+                id="selectRole"
+                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full"
+                value={roleType}
+                onChange={e => setRoleType(e.target.value)}
               >
-                Enroll
-              </button>
-              <button
-                type="button"
-                onClick={closeEnrollModal}
-                className="bg-gray-200 text-gray-700 rounded-2xl px-8 py-2 font-semibold hover:bg-gray-300 transition"
-              >
-                Cancel
-              </button>
+                <option value="student">Student</option>
+                <option value="ta">Teaching Assistant (TA)</option>
+              </select>
             </div>
-            {enrollSuccess && (
-              <div className="mt-4 text-green-600 font-semibold text-center">
-                Student enrolled successfully!
-              </div>
-            )}
-            <div className="mt-4 w-full">
-              <div className="font-semibold mb-1">Enrolled Students:</div>
-              <ul className="max-h-24 overflow-y-auto text-sm">
-                {(enrollments[`${enrollCourse}_${enrollBatch}`] || []).map((s, i) => (
-                  <li key={i} className="mb-1">
-                    {s.name} ({s.email})
-                  </li>
-                ))}
-                {(enrollments[`${enrollCourse}_${enrollBatch}`] || []).length === 0 && (
-                  <li className="text-gray-400">No students enrolled yet.</li>
-                )}
-              </ul>
-            </div>
+            <button
+              type="submit"
+              className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c] mt-2"
+              style={{ minWidth: 140 }}
+            >
+              Update Role
+            </button>
           </form>
         </div>
-      )}
-    </div>
-  );
-
-  // Exam Management Page
-  const ExamPage = (
-    <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-      <h2 className="text-3xl font-bold mb-10 text-[#38365e] text-center">Exam Management</h2>
-      <div className="w-full flex flex-row items-center justify-center gap-8 max-w-2xl mb-2">
-        <div className="flex flex-col md:flex-row items-center gap-4 flex-1">
-          <label className="text-[#38365e] font-semibold w-24 text-right md:text-left">Course</label>
-          <select
-            value={selectedCourse}
-            onChange={e => {
-              setSelectedCourse(e.target.value);
-              setSelectedBatch(sampleBatches[0]);
-            }}
-            className="border-2 border-[#b3aedd] focus:border-blue-400 px-4 py-2 rounded-xl w-44 outline-none transition"
-          >
-            {sampleCourses.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col md:flex-row items-center gap-4 flex-1">
-          <label className="text-[#38365e] font-semibold w-24 text-right md:text-left">Batch</label>
-          <select
-            value={selectedBatch}
-            onChange={e => setSelectedBatch(e.target.value)}
-            className="border-2 border-[#b3aedd] focus:border-blue-400 px-4 py-2 rounded-xl w-44 outline-none transition"
-          >
-            {sampleBatches.map(b => <option key={b}>{b}</option>)}
-          </select>
-        </div>
-        <div className="flex flex-1 justify-end items-center">
-          <button
-            onClick={openModal}
-            className="px-8 py-2 rounded-2xl font-semibold shadow transition text-white text-base mt-0 ml-4 bg-[#57418d] hover:bg-[#402b6c]"
-            style={{ minWidth: 160, fontSize: 18, lineHeight: "24px", whiteSpace: "nowrap" }}
-          >
-            Schedule Exam
-          </button>
-        </div>
       </div>
-      <div className="w-full max-w-5xl mt-10">
-        <table className="w-full border-separate border-spacing-y-4">
-          <thead>
-            <tr>
-              <th className="bg-[#57418d] text-white py-3 px-4 rounded-l-2xl text-base font-semibold text-center">Exam Name</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Batch</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Date</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Time</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">No. of questions</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Duration</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Total Marks</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">K</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Total Students</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 text-base font-semibold text-center">Solutions</th>
-              <th className="bg-[#57418d] text-white py-3 px-4 rounded-r-2xl text-base font-semibold text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exams.length > 0 ? (
-              exams.map((ex, i) => (
-                <tr key={i}>
-                  <td className="px-4 py-2 text-center">{ex.name}</td>
-                  <td className="px-4 py-2 text-center">{ex.batch}</td>
-                  <td className="px-4 py-2 text-center">{ex.date}</td>
-                  <td className="px-4 py-2 text-center">{ex.time}</td>
-                  <td className="px-4 py-2 text-center">{ex.numQuestions}</td>
-                  <td className="px-4 py-2 text-center">{ex.duration} mins</td>
-                  <td className="px-4 py-2 text-center">{ex.totalMarks}</td>
-                  <td className="px-4 py-2 text-center">{ex.k}</td>
-                  <td className="px-4 py-2 text-center">{ex.totalStudents || '-'}</td>
-                  <td className="px-4 py-2 text-center">
-                    <span className="text-blue-700 underline cursor-pointer">View Solutions</span>
-                  </td>
-                  <td className="px-4 py-2 text-center flex gap-2 justify-center">
-                    <button title="Edit" className="border-2 border-green-300 rounded-lg p-1 hover:bg-green-50">
-                      <FiEdit2 className="text-green-600 text-xl" />
-                    </button>
-                    <button title="Download" className="border-2 border-blue-300 rounded-lg p-1 hover:bg-blue-50">
-                      <FiDownload className="text-blue-800 text-xl" />
-                    </button>
-                    <button title="Upload" className="border-2 border-purple-300 rounded-lg p-1 hover:bg-purple-50">
-                      <FiUpload className="text-purple-800 text-xl" />
-                    </button>
-                    <button title="Send" className="border-2 border-blue-200 rounded-lg p-1 hover:bg-blue-50" onClick={() => {
-                      setShowSendDialog(true);
-                      setTimeout(() => setShowSendDialog(false), 1200);
-                    }}>
-                      <FiSend className="text-blue-400 text-xl" />
-                    </button>
-                    <button title="Delete" className="border-2 border-red-300 rounded-lg p-1 hover:bg-red-50">
-                      <FiTrash2 className="text-red-500 text-xl" />
-                    </button>
+    ),
+    courses: (
+      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+        <h2 className="text-3xl font-bold mb-10 text-[#38365e] text-center">Courses and Batches</h2>
+        <div className="w-full max-w-5xl">
+          <table className="w-full border-separate border-spacing-y-4">
+            <thead>
+              <tr>
+                <th className="bg-[#57418d] text-white py-3 px-6 rounded-l-2xl text-lg font-semibold text-center">
+                  Course Name
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  Batch Name
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 rounded-r-2xl text-lg font-semibold text-center">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {courseBatchList.length > 0 ? (
+                courseBatchList.map((row, idx) => (
+                  <tr key={idx}>
+                    <td className="px-6 py-4 text-center text-base">{row.course}</td>
+                    <td className="px-6 py-4 text-center text-base">{row.batch}</td>
+                    <td className="px-6 py-4 text-center text-base">-</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="text-center text-gray-500 py-4">
+                    No courses and batches added yet
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={11} className="text-center text-gray-500 py-4">
-                  No exams scheduled yet
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="flex items-center justify-center w-full h-full">
-            <form
-              className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center w-[400px] max-w-full overflow-y-auto"
-              style={{ maxHeight: "90vh" }}
-              onSubmit={handleSubmit}
+    ),
+    exams: (
+      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+        <h2 className="text-3xl font-bold mb-10 text-[#38365e] text-center">Exam Management</h2>
+        <div className="w-full flex flex-row items-center justify-center gap-8 max-w-2xl mb-2">
+          <div className="flex flex-col md:flex-row items-center gap-4 flex-1">
+            <label className="text-[#38365e] font-semibold w-24 text-right md:text-left">Course</label>
+            <select
+              value={selectedCourse}
+              onChange={e => {
+                setSelectedCourse(e.target.value);
+                setSelectedBatch("");
+              }}
+              className="border-2 border-[#b3aedd] focus:border-blue-400 px-4 py-2 rounded-xl w-44 outline-none transition"
             >
-              <h2 className="text-2xl font-bold mb-6 text-center">Schedule Exam</h2>
-              <div className="flex flex-col gap-3 w-full">
-                <label className="font-semibold">Name:
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    placeholder="Exam Name"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">Date:
-                  <input
-                    name="date"
-                    type="date"
-                    value={form.date}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">Time (24-hour):
-                  <input
-                    name="time"
-                    type="time"
-                    value={form.time}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">Number of Questions:
-                  <input
-                    name="numQuestions"
-                    type="number"
-                    min={1}
-                    value={form.numQuestions}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">Duration (in mins.):
-                  <input
-                    name="duration"
-                    type="number"
-                    min={1}
-                    value={form.duration}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">Total Marks:
-                  <input
-                    name="totalMarks"
-                    type="number"
-                    min={1}
-                    value={form.totalMarks}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">No. of Peers (K):
-                  <input
-                    name="k"
-                    type="number"
-                    min={1}
-                    value={form.k}
-                    onChange={handleChange}
-                    className="border px-3 py-2 rounded w-full mt-1"
-                    required
-                  />
-                </label>
-                <label className="font-semibold">Solutions:
-                  <div className="flex items-center">
-                    <label className="mr-2">
-                      <input
-                        name="solutions"
-                        type="file"
-                        accept=".pdf,.doc,.docx,.txt"
-                        onChange={handleChange}
-                        className="hidden"
-                        id="solution-file"
-                      />
-                      <span
-                        className="inline-block px-3 py-1 bg-[#232323] text-white rounded cursor-pointer"
-                        style={{ fontWeight: 500 }}
-                        onClick={() => document.getElementById('solution-file')?.click()}
-                      >
-                        Choose File
-                      </span>
-                    </label>
-                    <span className="ml-2 text-sm text-gray-700">
-                      {form.solutions ? (form.solutions as File).name : "No file chosen"}
-                    </span>
-                  </div>
-                </label>
-              </div>
-              <div className="flex gap-4 mt-6">
-                <button
-                  type="submit"
-                  className="bg-[#57418d] text-white px-8 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
-                >
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="bg-gray-200 text-gray-700 rounded-2xl px-8 py-2 font-semibold hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+              <option value="">Select Course</option>
+              {courses.map((c) => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col md:flex-row items-center gap-4 flex-1">
+            <label className="text-[#38365e] font-semibold w-24 text-right md:text-left">Batch</label>
+            <select
+              disabled={!selectedCourse}
+              value={selectedBatch}
+              onChange={e => setSelectedBatch(e.target.value)}
+              className={`border-2 border-[#b3aedd] focus:border-blue-400 px-4 py-2 rounded-xl w-44 outline-none transition ${!selectedCourse ? 'bg-gray-100 text-gray-500' : ''}`}
+            >
+              <option>{!selectedCourse ? 'No Batches Available' : 'Select Batch'}</option>
+              {selectedCourse && batches.map(b => <option key={b}>{b}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-1 justify-end">
+            <button
+              onClick={handleExamSchedule}
+              disabled={!(selectedCourse && selectedBatch)}
+              className={`px-6 py-2 rounded-2xl font-semibold shadow transition text-white text-base mt-0 ml-4 ${selectedCourse && selectedBatch ? 'bg-[#8f8f9d] hover:bg-[#57418d]' : 'bg-gray-400 cursor-not-allowed'}`}
+            >
+              Schedule Exam
+            </button>
           </div>
         </div>
-      )}
-      {/* Exam Scheduled Dialog */}
-      {showExamDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px]">
-            <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-              <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div className="text-lg text-[#235d3a] font-semibold text-center mb-1 mt-2">
-              Exam Scheduled Successfully!
-            </div>
-          </div>
+        <div className="w-full max-w-5xl mt-10">
+          <table className="w-full border-separate border-spacing-y-4">
+            <thead>
+              <tr>
+                <th className="bg-[#57418d] text-white py-3 px-6 rounded-l-2xl text-lg font-semibold text-center">
+                  Course Name
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  Batch Name
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 rounded-r-2xl text-lg font-semibold text-center">
+                  Date
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {examRecords.length > 0 ? (
+                examRecords.map((ex, i) => (
+                  <tr key={i}>
+                    <td className="px-6 py-4 text-center text-base">{ex.course}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.batch}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.date}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="text-center text-gray-500 py-4">
+                    No exams scheduled yet
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
-      {/* Send Dialog */}
-      {showSendDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-          <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px]">
-            <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-              <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <div className="text-lg text-[#235d3a] font-semibold text-center mb-1 mt-2">
-              Solutions sent to students for evaluation!
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // Sidebar navigation handler
-  const handleSidebarNav = (key: string) => {
-    if (key === "logout") {
-      setShowLogoutDialog(true);
-    } else {
-      setActivePage(key);
-    }
+      </div>
+    ),
   };
 
   return (
@@ -753,41 +478,26 @@ const TeacherDashboard: React.FC = () => {
             {showSidebar ? 'Teacher Panel' : 'TP'}
           </h2>
           <ul className="space-y-3 w-full">
-            <li
-              onClick={() => handleSidebarNav("home")}
-              className={`cursor-pointer ${activePage === "home" ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}
-            >
-              <FiHome className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-              {showSidebar && "Home"}
-            </li>
-            <li
-              onClick={() => handleSidebarNav("roleManager")}
-              className={`cursor-pointer ${activePage === "roleManager" ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}
-            >
-              <FiShield className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-              {showSidebar && "Manage Roles"}
-            </li>
-            <li
-              onClick={() => handleSidebarNav("courses")}
-              className={`cursor-pointer ${activePage === "courses" ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}
-            >
-              <FiBook className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-              {showSidebar && "Courses"}
-            </li>
-            <li
-              onClick={() => handleSidebarNav("exams")}
-              className={`cursor-pointer ${activePage === "exams" ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}
-            >
-              <FiEdit className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-              {showSidebar && "Exams"}
-            </li>
+            {['home', 'roleManager', 'courses', 'exams'].map((key) => {
+              const icons: Record<string, any> = { home: FiHome, roleManager: FiShield, courses: FiBook, exams: FiEdit };
+              const Icon = icons[key];
+              return (
+                <li key={key} onClick={() => setActivePage(key)}
+                  className={`cursor-pointer ${activePage === key ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}>
+                  <Icon className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'} ${!showSidebar ? 'text-3xl md:text-4xl' : ''}`} />
+                  {
+                    showSidebar && (key === 'roleManager' ? 'Manage Roles' : key.charAt(0).toUpperCase() + key.slice(1))
+                  }
+                </li>
+              );
+            })}
           </ul>
         </div>
         <button
+          onClick={() => setLogoutDialog(true)}
           className="flex items-center justify-center gap-2 hover:text-red-400 transition"
-          onClick={() => handleSidebarNav("logout")}
         >
-          <FiLogOut className={`${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
+          <FiLogOut className={`${showSidebar ? 'mr-2 text-xl' : 'text-3xl'} ${!showSidebar ? 'text-3xl md:text-4xl' : ''}`} />
           {showSidebar && 'Logout'}
         </button>
       </div>
@@ -795,79 +505,101 @@ const TeacherDashboard: React.FC = () => {
       <div className="flex-1 relative overflow-y-auto flex justify-center items-start">
         {/* Profile button */}
         <div className="absolute top-4 right-6 z-20">
-          <button
+          <button onClick={() => setShowProfilePopup(!showProfilePopup)}
             className="p-2 flex items-center justify-center rounded-full border-2 border-transparent hover:border-blue-300 transition active:scale-95 bg-white shadow"
             style={{ boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)' }}
-            onClick={() => setShowProfile((prev) => !prev)}
-            aria-label="Profile"
           >
             <ProfileSVG />
           </button>
-          {showProfile && (
-            <div
-              className="absolute right-0 mt-3 w-80 bg-white p-4 rounded-b-3xl shadow-lg z-10"
-              style={{
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-                borderBottomLeftRadius: 24,
-                borderBottomRightRadius: 24,
-                boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)'
-              }}
-            >
-              <h2 className="text-xl font-bold mb-4">Profile Info</h2>
-              <div className="space-y-2">
-                <p><strong>Name:</strong> {loginUser.name}</p>
-                <p><strong>Email:</strong> {loginUser.email}</p>
+          {showProfilePopup && (
+              <div
+                className="absolute right-0 mt-3 w-80 bg-white p-4 rounded-b-3xl shadow-lg z-10"
+                style={{
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: 24,
+                  borderBottomRightRadius: 24,
+                  boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)'
+                }}
+              >
+                <h2 className="text-xl font-bold mb-4">Profile Info</h2>
+                <div className="space-y-2 mb-4">
+                  <p><strong>Name:</strong> {profileData.name}</p>
+                  <p><strong>Email:</strong> {profileData.email}</p>
+                  <p><strong>Role:</strong> {profileData.role}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    //setActivePage("courses");
+                    setShowProfilePopup(false);
+                  }}
+                  className="bg-purple-700 text-white px-4 py-2 rounded-3xl w-full"
+                >
+                  OK
+                </button>
               </div>
-            </div>
-          )}
+            )}
         </div>
-        {/* Main content area */}
+        {/* Single rounded main content area, always up towards the top, starting below the profile icon */}
         <div
           className="bg-white rounded-3xl shadow-lg w-full h-auto mt-24 mb-8 mx-4 p-0 flex items-start justify-center overflow-auto max-w-6xl"
           style={{
             minHeight: "calc(100vh - 120px)",
-            boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)'
+            boxShadow: '0 2px 24px 0 rgba(87,65,141,0.10)'
           }}
         >
-          {/* Render active page content */}
-          {activePage === "home" && HomePage}
-          {activePage === "roleManager" && RolesPage}
-          {activePage === "courses" && CoursesPage}
-          {activePage === "exams" && ExamPage}
+          <div className="w-full">
+            {pages[activePage]}
+          </div>
         </div>
+        <DialogBox show={showProfileMsg} message="Profile Saved Successfully!" />
+        <DialogBox show={showExamMsg} message="Exam Scheduled Successfully!" />
+        <DialogBox show={showRoleMsg} message="Role Updated Successfully!" />
         {/* Logout Dialog */}
-        {showLogoutDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
-              <div className="mb-2">
-                <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-                  <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-                  <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </div>
-              <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">
-                Are you sure you want to logout?
-              </div>
-              <div className="flex gap-4 mt-4">
-                <button
-                  onClick={() => {
-                    setShowLogoutDialog(false);
-                    setTimeout(() => {
-                      window.location.href = "/login";
-                    }, 200);
-                  }}
-                  className="bg-[#57418d] text-white px-8 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
-                >
-                  Yes, Logout
-                </button>
-                <button
-                  onClick={() => setShowLogoutDialog(false)}
-                  className="bg-gray-200 text-gray-700 rounded-2xl px-8 py-2 font-semibold hover:bg-gray-300 transition"
-                >
-                  Cancel
-                </button>
-              </div>
+        <DialogBox show={logoutDialog} message="Are you sure you want to logout?">
+          <div className="flex gap-8 mt-4">
+            <button
+              onClick={() => setLogoutDialog(false)}
+              className="bg-gray-200 text-gray-700 rounded-xl px-8 py-2 font-semibold hover:bg-gray-300 transition"
+            >
+              No
+            </button>
+            <button
+              onClick={() => {
+                setLogoutDialog(false);
+                if (onLogout) {
+                  onLogout();
+                } else {
+                  window.location.href = "/login";
+                }
+              }}
+              className="bg-red-500 text-white rounded-xl px-8 py-2 font-semibold hover:bg-red-600 transition"
+            >
+              Yes
+            </button>
+          </div>
+        </DialogBox>
+      </div>
+
+      {/* Settings Button */}
+      <div className="absolute bottom-6 right-6 z-20">
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="h-12 w-12 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-700"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.397-.164-.853-.142-1.203.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.142-.854-.108-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.806.272 1.203.107.397-.165.71-.505.781-.929l.149-.894zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+
+        {showSettings && (
+          <div className="mt-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-xl p-4 text-sm space-y-4 w-60">
+            <div className="flex items-center justify-between gap-6">
+              <span className="text-gray-800 dark:text-white">Dark Mode</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-600 rounded-full peer dark:bg-gray-600 peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
+              </label>
             </div>
           </div>
         )}
