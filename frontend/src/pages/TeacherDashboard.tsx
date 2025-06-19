@@ -10,9 +10,12 @@ const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 // Types for backend data
 interface ExamRecord {
+  title: string;
   course: string;
   batch: string;
-  date: string;
+  startTime: string;
+  endTime: string;
+  numQuestions: number;
 }
 /*interface SummaryData {
   courses: number;
@@ -21,8 +24,10 @@ interface ExamRecord {
 }
 */
 type CourseBatchItem = {
-  course: string;
-  batch: string;
+  courseId: string
+  courseName: string;
+  batchId: string;
+  batchName: string;
 };
 
 const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
@@ -50,6 +55,12 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const [roleEmail, setRoleEmail] = useState("");
   const [roleType, setRoleType] = useState("Student");
   const [logoutDialog, setLogoutDialog] = useState(false);
+
+  const [examTitle, setExamTitle] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [numQuestions, setNumQuestions] = useState(0);
+
 
   // Validation errors for profile
   //const [profileErrors, setProfileErrors] = useState<{ name?: string, email?: string }>({});
@@ -128,8 +139,8 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       })
         .then(res => res.json())
         .then(data => {
-          setCourses(data.map((d: any) => d.course));
-          setBatches(data.map((d: any) => d.batch));
+          setCourses(data.map((d: any) => ({ id: d.courseId, name: d.courseName })));
+          setBatches(data.map((d: any) => ({ id: d.batchId, name: d.batchName })));
         });
     }, []);
 
@@ -147,26 +158,35 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       fetchExamRecords();
     }, []);
 
-  
-  const handleExamSchedule = () => {
-    fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        courseId: selectedCourse,
-        batchId: selectedBatch,
-      }),
-    })
-      .then(res => res.json())
-      .then(() => {
-        setSelectedCourse('');
-        setSelectedBatch('');
-        fetchExamRecords(); // refresh
-      });
-  };
+    console.log("📄 Fetched exams:", examRecords);
+
+    const handleExamSchedule = () => {
+      fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          courseId: selectedCourse,
+          batchId: selectedBatch,
+          title: examTitle,
+          startTime,
+          endTime,
+          numQuestions,
+        }),
+      })
+        .then(res => res.json())
+        .then(() => {
+          setSelectedCourse('');
+          setSelectedBatch('');
+          setExamTitle('');
+          setStartTime('');
+          setEndTime('');
+          setNumQuestions(0);
+          fetchExamRecords(); // Refresh
+        });
+    };
 
 
   // Role update
@@ -366,8 +386,8 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
               {courseBatchList.length > 0 ? (
                 courseBatchList.map((row, idx) => (
                   <tr key={idx}>
-                    <td className="px-6 py-4 text-center text-base">{row.course}</td>
-                    <td className="px-6 py-4 text-center text-base">{row.batch}</td>
+                    <td className="px-6 py-4 text-center text-base">{row.courseName}</td>
+                    <td className="px-6 py-4 text-center text-base">{row.batchName}</td>
                     <td className="px-6 py-4 text-center text-base">-</td>
                   </tr>
                 ))
@@ -386,57 +406,136 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
     exams: (
       <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
         <h2 className="text-3xl font-bold mb-10 text-[#38365e] text-center">Exam Management</h2>
-        <div className="w-full flex flex-row items-center justify-center gap-8 max-w-2xl mb-2">
-          <div className="flex flex-col md:flex-row items-center gap-4 flex-1">
-            <label className="text-[#38365e] font-semibold w-24 text-right md:text-left">Course</label>
-            <select
-              value={selectedCourse}
-              onChange={e => {
-                setSelectedCourse(e.target.value);
-                setSelectedBatch("");
-              }}
-              className="border-2 border-[#b3aedd] focus:border-blue-400 px-4 py-2 rounded-xl w-44 outline-none transition"
-            >
-              <option value="">Select Course</option>
-              {courses.map((c) => (
-                <option key={c}>{c}</option>
-              ))}
-            </select>
+        <div className="w-full flex flex-col gap-6 max-w-2xl mb-4">
+
+          {/* Row 1: Course & Batch */}
+          <div className="flex flex-row gap-8">
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">Course</label>
+              <select
+                value={selectedCourse}
+                onChange={(e) => {
+                  setSelectedCourse(e.target.value);
+                  setSelectedBatch('');
+                }}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+              >
+                <option value="">Select Course</option>
+                {courses
+                  .filter((c) => c && c.id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">Batch</label>
+              <select
+                value={selectedBatch}
+                onChange={(e) => setSelectedBatch(e.target.value)}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+                disabled={!selectedCourse}
+              >
+                <option value="">{!selectedCourse ? 'No Batches Available' : 'Select Batch'}</option>
+                {batches
+                  .filter((b) => b && b.id)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex flex-col md:flex-row items-center gap-4 flex-1">
-            <label className="text-[#38365e] font-semibold w-24 text-right md:text-left">Batch</label>
-            <select
-              disabled={!selectedCourse}
-              value={selectedBatch}
-              onChange={e => setSelectedBatch(e.target.value)}
-              className={`border-2 border-[#b3aedd] focus:border-blue-400 px-4 py-2 rounded-xl w-44 outline-none transition ${!selectedCourse ? 'bg-gray-100 text-gray-500' : ''}`}
-            >
-              <option>{!selectedCourse ? 'No Batches Available' : 'Select Batch'}</option>
-              {selectedCourse && batches.map(b => <option key={b}>{b}</option>)}
-            </select>
+
+          {/* Row 2: Title & Question Count */}
+          <div className="flex flex-row gap-8">
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">Exam Title</label>
+              <input
+                type="text"
+                value={examTitle}
+                onChange={(e) => setExamTitle(e.target.value)}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+                placeholder="Midterm, Quiz 1, etc."
+              />
+            </div>
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">Number of Questions</label>
+              <input
+                type="number"
+                value={numQuestions}
+                onChange={(e) => setNumQuestions(Number(e.target.value))}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+                placeholder="e.g. 10"
+              />
+            </div>
           </div>
-          <div className="flex flex-1 justify-end">
+
+          {/* Row 3: Start & End Time */}
+          <div className="flex flex-row gap-8">
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">Start Time</label>
+              <input
+                type="datetime-local"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+              />
+            </div>
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">End Time</label>
+              <input
+                type="datetime-local"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Schedule Button */}
+          <div className="flex justify-end mt-2">
             <button
               onClick={handleExamSchedule}
-              disabled={!(selectedCourse && selectedBatch)}
-              className={`px-6 py-2 rounded-2xl font-semibold shadow transition text-white text-base mt-0 ml-4 ${selectedCourse && selectedBatch ? 'bg-[#8f8f9d] hover:bg-[#57418d]' : 'bg-gray-400 cursor-not-allowed'}`}
+              disabled={
+                !selectedCourse || !selectedBatch || !examTitle || !startTime || !endTime || numQuestions <= 0
+              }
+              className={`px-6 py-2 rounded-2xl font-semibold shadow transition text-white text-base ${
+                selectedCourse && selectedBatch && examTitle && startTime && endTime && numQuestions > 0
+                  ? 'bg-[#57418d] hover:bg-[#402b6c]'
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
             >
               Schedule Exam
             </button>
           </div>
         </div>
+
+        {/* Exam List */}
         <div className="w-full max-w-5xl mt-10">
           <table className="w-full border-separate border-spacing-y-4">
             <thead>
               <tr>
                 <th className="bg-[#57418d] text-white py-3 px-6 rounded-l-2xl text-lg font-semibold text-center">
-                  Course Name
+                  Title
                 </th>
                 <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
-                  Batch Name
+                  Course
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  Batch 
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                 Start Time
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  End Time
                 </th>
                 <th className="bg-[#57418d] text-white py-3 px-6 rounded-r-2xl text-lg font-semibold text-center">
-                  Date
+                  Questions
                 </th>
               </tr>
             </thead>
@@ -444,9 +543,12 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
               {examRecords.length > 0 ? (
                 examRecords.map((ex, i) => (
                   <tr key={i}>
+                    <td className="px-6 py-4 text-center text-base">{ex.title}</td>
                     <td className="px-6 py-4 text-center text-base">{ex.course}</td>
                     <td className="px-6 py-4 text-center text-base">{ex.batch}</td>
-                    <td className="px-6 py-4 text-center text-base">{ex.date}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.startTime}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.endTime}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.numQuestions}</td>
                   </tr>
                 ))
               ) : (
