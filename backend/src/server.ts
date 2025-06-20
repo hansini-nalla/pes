@@ -8,6 +8,7 @@ import adminroutes from './routes/admin/admin.routes.ts';
 import adminstudentroutes from './routes/admin/student_admin.routes.ts';
 import adminteachroutes from './routes/admin/teacher.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
+import admincourseroutes from './routes/admin/course_admin.routes.ts';
 
 import "./models/Course.ts";
 import "./models/Batch.ts";
@@ -54,6 +55,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ta', taRoutes); 
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use("/api/admin/courses", admincourseroutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
