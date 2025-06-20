@@ -118,23 +118,33 @@ export const getAllBatches = async (_req: Request, res: Response): Promise<void>
 };*/
 
 // Create a batch for a course
+
 export const createBatch = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, courseId, students } = req.body;
-    console.log(courseId);
+
+    // Step 1: Check if course exists
     const course = await Course.findById(courseId);
     if (!course) {
       res.status(404).json({ message: "Course not found" });
       return;
     }
 
+    // Step 2: Check if a batch with the same name exists for this course
+    const existingBatch = await Batch.findOne({ name, course: courseId });
+    if (existingBatch) {
+      res.status(400).json({ message: "Batch name already exists for this course" });
+      return;
+    }
+
+    // Step 3: Create batch
     const batch = await Batch.create({ name, course: courseId, students });
     res.status(201).json(batch);
   } catch (err) {
+    console.error("Error creating batch:", err);
     res.status(500).json({ message: "Failed to create batch", error: err });
   }
 };
-
 // Update a batch
 /*export const updateBatch = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -155,10 +165,9 @@ export const createBatch = async (req: Request, res: Response): Promise<void> =>
 // Delete a batch
 export const deleteBatch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name } = req.params;
-    console.log("Trying to delete batch by name:", name);
+    const { id } = req.params;
 
-    const deleted = await Batch.findOneAndDelete({ name });
+    const deleted = await Batch.findByIdAndDelete(id);
 
     if (!deleted) {
       res.status(404).json({ message: "Batch not found" });
@@ -167,6 +176,7 @@ export const deleteBatch = async (req: Request, res: Response): Promise<void> =>
 
     res.status(204).send();
   } catch (err) {
+    console.error("Failed to delete batch:", err);
     res.status(500).json({ message: "Failed to delete batch", error: err });
   }
 };
