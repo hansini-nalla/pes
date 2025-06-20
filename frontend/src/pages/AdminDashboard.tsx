@@ -168,19 +168,20 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteBatch = async () => {
-    try {
-      await axios.delete(`http://localhost:${PORT}/api/admin/batches/name/${batchToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert('Batch deleted successfully');
-      setBatchToDelete('');
-      fetchBatches();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to delete batch');
-    }
-  };
+const handleDeleteBatch = async () => {
+  try {
+    await axios.delete(`http://localhost:${PORT}/api/admin/batches/${batchToDelete}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    alert('Batch deleted successfully');
+    setBatchToDelete('');
+    fetchBatches(); // Refresh the list
+  } catch (err) {
+    console.error(err);
+    alert('Failed to delete batch');
+  }
+};
 
   const fetchBatches = async () => {
     try {
@@ -519,9 +520,9 @@ const AdminDashboard = () => {
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
               >
                 <option value="">Select Batch</option>
-                {batches.map((batch: any) => (
-                  <option key={batch._id} value={batch.name}>
-                    {batch.name} ({batch.course?.code})
+                 {batches.map((batch) => (
+                  <option key={batch._id} value={batch._id}>
+                    {batch.name} ({batch.course.code})
                   </option>
                 ))}
               </select>
