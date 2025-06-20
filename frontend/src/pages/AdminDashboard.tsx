@@ -16,6 +16,8 @@ type Course = {
 const AdminDashboard = () => {
   const token = localStorage.getItem('token');
   const [counts, setCounts] = useState({ teachers: 0, courses: 0, students: 0 });
+  const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [showSidebar, setShowSidebar] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -47,6 +49,35 @@ const AdminDashboard = () => {
   const [unassignStudentCourseCode, setUnassignStudentCourseCode] = useState('');
 
   const navigate = useNavigate();
+
+  // Fetch profile data
+    useEffect(() => {
+      fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Unauthorized');
+          return res.json();
+        })
+        .then((data: { name: string, email: string, role: string }) => {
+          setProfileData(data);
+          //setProfileSaved(!!data.name && !!data.email && !!data.role);
+        })
+        .catch(err => {
+          console.error('Failed to fetch profile:', err);
+        });
+    }, []);
+  
+    // Profile icon SVG (solid avatar style)
+      const ProfileSVG = () => (
+        <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
+          <circle cx="19" cy="19" r="19" fill="#57418d" />
+          <circle cx="19" cy="14" r="7" fill="#fff" />
+          <ellipse cx="19" cy="29.5" rx="11" ry="7.5" fill="#fff" />
+        </svg>
+      );
 
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/dashboard/counts`)
@@ -839,6 +870,43 @@ const AdminDashboard = () => {
           <div className="w-full">{renderContent()}</div>
         </div>
       </div>
+      {/* Profile button */}
+        <div className="absolute top-4 right-6 z-20">
+          <button onClick={() => setShowProfilePopup(!showProfilePopup)}
+            className="p-2 flex items-center justify-center rounded-full border-2 border-transparent hover:border-blue-300 transition active:scale-95 bg-white shadow"
+            style={{ boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)' }}
+          >
+            <ProfileSVG />
+          </button>
+          {showProfilePopup && (
+              <div
+                className="absolute right-0 mt-3 w-80 bg-white p-4 rounded-b-3xl shadow-lg z-10"
+                style={{
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: 24,
+                  borderBottomRightRadius: 24,
+                  boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)'
+                }}
+              >
+                <h2 className="text-xl font-bold mb-4">Profile Info</h2>
+                <div className="space-y-2 mb-4">
+                  <p><strong>Name:</strong> {profileData.name}</p>
+                  <p><strong>Email:</strong> {profileData.email}</p>
+                  <p><strong>Role:</strong> {profileData.role}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    //setActivePage("profile");
+                    setShowProfilePopup(false);
+                  }}
+                  className="bg-purple-700 text-white px-4 py-2 rounded-3xl w-full"
+                >
+                  OK
+                </button>
+              </div>
+            )}
+        </div>
       {/* Settings Button */}
       <div className="absolute bottom-6 right-6 z-20">
         <button
