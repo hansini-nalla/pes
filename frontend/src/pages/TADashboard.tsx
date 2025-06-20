@@ -6,7 +6,6 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const [showSidebar, setShowSidebar] = useState(true);
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  //const [showSettings, setShowSettings] = useState(false);
   const [commentDialog, setCommentDialog] = useState<{ show: boolean; id: number | null }>({ show: false, id: null });
   const [comment, setComment] = useState('');
   const [showUpdateMarksDialog, setShowUpdateMarksDialog] = useState(false);
@@ -49,7 +48,8 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       studentId: 'CS2023123',
       course: 'Data Structures',
       batch: 'Batch-A',
-      reason: 'Marks not justified based on answer length.'
+      reason: 'Marks not justified based on answer length.',
+      currentMarks: 65
     },
     {
       id: 2,
@@ -57,7 +57,8 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       studentId: 'CS2023087',
       course: 'Operating Systems',
       batch: 'Batch-B',
-      reason: 'Some answers were not evaluated.'
+      reason: 'Some answers were not evaluated.',
+      currentMarks: 78
     },
     {
       id: 3,
@@ -65,7 +66,8 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       studentId: 'CS2023176',
       course: 'Algorithms',
       batch: 'Batch-C',
-      reason: 'Incorrect deduction in a 10-mark question.'
+      reason: 'Incorrect deduction in a 10-mark question.',
+      currentMarks: 82
     }
   ]);
 
@@ -137,6 +139,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
                     {ev.student} ({ev.studentId}) from batch <span className="text-purple-700">{ev.batch}</span> in <span className="text-blue-800">{ev.course}</span>
                   </div>
                   <div className="text-gray-700 mb-2">Reason: {ev.reason}</div>
+                  <div className="text-red-600 font-semibold mb-2">Current Marks: {ev.currentMarks}/100</div>
                   <div className="flex gap-4">
                     <button onClick={() => handleTranscriptDownload(ev.id)} className="flex items-center gap-2 text-blue-600 hover:underline">
                       <FiDownload /> Download Transcript
@@ -156,51 +159,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       </div>
     )
   };
-{showUpdateMarksDialog && (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      background: "rgba(0,0,0,0.3)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000,
-    }}
-  >
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 12,
-        padding: 32,
-        minWidth: 320,
-        boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
-        textAlign: "center",
-      }}
-    >
-      <h3 style={{ marginBottom: 16 }}>Update Marks</h3>
-      <p style={{ marginBottom: 24 }}>Please update the marks after uploading the transcript.</p>
-      <button
-        style={{
-          background: "#6c63ff",
-          color: "#fff",
-          border: "none",
-          borderRadius: 24,
-          padding: "8px 32px",
-          fontWeight: 600,
-          fontSize: 16,
-          cursor: "pointer",
-        }}
-        onClick={() => setShowUpdateMarksDialog(false)}
-      >
-        OK
-      </button>
-    </div>
-  </div>
-)}
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(180deg,#ffe3ec 80%,#f0f0f5 100%)" }}>
       {/* Sidebar */}
@@ -242,7 +201,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
           </div>
         </DialogBox>
 
-        {/* Upload Transcript Dialog */}
+        {/* Upload Marks Dialog */}
         {showUpdateMarksDialog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-xl px-6 py-8 w-full max-w-md text-center">
@@ -255,7 +214,8 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
             </div>
           </div>
         )}
-<DialogBox show={commentDialog.show} message="Add a comment before sending">
+
+        <DialogBox show={commentDialog.show} message="Add a comment before sending">
           <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Write your note here..." className="w-full border rounded-lg p-2 text-gray-800 mb-4" rows={3} />
           <div className="flex gap-4">
             <button onClick={() => setCommentDialog({ show: false, id: null })} className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
