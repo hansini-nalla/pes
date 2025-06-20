@@ -7,6 +7,7 @@ export interface IExam extends Document {
   startTime: Date;
   endTime: Date;
   numQuestions: number; // ✅ NEW FIELD
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true }
 }
 
 const examSchema = new Schema<IExam>({
@@ -16,6 +17,7 @@ const examSchema = new Schema<IExam>({
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   numQuestions: { type: Number, required: true }, // ✅ NEW FIELD
+  createdBy: Types.ObjectId,
 });
 
 export const Exam = model<IExam>('Exam', examSchema);

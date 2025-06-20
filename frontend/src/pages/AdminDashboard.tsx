@@ -5,7 +5,6 @@ import { FiMenu, FiLogOut } from 'react-icons/fi';
 import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
-const token = localStorage.getItem('token');
 
 type Tab = 'home' | 'course' | 'batch' | 'student' | 'teacher';
 type Course = {
@@ -15,6 +14,7 @@ type Course = {
 };
 
 const AdminDashboard = () => {
+  const token = localStorage.getItem('token');
   const [counts, setCounts] = useState({ teachers: 0, courses: 0, students: 0 });
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [showSidebar, setShowSidebar] = useState(true);
@@ -163,7 +163,10 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'batch') fetchBatches();
+    if (activeTab === 'batch') {
+      fetchBatches();
+      fetchCourses();
+    }
   }, [activeTab]);
 
   const fetchTeachers = async () => {
@@ -224,7 +227,10 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'teacher') fetchTeachers();
+    if (activeTab === 'teacher') {
+      fetchTeachers();
+      fetchCourses();
+    } 
   }, [activeTab]);
 
   const fetchStudents = async () => {
@@ -376,6 +382,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Add New Course</h2>
               <input
+                name="courseName"
+                id="courseName"
                 type="text"
                 value={courseName}
                 onChange={(e) => setCourseName(e.target.value)}
@@ -383,6 +391,8 @@ const AdminDashboard = () => {
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
               />
               <input
+                name="courseCode"
+                id="courseCode"
                 type="text"
                 value={courseCode}
                 onChange={(e) => setCourseCode(e.target.value)}
@@ -399,6 +409,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Remove Course</h2>
               <select
+                name="courseIdToDelete"
+                id="courseIdToDelete"
                 value={courseIdToDelete}
                 onChange={(e) => setCourseIdToDelete(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -437,6 +449,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Add New Batch</h2>
               <input
+                name="batchName"
+                id="batchName"
                 type="text"
                 value={batchName}
                 onChange={(e) => setBatchName(e.target.value)}
@@ -444,6 +458,8 @@ const AdminDashboard = () => {
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
               />
               <select
+                name="batchCourseCode"
+                id="batchCourseCode"
                 value={batchCourseCode}
                 onChange={(e) => setBatchCourseCode(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -465,6 +481,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Remove Batch</h2>
               <select
+                name="batchToDelete"
+                id="batchToDelete"
                 value={batchToDelete}
                 onChange={(e) => setBatchToDelete(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -501,6 +519,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Assign Course to Teacher</h2>
               <select
+                name="assignEmail"
+                id="assignEmail"
                 value={assignEmail}
                 onChange={(e) => setAssignEmail(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
@@ -513,6 +533,8 @@ const AdminDashboard = () => {
                 ))}
               </select>
               <select
+                name="assignCourseCode"
+                id="assignCourseCode"
                 value={assignCourseCode}
                 onChange={(e) => setAssignCourseCode(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -534,6 +556,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Unassign Course from Teacher</h2>
               <select
+                name="unassignEmail"
+                id="unassignEmail"
                 value={unassignEmail}
                 onChange={(e) => setUnassignEmail(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
@@ -546,6 +570,8 @@ const AdminDashboard = () => {
                 ))}
               </select>
               <select
+                name="unassignCourseCode"
+                id="unassignCourseCode"
                 value={unassignCourseCode}
                 onChange={(e) => setUnassignCourseCode(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -567,6 +593,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Remove Teacher</h2>
               <select
+                name="teacherToDelete"
+                id="teacherToDelete"
                 value={teacherToDelete}
                 onChange={(e) => setTeacherToDelete(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
@@ -610,6 +638,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Assign Course to Student</h2>
               <select
+                name="assignEmail"
+                id="assignEmail"
                 value={assignStudentEmail}
                 onChange={(e) => setAssignStudentEmail(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
@@ -622,6 +652,8 @@ const AdminDashboard = () => {
                 ))}
               </select>
               <select
+                name="assignCourseCode"
+                id="assignCourseCode"
                 value={assignStudentCourseCode}
                 onChange={(e) => setAssignStudentCourseCode(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -643,6 +675,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Unassign Course from Student</h2>
               <select
+                name="unassignEmail"
+                id="unassignEmail"
                 value={unassignStudentEmail}
                 onChange={(e) => setUnassignStudentEmail(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
@@ -655,6 +689,8 @@ const AdminDashboard = () => {
                 ))}
               </select>
               <select
+                name="unassignCourseCode"
+                id="unassignCourseCode"
                 value={unassignStudentCourseCode}
                 onChange={(e) => setUnassignStudentCourseCode(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
@@ -676,6 +712,8 @@ const AdminDashboard = () => {
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Remove Student</h2>
               <select
+                name="studentToDelete"
+                id="studentToDelete"
                 value={studentToDelete}
                 onChange={(e) => setStudentToDelete(e.target.value)}
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
