@@ -1,5 +1,5 @@
 import express from "express";
-
+import { deleteCourseAndBatches } from "../../controllers/admin/course.controller.ts";
 import {
   addCourse,
   //updateCourse,
@@ -35,4 +35,7 @@ router.delete("/batches/name/:name",authMiddleware,authorizeRoles("admin"),delet
 router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
 //router.get('/batches/:id',authMiddleware,authorizeRoles("admin"), getBatchById);
 
+router.delete("/:courseId", deleteCourseAndBatches);
 export default router;
+
+
