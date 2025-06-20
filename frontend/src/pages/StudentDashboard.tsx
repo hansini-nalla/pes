@@ -4,6 +4,7 @@ import ProfileSection from '../components/student/ProfileSection';
 import CourseList from '../components/student/CourseList';
 import CourseExams from '../components/student/CourseExams';
 import ViewMarks from '../components/student/ViewMarks';
+import DashboardOverview from '../components/student/DashboardOverview';
 
 const menuItems = [
   { label: 'Dashboard' },
@@ -38,20 +39,7 @@ export default function StudentDashboard() {
     switch (activeMenu) {
       case 'Dashboard':
         return (
-          <div className="cards-grid">
-            <div className="card">
-              <h3>Upcoming Assignments</h3>
-              <p>You have 3 assignments due this week.</p>
-            </div>
-            <div className="card">
-              <h3>Recent Grades</h3>
-              <p>AI & ML: 89 | Web Dev: 92 | DSA: 85</p>
-            </div>
-            <div className="card">
-              <h3>Announcements</h3>
-              <p>Peer review deadline extended to Friday.</p>
-            </div>
-          </div>
+          <DashboardOverview />
         );
       case 'Courses':
         return selectedCourseId ? (

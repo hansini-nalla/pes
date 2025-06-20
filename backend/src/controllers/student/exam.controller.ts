@@ -59,11 +59,7 @@ export const getStudentExams = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const studentId = req.query.studentId as string;
-    if (!studentId) {
-      res.status(400).json({ error: 'studentId is required' });
-      return;
-    }
+    const studentId = (req as any).user.id;
 
     const student = await User.findById(studentId);
     if (!student) {
