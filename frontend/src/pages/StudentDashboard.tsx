@@ -6,6 +6,7 @@ import CourseList from '../components/student/CourseList';
 import CourseExams from '../components/student/CourseExams';
 import ViewMarks from '../components/student/ViewMarks';
 import DashboardOverview from '../components/student/DashboardOverview';
+import PeerEvaluationsPending from '../components/student/PeerEvaluationsPending';
 
 const menuItems = [
   { label: 'Dashboard' },
@@ -60,11 +61,7 @@ export default function StudentDashboard() {
         );
       case 'Peer Evaluation':
         return (
-          <div className="card">
-            <h2>Peer Evaluation</h2>
-            <p>You have 2 peer reviews pending.</p>
-            <button className="btn">Start Evaluation</button>
-          </div>
+          <PeerEvaluationsPending/>
         );
       case 'View Marks':
         return (
