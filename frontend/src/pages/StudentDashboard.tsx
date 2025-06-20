@@ -1,4 +1,5 @@
 import { useState,useEffect } from 'react';
+import {useNavigate } from 'react-router-dom';
 import './StudentDashboard.css';
 import ProfileSection from '../components/student/ProfileSection';
 import CourseList from '../components/student/CourseList';
@@ -21,6 +22,13 @@ export default function StudentDashboard() {
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Logout handling
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  }
 
   useEffect(() => {
       if (darkMode) {
@@ -79,7 +87,7 @@ export default function StudentDashboard() {
         return (
           <div className="card">
             <h2>Are you sure you want to logout?</h2>
-            <button className="btn">Confirm Logout</button>
+            <button className="btn" onClick={handleLogout}>Confirm Logout</button>
           </div>
         );
       default:
