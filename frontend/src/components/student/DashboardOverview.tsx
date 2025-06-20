@@ -30,7 +30,7 @@ const DashboardOverview = () => {
       const { data } = await axios.get('http://localhost:5000/api/student/results', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      return data?.results || data?.evaluations || [];
+      return data?.results || [];
     },
   });
 
@@ -74,8 +74,8 @@ const DashboardOverview = () => {
         ) : (
           <ul>
             {results.slice(0, 3).map((r: any) => (
-              <li key={r.exam}>
-                {r.courseName}: {r.totalMarks}/100
+              <li key={r.exam._id}>
+                {r.exam.courseName}: {r.averageMarks}/100
               </li>
             ))}
           </ul>
