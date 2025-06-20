@@ -43,24 +43,40 @@ export const addCourse = async (req: Request, res: Response): Promise<void> => {
   }
 };*/
 
-// Delete a course
+// Delete a course(updated)
 export const deleteCourse = async (req: Request, res: Response): Promise<void> => {
   try {
     const { code } = req.params;
     console.log("Trying to delete course with code:", code);
 
-    const deleted = await Course.findOneAndDelete({ code });
+    // Step 1: Find the course by code
+    const course = await Course.findOne({ code });
 
-    if (!deleted) {
+    if (!course) {
       res.status(404).json({ message: "Course not found" });
       return;
     }
 
-    res.status(204).send();
+    // Step 2: Check if any batch is assigned to this course
+    const isAssigned = await Batch.findOne({ course: course._id });
+
+    if (isAssigned) {
+      res.status(400).json({
+        message: "Cannot delete course because it is assigned to one or more batches"
+      });
+      return;
+    }
+
+    // Step 3: Delete the course
+    await Course.findByIdAndDelete(course._id);
+
+    res.status(204).send(); // No content
   } catch (err) {
+    console.error("Error deleting course:", err);
     res.status(500).json({ message: "Failed to delete course", error: err });
   }
 };
+
 // Get all courses
 export const getAllCourses = async (_req: Request, res: Response) => {
   const courses = await Course.find();
