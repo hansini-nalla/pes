@@ -112,12 +112,14 @@ const CourseExams = ({ courseId, onBack }: Props) => {
             </p>
 
             <button
-              className="btn"
-              style={{ marginTop: 10 }}
-              onClick={() => setViewingQuestions(exam)}
-            >
-              View Questions
-            </button>
+            className="btn"
+            style={{ marginTop: 10 }}
+            onClick={() => setViewingQuestions(exam)}
+            disabled={!isStarted}
+          >
+            {isStarted ? 'View Questions' : 'Locked'}
+          </button>
+
 
             <button
               className="btn"
