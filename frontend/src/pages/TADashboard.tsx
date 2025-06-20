@@ -246,8 +246,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         {showUpdateMarksDialog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <div className="bg-white rounded-2xl shadow-xl px-6 py-8 w-full max-w-md text-center">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Upload Transcript & Update Marks</h2>
-              <input type="file" accept="application/pdf,image/*" className="mb-4 w-full border p-2 rounded-lg" />
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Update Marks</h2>
               <input type="number" placeholder="Enter Updated Marks" className="mb-4 w-full border p-2 rounded-lg" />
               <div className="flex justify-center gap-4">
                 <button onClick={() => setShowUpdateMarksDialog(false)} className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
