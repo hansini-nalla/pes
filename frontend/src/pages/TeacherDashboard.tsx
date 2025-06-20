@@ -158,8 +158,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       fetchExamRecords();
     }, []);
 
-    console.log("📄 Fetched exams:", examRecords);
-
     const handleExamSchedule = () => {
       fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
         method: 'POST',

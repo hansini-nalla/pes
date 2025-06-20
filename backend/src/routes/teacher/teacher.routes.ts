@@ -117,11 +117,11 @@ router.get('/exams', authMiddleware, async (req: any, res: Response) => {
 
       return {
         title: exam.title,
-        course: `${course.name} (${course.code})`,
-        batch: batch.name,
-        startTime : exam.startTime.toLocaleString([], {year: 'numeric',month: '2-digit',day: '2-digit',hour: '2-digit',minute: '2-digit',}),
-        endTime: new Date(exam.endTime).toLocaleString([], {year: 'numeric',month: '2-digit',day: '2-digit',hour: '2-digit',minute: '2-digit',}),
-        numQuestions: exam.numQuestions,
+        course: course ? `${course.name} (${course.code})` : 'Unknown Course',
+        batch: batch?.name || 'Unknown Batch',
+        startTime: exam.startTime?.toLocaleString?.() ?? '',
+        endTime: exam.endTime?.toLocaleString?.() ?? '',
+        numQuestions: exam.numQuestions ?? 0,
       };
     });
 
