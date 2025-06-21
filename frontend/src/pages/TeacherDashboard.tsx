@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import type { JSX } from 'react';
 import {
   FiMenu, FiLogOut, FiHome,
-  FiBook, FiUsers, FiEdit, FiShield
+  FiBook, FiUsers, FiEdit, FiShield,
+  FiDownload, FiUserPlus
 } from 'react-icons/fi';
-//import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
-// Types for backend data
 interface ExamRecord {
   title: string;
   course: string;
@@ -16,15 +15,15 @@ interface ExamRecord {
   startTime: string;
   endTime: string;
   numQuestions: number;
+  duration: string;
+  totalMarks: number;
+  k: number;
+  totalStudents: number;
+  solutions: string;
 }
-/*interface SummaryData {
-  courses: number;
-  batches: number;
-  exams: number;
-}
-*/
+
 type CourseBatchItem = {
-  courseId: string
+  courseId: string;
   courseName: string;
   batchId: string;
   batchName: string;
@@ -34,22 +33,19 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const token = localStorage.getItem('token');
 
   const [counts, setCounts] = useState({ courses: 0, batches: 0, exams: 0 });
-  // Data from backend (simulate with state/fetch)
   const [courseBatchList, setCourseBatchList] = useState<CourseBatchItem[]>([]);
   const [examRecords, setExamRecords] = useState<ExamRecord[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
   const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
 
-  // UI state
   const [activePage, setActivePage] = useState("home");
   const [selectedCourse, setSelectedCourse] = useState("");
   const [selectedBatch, setSelectedBatch] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
-  const [showExamMsg] = useState(false);
+  const [showExamMsg, setShowExamMsg] = useState(false);
   const [showRoleMsg, setShowRoleMsg] = useState(false);
   const [showProfileMsg] = useState(false);
-  //const [profileSaved, setProfileSaved] = useState(false);
   const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [roleEmail, setRoleEmail] = useState("");
@@ -60,42 +56,46 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [numQuestions, setNumQuestions] = useState(0);
+  const [k, setK] = useState(0);
+  const [solutions, setSolutions] = useState<File | null>(null);
 
-
-  // Validation errors for profile
-  //const [profileErrors, setProfileErrors] = useState<{ name?: string, email?: string }>({});
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollCourse, setEnrollCourse] = useState("");
+  const [enrollBatch, setEnrollBatch] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [studentEmail, setStudentEmail] = useState("");
+  const [enrolledStudents, setEnrolledStudents] = useState<Record<string, {name: string, email: string}[]>>({});
+  const [enrollSuccess, setEnrollSuccess] = useState(false);
 
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-      if (darkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }, [darkMode]);
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
-    const toggleDarkMode = () => {
-      setDarkMode(!darkMode);
-      document.documentElement.classList.toggle('dark');
-    };
-  
-  //Dashboard counts
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.documentElement.classList.toggle('dark');
+  };
+
   useEffect(() => {
-      fetch(`http://localhost:${PORT}/api/dashboard/counts`)
-        .then(res => res.json())
-        .then(data => {
-          setCounts({
-            courses: data.courses,
-            batches: data.batches,
-            exams: data.exams,
-          });
-        })
-        .catch(err => console.error('Failed to fetch dashboard counts:', err));
-    }, []);
+    fetch(`http://localhost:${PORT}/api/dashboard/counts`)
+      .then(res => res.json())
+      .then(data => {
+        setCounts({
+          courses: data.courses,
+          batches: data.batches,
+          exams: data.exams,
+        });
+      })
+      .catch(err => console.error('Failed to fetch dashboard counts:', err));
+  }, []);
 
-  // Fetch profile data
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
       headers: {
@@ -108,118 +108,172 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       })
       .then((data: { name: string, email: string, role: string }) => {
         setProfileData(data);
-        //setProfileSaved(!!data.name && !!data.email && !!data.role);
       })
       .catch(err => {
         console.error('Failed to fetch profile:', err);
       });
   }, []);
 
-  // Fetch batches when a course is selected
   useEffect(() => {
-  fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      setCourseBatchList(data);
+    fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     })
-    .catch((err) => {
-      console.error('Failed to fetch teacher courses:', err);
-    });
-}, []);
-
-  // Exam scheduling
-  
-      useEffect(() => {
-      fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
-        headers: { Authorization: `Bearer ${token}` }
+      .then((res) => res.json())
+      .then((data) => {
+        setCourseBatchList(data);
       })
-        .then(res => res.json())
-        .then(data => {
-          setCourses(data.map((d: any) => ({ id: d.courseId, name: d.courseName })));
-          setBatches(data.map((d: any) => ({ id: d.batchId, name: d.batchName })));
-        });
-    }, []);
+      .catch((err) => {
+        console.error('Failed to fetch teacher courses:', err);
+      });
+  }, []);
 
-    const fetchExamRecords = () => {
-      fetch(`http://localhost:${PORT}/api/teacher/exams`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then(res => res.json())
-        .then(data => setExamRecords(data));
-    };
-
-    useEffect(() => {
-      fetchExamRecords();
-    }, []);
-
-    console.log("📄 Fetched exams:", examRecords);
-
-    const handleExamSchedule = () => {
-      fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          courseId: selectedCourse,
-          batchId: selectedBatch,
-          title: examTitle,
-          startTime,
-          endTime,
-          numQuestions,
-        }),
-      })
-        .then(res => res.json())
-        .then(() => {
-          setSelectedCourse('');
-          setSelectedBatch('');
-          setExamTitle('');
-          setStartTime('');
-          setEndTime('');
-          setNumQuestions(0);
-          fetchExamRecords(); // Refresh
-        });
-    };
-
-
-  // Role update
-  const fetchAllUsers = () => {
-      fetch(`http://localhost:${PORT}/api/teacher/users`)
-        .then(res => res.json())
-        .then(data => {
-          setAllUsers(data);
-        })
-        .catch(err => console.error('Failed to fetch users:', err));
-    };
   useEffect(() => {
-      fetchAllUsers();
-    }, []);
-  const handleRoleUpdate = () => {
-      fetch(`http://localhost:${PORT}/api/teacher/update-role`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ email: roleEmail, role: roleType })
-      })
-        .then(() => {
-          setShowRoleMsg(true);
-          setTimeout(() => setShowRoleMsg(false), 1200); // fast hide
-          fetchAllUsers();
-          setRoleEmail('');
-          setRoleType('student');
-        });
+    fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setCourses(data.map((d: any) => ({ id: d.courseId, name: d.courseName })));
+        setBatches(data.map((d: any) => ({ id: d.batchId, name: d.batchName })));
+      });
+  }, []);
+
+  const fetchExamRecords = () => {
+    fetch(`http://localhost:${PORT}/api/teacher/exams`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => res.json())
+      .then(data => setExamRecords(data));
   };
 
-  // Profile icon SVG (solid avatar style)
+  useEffect(() => {
+    fetchExamRecords();
+  }, []);
+
+  const calculateDuration = (start: string, end: string) => {
+    if (!start || !end) return "0 mins";
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diff = endDate.getTime() - startDate.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    return `${minutes} mins`;
+  };
+
+  const handleExamSchedule = () => {
+    fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        courseId: selectedCourse,
+        batchId: selectedBatch,
+        title: examTitle,
+        startTime,
+        endTime,
+        numQuestions,
+        k,
+        solutions: solutions?.name || "",
+        duration: calculateDuration(startTime, endTime),
+        totalMarks: numQuestions * 10,
+        totalStudents: 0
+      }),
+    })
+      .then(res => res.json())
+      .then(() => {
+        setSelectedCourse('');
+        setSelectedBatch('');
+        setExamTitle('');
+        setStartTime('');
+        setEndTime('');
+        setNumQuestions(0);
+        setK(0);
+        setSolutions(null);
+        setShowExamMsg(true);
+        setTimeout(() => setShowExamMsg(false), 1200);
+        fetchExamRecords();
+      });
+  };
+
+  const handleEnrollStudent = (course: string, batch: string) => {
+    setEnrollCourse(course);
+    setEnrollBatch(batch);
+    setShowEnrollModal(true);
+  };
+
+  const handleEnrollSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const key = `${enrollCourse}_${enrollBatch}`;
+    setEnrolledStudents(prev => ({
+      ...prev,
+      [key]: [...(prev[key] || []), {name: studentName, email: studentEmail}]
+    }));
+    setEnrollSuccess(true);
+    setTimeout(() => {
+      setShowEnrollModal(false);
+      setEnrollSuccess(false);
+      setStudentName("");
+      setStudentEmail("");
+    }, 1000);
+  };
+
+  const downloadCSV = (course: string, batch: string) => {
+    const key = `${course}_${batch}`;
+    const students = enrolledStudents[key] || [];
+    let csv = "Name,Email,Course,Batch\n";
+    students.forEach(s => {
+      csv += `"${s.name}","${s.email}","${course}","${batch}"\n`;
+    });
+    if (students.length === 0) {
+      csv += "No students enrolled,,,\n";
+    }
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${course}_${batch}_students.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const fetchAllUsers = () => {
+    fetch(`http://localhost:${PORT}/api/teacher/users`)
+      .then(res => res.json())
+      .then(data => {
+        setAllUsers(data);
+      })
+      .catch(err => console.error('Failed to fetch users:', err));
+  };
+
+  useEffect(() => {
+    fetchAllUsers();
+  }, []);
+
+  const handleRoleUpdate = () => {
+    fetch(`http://localhost:${PORT}/api/teacher/update-role`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ email: roleEmail, role: roleType })
+    })
+      .then(() => {
+        setShowRoleMsg(true);
+        setTimeout(() => setShowRoleMsg(false), 1200);
+        fetchAllUsers();
+        setRoleEmail('');
+        setRoleType('student');
+      });
+  };
+
   const ProfileSVG = () => (
     <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
       <circle cx="19" cy="19" r="19" fill="#57418d" />
@@ -228,7 +282,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
     </svg>
   );
 
-  // Dialog Box
   const DialogBox = ({
     show,
     message,
@@ -251,42 +304,41 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
     );
   };
 
-  // Main pages
   const pages: Record<string, JSX.Element> = {
     home: (
-    <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-      <h1 className="text-4xl font-bold text-[#38365e] text-center mb-6">
-        Welcome to Teacher Dashboard
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mt-6 w-full max-w-5xl">
-        {[
-          { icon: FiBook, label: 'Courses', count: counts.courses, color: 'bg-blue-600' },
-          { icon: FiUsers, label: 'Batches', count: counts.batches, color: 'bg-green-600' },
-          { icon: FiEdit, label: 'Exams', count: counts.exams, color: 'bg-red-600' },
-        ].map(c => (
-          <div key={c.label} className={`${c.color} p-6 rounded-3xl text-white flex flex-col justify-center items-center h-40`}>
-            <c.icon className="mb-2" size={40} />
-            <h3 className="text-lg font-semibold">{c.label}</h3>
-            <p className="text-3xl font-bold">{c.count}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
-      <button
-        onClick={() => setActivePage('courses')}
-        className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-      >
-        Manage Courses
-      </button>
-      <button
-        onClick={() => setActivePage('exams')}
-        className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-      >
-        Schedule Exams
-      </button>
-              </div>
+      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+        <h1 className="text-4xl font-bold text-[#38365e] text-center mb-6">
+          Welcome to Teacher Dashboard
+        </h1>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-6 mt-6 w-full max-w-5xl">
+          {[
+            { icon: FiBook, label: 'Courses', count: counts.courses, color: 'bg-blue-600' },
+            { icon: FiUsers, label: 'Batches', count: counts.batches, color: 'bg-green-600' },
+            { icon: FiEdit, label: 'Exams', count: counts.exams, color: 'bg-red-600' },
+          ].map(c => (
+            <div key={c.label} className={`${c.color} p-6 rounded-3xl text-white flex flex-col justify-center items-center h-40`}>
+              <c.icon className="mb-2" size={40} />
+              <h3 className="text-lg font-semibold">{c.label}</h3>
+              <p className="text-3xl font-bold">{c.count}</p>
             </div>
-          ),
+          ))}
+        </div>
+        <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
+          <button
+            onClick={() => setActivePage('courses')}
+            className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
+          >
+            Manage Courses
+          </button>
+          <button
+            onClick={() => setActivePage('exams')}
+            className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
+          >
+            Schedule Exams
+          </button>
+        </div>
+      </div>
+    ),
     roleManager: (
       <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
         <h2 className="text-3xl font-bold text-[#38365e] text-center mb-8">Role Manager</h2>
@@ -304,8 +356,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             }}
           >
             <div className="flex flex-col items-start gap-1 w-full">
-              {/* <label className="text-[#38365e] font-semibold mb-1">Email ID</label> */}
-              {/* Drop down for selecting user */}
               <div className="flex flex-col items-start gap-1 w-full">
                 <label className="text-[#38365e] font-semibold mb-1">Select User</label>
                 <select
@@ -317,7 +367,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                   required
                 >
                   <option value="">Select User</option>
-
                   <optgroup label="Teaching Assistants (TAs)">
                     {allUsers
                       .filter(user => user.role === 'ta')
@@ -327,7 +376,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                         </option>
                       ))}
                   </optgroup>
-
                   <optgroup label="Students">
                     {allUsers
                       .filter(user => user.role === 'student')
@@ -388,7 +436,20 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                   <tr key={idx}>
                     <td className="px-6 py-4 text-center text-base">{row.courseName}</td>
                     <td className="px-6 py-4 text-center text-base">{row.batchName}</td>
-                    <td className="px-6 py-4 text-center text-base">-</td>
+                    <td className="px-6 py-4 text-center text-base flex gap-2 justify-center">
+                      <button
+                        onClick={() => handleEnrollStudent(row.courseName, row.batchName)}
+                        className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-xl hover:bg-green-200 transition"
+                      >
+                        <FiUserPlus /> Enroll Student
+                      </button>
+                      <button
+                        onClick={() => downloadCSV(row.courseName, row.batchName)}
+                        className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition"
+                      >
+                        <FiDownload /> Download CSV
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -407,8 +468,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
         <h2 className="text-3xl font-bold mb-10 text-[#38365e] text-center">Exam Management</h2>
         <div className="w-full flex flex-col gap-6 max-w-2xl mb-4">
-
-          {/* Row 1: Course & Batch */}
           <div className="flex flex-row gap-8">
             <div className="flex flex-col flex-1">
               <label className="text-[#38365e] font-semibold mb-1">Course</label>
@@ -450,7 +509,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             </div>
           </div>
 
-          {/* Row 2: Title & Question Count */}
           <div className="flex flex-row gap-8">
             <div className="flex flex-col flex-1">
               <label className="text-[#38365e] font-semibold mb-1">Exam Title</label>
@@ -474,7 +532,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             </div>
           </div>
 
-          {/* Row 3: Start & End Time */}
           <div className="flex flex-row gap-8">
             <div className="flex flex-col flex-1">
               <label className="text-[#38365e] font-semibold mb-1">Start Time</label>
@@ -496,15 +553,51 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             </div>
           </div>
 
-          {/* Schedule Button */}
+          <div className="flex flex-row gap-8">
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">No. of Peers (K)</label>
+              <input
+                type="number"
+                min="1"
+                value={k}
+                onChange={(e) => setK(Number(e.target.value))}
+                className="border-2 border-[#b3aedd] px-4 py-2 rounded-xl outline-none"
+                placeholder="e.g. 3"
+              />
+            </div>
+            <div className="flex flex-col flex-1">
+              <label className="text-[#38365e] font-semibold mb-1">Solutions</label>
+              <div className="flex items-center">
+                <label className="mr-2">
+                  <input
+                    type="file"
+                    onChange={(e) => setSolutions(e.target.files ? e.target.files[0] : null)}
+                    className="hidden"
+                    id="solution-file"
+                  />
+                  <span
+                    className="inline-block px-3 py-1 bg-[#232323] text-white rounded cursor-pointer"
+                    style={{ fontWeight: 500 }}
+                    onClick={() => document.getElementById('solution-file')?.click()}
+                  >
+                    Choose File
+                  </span>
+                </label>
+                <span className="ml-2 text-sm text-gray-700">
+                  {solutions ? solutions.name : "No file chosen"}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end mt-2">
             <button
               onClick={handleExamSchedule}
               disabled={
-                !selectedCourse || !selectedBatch || !examTitle || !startTime || !endTime || numQuestions <= 0
+                !selectedCourse || !selectedBatch || !examTitle || !startTime || !endTime || numQuestions <= 0 || k <= 0
               }
               className={`px-6 py-2 rounded-2xl font-semibold shadow transition text-white text-base ${
-                selectedCourse && selectedBatch && examTitle && startTime && endTime && numQuestions > 0
+                selectedCourse && selectedBatch && examTitle && startTime && endTime && numQuestions > 0 && k > 0
                   ? 'bg-[#57418d] hover:bg-[#402b6c]'
                   : 'bg-gray-400 cursor-not-allowed'
               }`}
@@ -514,7 +607,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
           </div>
         </div>
 
-        {/* Exam List */}
         <div className="w-full max-w-5xl mt-10">
           <table className="w-full border-separate border-spacing-y-4">
             <thead>
@@ -526,16 +618,25 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                   Course
                 </th>
                 <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
-                  Batch 
+                  Batch
                 </th>
                 <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
-                 Start Time
+                  Duration
                 </th>
                 <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
-                  End Time
+                  Total Marks
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  K
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  Total Students
+                </th>
+                <th className="bg-[#57418d] text-white py-3 px-6 text-lg font-semibold text-center">
+                  Solutions
                 </th>
                 <th className="bg-[#57418d] text-white py-3 px-6 rounded-r-2xl text-lg font-semibold text-center">
-                  Questions
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -546,14 +647,28 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                     <td className="px-6 py-4 text-center text-base">{ex.title}</td>
                     <td className="px-6 py-4 text-center text-base">{ex.course}</td>
                     <td className="px-6 py-4 text-center text-base">{ex.batch}</td>
-                    <td className="px-6 py-4 text-center text-base">{ex.startTime}</td>
-                    <td className="px-6 py-4 text-center text-base">{ex.endTime}</td>
-                    <td className="px-6 py-4 text-center text-base">{ex.numQuestions}</td>
+                    <td className="px-6 py-4 text-center text-base">{calculateDuration(ex.startTime, ex.endTime)}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.numQuestions * 10}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.k || '-'}</td>
+                    <td className="px-6 py-4 text-center text-base">{ex.totalStudents || '-'}</td>
+                    <td className="px-6 py-4 text-center text-base">
+                      <button className="text-blue-600 hover:text-blue-800">
+                        View Solutions
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center text-base flex gap-2 justify-center">
+                      <button className="text-blue-600 hover:text-blue-800">
+                        View
+                      </button>
+                      <button className="text-green-600 hover:text-green-800">
+                        Solutions
+                      </button>
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="text-center text-gray-500 py-4">
+                  <td colSpan={9} className="text-center text-gray-500 py-4">
                     No exams scheduled yet
                   </td>
                 </tr>
@@ -567,7 +682,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(180deg,#ffe3ec 80%,#f0f0f5 100%)" }}>
-      {/* Sidebar */}
       <div className={`${showSidebar ? 'w-64' : 'w-20'} bg-gradient-to-b from-[#493a6b] to-[#2D2150] text-white flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300`}>
         <button
           onClick={() => setShowSidebar(!showSidebar)}
@@ -603,9 +717,8 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
           {showSidebar && 'Logout'}
         </button>
       </div>
-      {/* Main Content */}
+
       <div className="flex-1 relative overflow-y-auto flex justify-center items-start">
-        {/* Profile button */}
         <div className="absolute top-4 right-6 z-20">
           <button onClick={() => setShowProfilePopup(!showProfilePopup)}
             className="p-2 flex items-center justify-center rounded-full border-2 border-transparent hover:border-blue-300 transition active:scale-95 bg-white shadow"
@@ -632,7 +745,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                 </div>
                 <button
                   onClick={() => {
-                    //setActivePage("courses");
                     setShowProfilePopup(false);
                   }}
                   className="bg-purple-700 text-white px-4 py-2 rounded-3xl w-full"
@@ -642,7 +754,7 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
               </div>
             )}
         </div>
-        {/* Single rounded main content area, always up towards the top, starting below the profile icon */}
+
         <div
           className="bg-white rounded-3xl shadow-lg w-full h-auto mt-24 mb-8 mx-4 p-0 flex items-start justify-center overflow-auto max-w-6xl"
           style={{
@@ -654,10 +766,92 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             {pages[activePage]}
           </div>
         </div>
+
         <DialogBox show={showProfileMsg} message="Profile Saved Successfully!" />
         <DialogBox show={showExamMsg} message="Exam Scheduled Successfully!" />
         <DialogBox show={showRoleMsg} message="Role Updated Successfully!" />
-        {/* Logout Dialog */}
+
+        {showEnrollModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+            <form
+              onSubmit={handleEnrollSubmit}
+              className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center w-[350px] max-w-full"
+            >
+              <h2 className="text-2xl font-bold mb-6 text-center">Enroll Student</h2>
+              <div className="flex flex-col gap-3 w-full">
+                <div>
+                  <label className="font-semibold">Course:</label>
+                  <input
+                    value={enrollCourse}
+                    disabled
+                    className="border px-3 py-2 rounded w-full mt-1 bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">Batch:</label>
+                  <input
+                    value={enrollBatch}
+                    disabled
+                    className="border px-3 py-2 rounded w-full mt-1 bg-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">Student Name:</label>
+                  <input
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                    className="border px-3 py-2 rounded w-full mt-1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">Student Email:</label>
+                  <input
+                    type="email"
+                    value={studentEmail}
+                    onChange={(e) => setStudentEmail(e.target.value)}
+                    className="border px-3 py-2 rounded w-full mt-1"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="submit"
+                  className="bg-[#57418d] text-white px-8 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
+                >
+                  Enroll
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEnrollModal(false)}
+                  className="bg-gray-200 text-gray-700 rounded-2xl px-8 py-2 font-semibold hover:bg-gray-300 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+              {enrollSuccess && (
+                <div className="mt-4 text-green-600 font-semibold text-center">
+                  Student enrolled successfully!
+                </div>
+              )}
+              <div className="mt-4 w-full">
+                <div className="font-semibold mb-1">Enrolled Students:</div>
+                <ul className="max-h-24 overflow-y-auto text-sm">
+                  {(enrolledStudents[`${enrollCourse}_${enrollBatch}`] || []).map((s, i) => (
+                    <li key={i} className="mb-1">
+                      {s.name} ({s.email})
+                    </li>
+                  ))}
+                  {(enrolledStudents[`${enrollCourse}_${enrollBatch}`] || []).length === 0 && (
+                    <li className="text-gray-400">No students enrolled yet.</li>
+                  )}
+                </ul>
+              </div>
+            </form>
+          </div>
+        )}
+
         <DialogBox show={logoutDialog} message="Are you sure you want to logout?">
           <div className="flex gap-8 mt-4">
             <button
@@ -683,7 +877,6 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
         </DialogBox>
       </div>
 
-      {/* Settings Button */}
       <div className="absolute bottom-6 right-6 z-20">
         <button
           onClick={() => setShowSettings(!showSettings)}
