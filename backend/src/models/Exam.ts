@@ -11,6 +11,7 @@ export interface IExam extends Document {
     questionText: string;
     maxMarks: number;
   }[];
+  createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true };
 }
 
 const examSchema = new Schema<IExam>({
@@ -26,6 +27,8 @@ const examSchema = new Schema<IExam>({
       maxMarks: { type: Number, required: true },
     }
   ],
+  createdBy: Types.ObjectId,
+
 });
 
 export const Exam = model<IExam>('Exam', examSchema);

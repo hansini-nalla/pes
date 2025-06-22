@@ -20,16 +20,22 @@ export const authMiddleware = async (
   }
 
   try {
+    console.log(token);
+    console.log(process.env.JWT_SECRET);
+    console.log("---------------------");
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
 
     const user = await User.findById(decoded._id || decoded.id);
     if (!user) {
       res.status(404).json({ message: "User not found" });
+
       return;
     }
     req.user = user; 
+
     next();
   } catch (err) {
+    console.log(err);
     res.status(401).json({ message: "Invalid token" });
   }
 };

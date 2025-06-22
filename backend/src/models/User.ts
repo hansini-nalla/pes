@@ -1,4 +1,4 @@
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export type Role = 'admin' | 'teacher' | 'ta' | 'student';
 
@@ -7,7 +7,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: Role;
-  enrolledCourses: string[];
+  enrolledCourses: Types.ObjectId[];
   reputationScore: number;
 }
 
