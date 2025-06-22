@@ -1,4 +1,3 @@
-
 import { useState,useEffect } from 'react';
 import {useNavigate } from 'react-router-dom';
 import './StudentDashboard.css';
@@ -33,68 +32,10 @@ export default function StudentDashboard() {
   }
 
   useEffect(() => {
-        if (darkMode) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      }, [darkMode]);
-  
-      const toggleDarkMode = () => {
-        setDarkMode(!darkMode);
-        document.documentElement.classList.toggle('dark');
-      };
-  
-  //Dashboard counts
-    /*useEffect(() => {
-        fetch(`http://localhost:${PORT}/api/dashboard/counts`)
-          .then(res => res.json())
-          .then(data => {
-            setCounts({
-              courses: data.courses,
-              batches: data.batches,
-              exams: data.exams,
-            });
-          })
-          .catch(err => console.error('Failed to fetch dashboard counts:', err));
-    }, []);*/
-
-  // Fetch profile data
-    useEffect(() => {
-      fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-        .then(res => {
-          if (!res.ok) throw new Error('Unauthorized');
-          return res.json();
-        })
-        .then((data: { name: string, email: string, role: string }) => {
-          setProfileData(data);
-          //setProfileSaved(!!data.name && !!data.email && !!data.role);
-        })
-        .catch(err => {
-          console.error('Failed to fetch profile:', err);
-        });
-    }, []);
-
-  // Profile icon SVG (solid avatar style)
-    const ProfileSVG = () => (
-      <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
-        <circle cx="19" cy="19" r="19" fill="#57418d" />
-        <circle cx="19" cy="14" r="7" fill="#fff" />
-        <ellipse cx="19" cy="29.5" rx="11" ry="7.5" fill="#fff" />
-      </svg>
-    );
-  
-  const handleUpload = (course: string, test: string, file: File | null) => {
-    if (!file) return alert("Please select a PDF file.");
-    setSubmissions(prev => ({
-      ...prev,
-      [course]: {
-        ...prev[course],
-        [test]: { file }
+      if (darkMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
     }, [darkMode]);
 
@@ -152,101 +93,23 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(180deg,#ffe3ec 80%,#f0f0f5 100%)" }}>
-      <div className={`${showSidebar ? 'w-64' : 'w-20'} bg-gradient-to-b from-[#493a6b] to-[#2D2150] text-white flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300`}>
-        <button
-          onClick={() => setShowSidebar(!showSidebar)}
-          className="self-start mb-6 p-2 border-2 border-transparent hover:border-blue-300 rounded-full active:scale-95 transition"
-        >
-          <FiMenu className="text-2xl" />
-        </button>
-        <div className="flex-1 flex flex-col items-center">
-          <h2 className={`font-bold mb-10 mt-4 transition-all ${showSidebar ? 'text-2xl' : 'text-lg'}`}>{showSidebar ? 'Student Panel' : 'Stu'}</h2>
-          <ul className="space-y-3 w-full">
-            {[
-              { key: 'dashboard', icon: FiHome, label: 'Dashboard' },
-              { key: 'courses', icon: FiBook, label: 'Courses' },
-              { key: 'peerEvaluation', icon: FiUsers, label: 'Peer Evaluation' },
-              { key: 'viewMarks', icon: FiCheckCircle, label: 'View Marks' },
-              { key: 'raiseTicket', icon: FiUploadCloud, label: 'Raise Ticket' },
-              { key: 'profile', icon: FiUser, label: 'Profile' }
-            ].map(({ key, icon: Icon, label }) => (
-              <li
-                key={key}
-                onClick={() => setActivePage(key)}
-                className={`cursor-pointer ${activePage === key ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}
-              >
-                <Icon className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-                {showSidebar && label}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <button
-          onClick={() => setLogoutDialog(true)}
-          className="flex items-center justify-center gap-2 hover:text-red-400 transition"
-        >
-          <FiLogOut className={`${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-          {showSidebar && 'Logout'}
-        </button>
+    <div className="dashboard-container">
+      <div className="sidebar">
+        <h2 className="sidebar-title">Student</h2>
+        <ul className="menu">
+          {menuItems.map(({ label }) => (
+            <li
+              key={label}
+              className={label === activeMenu ? 'active' : ''}
+              onClick={() => setActiveMenu(label)}
+            >
+              {label}
+            </li>
+          ))}
+        </ul>
       </div>
-      <div className="flex-1 relative overflow-y-auto flex justify-center items-start">
-        <div className="bg-white rounded-3xl shadow-lg w-full h-auto mt-24 mb-8 mx-4 p-0 flex items-start justify-center overflow-auto max-w-6xl"
-          style={{ minHeight: "calc(100vh - 120px)", boxShadow: '0 2px 24px 0 rgba(87,65,141,0.10)' }}>
-          {pages[activePage]}
-        </div>
-      </div>
-      {logoutDialog && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-80 text-center shadow-xl">
-            <p className="text-lg font-semibold text-[#38365e] mb-4">Are you sure you want to logout?</p>
-            <div className="flex justify-around mt-4">
-              <button onClick={() => setLogoutDialog(false)} className="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300">Cancel</button>
-              <button
-                onClick={() => { setLogoutDialog(false); onLogout?.(); }}
-                className="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600"
-              >Logout</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Profile button */}
-        <div className="absolute top-4 right-6 z-20">
-          <button onClick={() => setShowProfilePopup(!showProfilePopup)}
-            className="p-2 flex items-center justify-center rounded-full border-2 border-transparent hover:border-blue-300 transition active:scale-95 bg-white shadow"
-            style={{ boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)' }}
-          >
-            <ProfileSVG />
-          </button>
-          {showProfilePopup && (
-              <div
-                className="absolute right-0 mt-3 w-80 bg-white p-4 rounded-b-3xl shadow-lg z-10"
-                style={{
-                  borderTopLeftRadius: 0,
-                  borderTopRightRadius: 0,
-                  borderBottomLeftRadius: 24,
-                  borderBottomRightRadius: 24,
-                  boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)'
-                }}
-              >
-                <h2 className="text-xl font-bold mb-4">Profile Info</h2>
-                <div className="space-y-2 mb-4">
-                  <p><strong>Name:</strong> {profileData.name}</p>
-                  <p><strong>Email:</strong> {profileData.email}</p>
-                  <p><strong>Role:</strong> {profileData.role}</p>
-                </div>
-                <button
-                  onClick={() => {
-                    setActivePage("profile");
-                    setShowProfilePopup(false);
-                  }}
-                  className="bg-purple-700 text-white px-4 py-2 rounded-3xl w-full"
-                >
-                  Go to Profile
-                </button>
-              </div>
-            )}
-        </div>
+      <div className="main-content">{renderContent()}</div>
+
       {/* Settings Button */}
       <div className="absolute bottom-6 right-6 z-20">
         <button
@@ -272,6 +135,4 @@ export default function StudentDashboard() {
       </div>
     </div>
   );
-};
-
-export default StudentDashboard;
+}
