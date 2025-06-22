@@ -1,48 +1,36 @@
-// StudentDashboard.tsx
-import { useEffect, useState } from 'react';
-import type { JSX } from 'react';
-import {
-  FiMenu,
-  FiLogOut,
-  FiHome,
-  FiBook,
-  FiUsers,
-  FiCheckCircle,
-  FiUploadCloud,
-  FiUser,
-  FiEdit,
-  FiTrash,
-  FiUpload,
-  FiSend,
-  FiDownload
-} from 'react-icons/fi';
 
-interface CourseTestSubmission {
-  file: File | null;
-}
+import { useState,useEffect } from 'react';
+import {useNavigate } from 'react-router-dom';
+import './StudentDashboard.css';
+import ProfileSection from '../components/student/ProfileSection';
+import CourseList from '../components/student/CourseList';
+import CourseExams from '../components/student/CourseExams';
+import ViewMarks from '../components/student/ViewMarks';
+import DashboardOverview from '../components/student/DashboardOverview';
+import PeerEvaluationsPending from '../components/student/PeerEvaluationsPending';
 
-const courseTests: Record<string, string[]> = {
-  Maths: ['Test 1', 'Test 2'],
-  Physics: ['Test 1', 'Test 2'],
-  'AI/ML': ['Test 1', 'Test 2']
-};
+const menuItems = [
+  { label: 'Dashboard' },
+  { label: 'Courses' },
+  { label: 'Peer Evaluation' },
+  { label: 'View Marks' },
+  { label: 'Raise Ticket' },
+  { label: 'Profile' },
+  { label: 'Logout' },
+];
 
-const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
-
-const StudentDashboard = ({ onLogout }: { onLogout?: () => void }) => {
-  const token = localStorage.getItem('token');
-  //const [counts, setCounts] = useState({ courses: 0, batches: 0, exams: 0 });
-  const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
-  const [showProfilePopup, setShowProfilePopup] = useState(false);
+export default function StudentDashboard() {
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
-  const [activePage, setActivePage] = useState('dashboard');
-  const [showSidebar, setShowSidebar] = useState(true);
-  const [logoutDialog, setLogoutDialog] = useState(false);
-  const [submissions, setSubmissions] = useState<Record<string, Record<string, CourseTestSubmission>>>({});
-  const [evaluations, setEvaluations] = useState<Record<string, Record<string, { pdfs: string[]; marks: Record<number, string> }>>>({});
-  const [tickets, setTickets] = useState<Record<string, { title: string; description: string; file?: File | null }>>({});
+  // Logout handling
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  }
 
   useEffect(() => {
         if (darkMode) {
@@ -108,256 +96,59 @@ const StudentDashboard = ({ onLogout }: { onLogout?: () => void }) => {
         ...prev[course],
         [test]: { file }
       }
-    }));
-  };
+    }, [darkMode]);
 
-  const handleDelete = (course: string, test: string) => {
-    const updated = { ...submissions };
-    delete updated[course]?.[test];
-    setSubmissions(updated);
-  };
+    const toggleDarkMode = () => {
+      setDarkMode(!darkMode);
+      document.documentElement.classList.toggle('dark');
+    };
 
-  const handleMarkChange = (course: string, test: string, index: number, value: string) => {
-    setEvaluations(prev => ({
-      ...prev,
-      [course]: {
-        ...prev[course],
-        [test]: {
-          ...prev[course]?.[test],
-          marks: {
-            ...prev[course]?.[test]?.marks,
-            [index]: value
-          }
-        }
-      }
-    }));
-  };
-
-  const handleTicketChange = (course: string, field: 'title' | 'description', value: string) => {
-    setTickets(prev => ({
-      ...prev,
-      [course]: {
-        ...prev[course],
-        [field]: value
-      }
-    }));
-  };
-
-  const handleTicketFile = (course: string, file: File | null) => {
-    setTickets(prev => ({
-      ...prev,
-      [course]: {
-        ...prev[course],
-        file
-      }
-    }));
-  };
-
-  const handleSubmitTicket = (course: string) => {
-    alert(`Ticket submitted for ${course}: ${tickets[course]?.title}`);
-  };
-
-  const UploadIcon = ({ course, test, onSubmit }: {
-    course: string;
-    test: string;
-    onSubmit: (course: string, test: string, file: File | null) => void;
-  }) => (
-    <>
-      <input
-        type="file"
-        accept="application/pdf"
-        id={`upload-${course}-${test}`}
-        hidden
-        onChange={(e) => onSubmit(course, test, e.target.files?.[0] || null)}
-      />
-      <label htmlFor={`upload-${course}-${test}`} className="p-2 border-2 border-purple-400 rounded-lg text-purple-600 hover:bg-purple-100 cursor-pointer">
-        <FiUpload />
-      </label>
-    </>
-  );
-
-  const coursesPage = (
-    <div className="p-10 w-full max-w-5xl space-y-8">
-      <h2 className="text-3xl font-bold text-[#38365e] mb-4">Your Courses</h2>
-      {Object.keys(courseTests).map(course => (
-        <div key={course} className="bg-white rounded-2xl shadow p-6 space-y-4">
-          <h3 className="text-xl font-semibold text-[#57418d]">{course}</h3>
-          <div className="space-y-4">
-            {courseTests[course].map(test => (
-              <div key={test} className="border rounded-xl p-4 shadow-sm">
-                <div className="flex justify-between items-center">
-                  <div className="font-medium text-[#38365e]">{test}</div>
-                  <div className="flex items-center space-x-3 text-xl">
-                    {submissions[course]?.[test]?.file && (
-                      <button onClick={() => alert(`Edit ${test}`)} className="p-2 border-2 border-green-400 rounded-lg text-green-600 hover:bg-green-100">
-                        <FiEdit />
-                      </button>
-                    )}
-                    {submissions[course]?.[test]?.file && (
-                      <a
-                        href={URL.createObjectURL(submissions[course][test].file!)}
-                        download={submissions[course][test].file!.name}
-                        className="p-2 border-2 border-blue-400 rounded-lg text-blue-600 hover:bg-blue-100"
-                      >
-                        <FiDownload />
-                      </a>
-                    )}
-                    <UploadIcon course={course} test={test} onSubmit={handleUpload} />
-                    <button onClick={() => alert(`Submitted: ${test}`)} className="p-2 border-2 border-cyan-400 rounded-lg text-cyan-600 hover:bg-cyan-100">
-                      <FiSend />
-                    </button>
-                    {submissions[course]?.[test]?.file && (
-                      <button onClick={() => handleDelete(course, test)} className="p-2 border-2 border-red-400 rounded-lg text-red-600 hover:bg-red-100">
-                        <FiTrash />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                {submissions[course]?.[test]?.file && (
-                  <p className="text-sm mt-2 text-gray-600">Uploaded: {submissions[course][test].file!.name}</p>
-                )}
-              </div>
-            ))}
+  const renderContent = () => {
+    switch (activeMenu) {
+      case 'Dashboard':
+        return (
+          <DashboardOverview />
+        );
+      case 'Courses':
+        return selectedCourseId ? (
+          <CourseExams
+            courseId={selectedCourseId}
+            onBack={() => setSelectedCourseId(null)}
+          />
+        ) : (
+          <CourseList onSelectCourse={(id) => setSelectedCourseId(id)} />
+        );
+      case 'Peer Evaluation':
+        return (
+          <PeerEvaluationsPending/>
+        );
+      case 'View Marks':
+        return (
+          <ViewMarks />
+        );
+      case 'Raise Ticket':
+        return (
+          <div className="card">
+            <h2>Raise a Ticket</h2>
+            <textarea placeholder="Describe your issue..." rows={4}></textarea>
+            <br />
+            <button className="btn">Submit Ticket</button>
           </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  const peerEvaluationPage = (
-    <div className="p-10 w-full max-w-5xl space-y-8">
-      <h2 className="text-3xl font-bold text-[#38365e] mb-4">Peer Evaluation</h2>
-      {Object.keys(courseTests).map(course => (
-        <div key={course} className="bg-white rounded-2xl shadow p-6 space-y-4">
-          <h3 className="text-xl font-semibold text-[#57418d]">{course}</h3>
-          {courseTests[course].map(test => (
-            <div key={test} className="border rounded-xl p-4 shadow-sm">
-              <h4 className="text-lg font-medium text-[#38365e] mb-2">{test} - Marks out of 10</h4>
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="mb-3 flex items-center space-x-4">
-                  <a
-                    href={`https://example.com/pdf/${course}-${test}-file${i + 1}.pdf`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    View PDF {i + 1}
-                  </a>
-                  <input
-                    type="text"
-                    placeholder="Marks /10"
-                    className="border px-3 py-1 rounded-xl text-sm"
-                    value={evaluations[course]?.[test]?.marks?.[i] || ''}
-                    onChange={(e) => handleMarkChange(course, test, i, e.target.value)}
-                  />
-                </div>
-              ))}
-              <button className="mt-2 bg-[#57418d] text-white px-4 py-2 rounded-xl hover:bg-[#402b6c]">Submit Marks</button>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-
-  const raiseTicketPage = (
-    <div className="p-10 w-full max-w-4xl space-y-8">
-      <h2 className="text-3xl font-bold text-[#38365e] mb-4">Raise Ticket</h2>
-      {Object.keys(courseTests).map(course => (
-        <div key={course} className="bg-white rounded-xl p-6 shadow space-y-4">
-          <h3 className="text-xl font-semibold text-[#57418d]">{course}</h3>
-          <input
-            type="text"
-            placeholder="Issue Title"
-            className="border px-4 py-2 rounded-xl w-full"
-            value={tickets[course]?.title || ''}
-            onChange={(e) => handleTicketChange(course, 'title', e.target.value)}
-          />
-          <textarea
-            placeholder="Describe your issue..."
-            className="border px-4 py-2 rounded-xl w-full"
-            rows={4}
-            value={tickets[course]?.description || ''}
-            onChange={(e) => handleTicketChange(course, 'description', e.target.value)}
-          />
-          <input
-            type="file"
-            className="block w-full text-sm"
-            onChange={(e) => handleTicketFile(course, e.target.files?.[0] || null)}
-          />
-          <button onClick={() => handleSubmitTicket(course)} className="bg-[#57418d] text-white px-6 py-2 rounded-xl hover:bg-[#402b6c]">Submit Ticket</button>
-        </div>
-      ))}
-    </div>
-  );
-
-  const viewMarksPage = (
-    <div className="p-10 w-full max-w-3xl">
-      <h2 className="text-3xl font-bold text-[#38365e] mb-6">Your Marks</h2>
-      <table className="w-full text-left border-separate border-spacing-y-3">
-        <thead>
-          <tr>
-            <th className="bg-[#57418d] text-white px-4 py-3 rounded-l-xl">Subject</th>
-            <th className="bg-[#57418d] text-white px-4 py-3">Internal</th>
-            <th className="bg-[#57418d] text-white px-4 py-3 rounded-r-xl">Final</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[
-            { subject: 'Maths', internal: 23, final: 40 },
-            { subject: 'AI/ML', internal: 25, final: 45 }
-          ].map((m, idx) => (
-            <tr key={idx}>
-              <td className="px-4 py-2 text-[#38365e]">{m.subject}</td>
-              <td className="px-4 py-2">{m.internal}</td>
-              <td className="px-4 py-2">{m.final}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  const dashboardPage = (
-    <div className="flex flex-col items-center justify-center w-full h-full py-10">
-      <h1 className="text-4xl font-bold text-[#38365e] mb-6">Welcome, {profileData.name}</h1>
-      <p className="text-lg text-[#38365e] text-center">Access your courses, submit answers, view marks, and more.</p>
-      <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
-              <button
-                onClick={() => setActivePage('courses')}
-                className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-              >
-                Courses
-              </button>
-              <button
-                onClick={() => setActivePage('peerEvaluation')}
-                className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-              >
-                Peer Evaluation
-              </button>
-              <button
-                onClick={() => setActivePage('viewMarks')}
-                className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-              >
-                View Marks
-              </button>
-              <button
-                onClick={() => setActivePage('raiseTicket')}
-                className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-              >
-                Raise Ticket
-              </button>
-            </div>
-    </div>
-  );
-
-  const pages: Record<string, JSX.Element> = {
-    dashboard: dashboardPage,
-    courses: coursesPage,
-    peerEvaluation: peerEvaluationPage,
-    viewMarks: viewMarksPage,
-    raiseTicket: raiseTicketPage,
-    profile: <div className="p-10">Profile page</div>
+        );
+      case 'Profile':
+        return (
+          <ProfileSection />
+        );
+      case 'Logout':
+        return (
+          <div className="card">
+            <h2>Are you sure you want to logout?</h2>
+            <button className="btn" onClick={handleLogout}>Confirm Logout</button>
+          </div>
+        );
+      default:
+        return <div>Select a menu option</div>;
+    }
   };
 
   return (
