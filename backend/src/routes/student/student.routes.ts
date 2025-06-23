@@ -36,8 +36,8 @@ router.post("/flag-evaluation", authMiddleware, flagEvaluation);
 router.post("/submit-peer-evaluation", authMiddleware, submitPeerEvaluation);
 router.get(
   "/submission-pdf/:examId/:studentId",
-  authMiddleware,
   getSubmissionPdf
 );
+
 
 export default router;

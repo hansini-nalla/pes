@@ -181,7 +181,7 @@ const PeerEvaluationsPending = () => {
             {openEval.pdfUrl && (
               <div className="mb-4 flex gap-4">
                 <a
-                  href={openEval.pdfUrl}
+                  href={`${openEval.pdfUrl}?token=${localStorage.getItem("token")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-[#57418d] text-white px-4 py-2 rounded-xl hover:bg-[#402b6c] transition"
@@ -189,14 +189,14 @@ const PeerEvaluationsPending = () => {
                   Open PDF
                 </a>
                 <a
-                  href={openEval.pdfUrl}
-                  download
+                  href={`${openEval.pdfUrl}?token=${localStorage.getItem("token")}&download=true`}
                   className="bg-[#57418d] text-white px-4 py-2 rounded-xl hover:bg-[#402b6c] transition"
                 >
                   Download PDF
                 </a>
               </div>
             )}
+
             <form
               onSubmit={e => {
                 e.preventDefault();
