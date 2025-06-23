@@ -1,3 +1,4 @@
+
 import express from "express";
 import connectDB from "./config/db.ts";
 import studentRoutes from "./routes/student/student.routes.ts";
@@ -8,6 +9,9 @@ import adminroutes from './routes/admin/admin.routes.ts';
 // import adminstudentroutes from './routes/admin/student_admin.routes.ts';
 // import adminteachroutes from './routes/admin/teacher.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
+import admincourseroutes from './routes/admin/admin.routes.ts';
+
+
 
 import "./models/Course.ts";
 import "./models/Batch.ts";
@@ -51,9 +55,10 @@ app.use("/api/admin",adminroutes);
 // app.use("/api/admin/teachers",adminteachroutes);
 app.use("/api/student", studentRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/ta', taRoutes); 
+app.use('/api/ta', taRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use("/api/admin/courses", admincourseroutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
