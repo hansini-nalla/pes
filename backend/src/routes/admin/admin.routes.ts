@@ -36,7 +36,7 @@ router.post("/batches",authMiddleware,authorizeRoles("admin"),createBatch);
 router.delete("/batches/:id",authMiddleware,authorizeRoles("admin"),deleteBatch);
 router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
 //router.get('/batches/:id',authMiddleware,authorizeRoles("admin"), getBatchById);
-router.post('/update-student-ta-role', updateStudentTaRole);
+router.put('/update-student-ta-role', updateStudentTaRole);
 
 router.delete("/:courseId", deleteCourseAndBatches);
 export default router;
