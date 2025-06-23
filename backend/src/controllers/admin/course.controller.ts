@@ -101,6 +101,37 @@ export const getAllCourses = async (_req: Request, res: Response) => {
   course ? res.json(course) : res.status(404).json({ message: 'Course not found' });
 };*/
 
+export const updateStudentTaRole = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, role } = req.body;
+
+    if (!email || !role || !["student", "ta"].includes(role)) {
+      res.status(400).json({ message: "Valid email and role (student/ta) are required." });
+      return;
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    if (user.role !== "student" && user.role !== "ta") {
+      res.status(400).json({ message: "Only students or TAs can be updated." });
+      return;
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.status(200).json({ message: `Role updated to ${role}.`, user });
+  } catch (err) {
+    console.error("Role update error:", err);
+    res.status(500).json({ message: "Server error", error: err });
+  }
+};
+
 
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
