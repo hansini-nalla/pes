@@ -1,27 +1,35 @@
 import { Request, Response } from "express";
-//import { User } from "../../models/User.ts";
 import { Course } from "../../models/Course.ts";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts"; // Required for deleteBatchAndRelated
+import { User } from "../../models/User.ts";
 //import jwt from "jsonwebtoken";
 
 // Add a new course
 export const addCourse = async (req: Request, res: Response): Promise<void> => {
   try {
+    const { name, code, startDate, endDate } = req.body;
 
-
-    const { name, code } = req.body;
-
+    // ✅ Check for duplicate code
     const existing = await Course.findOne({ code });
     if (existing) {
       res.status(409).json({ message: "Course code already exists" });
       return;
     }
 
-    const course = await Course.create({ name, code });
+    // ✅ Validate teacher exists and is a teacher
+    
+    // ✅ Create course
+    const course = await Course.create({
+      name,
+      code,
+      startDate,
+      endDate
+      
+    });
+
     res.status(201).json(course);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: "Failed to add course", error: err });
   }
 };
@@ -94,6 +102,7 @@ export const getAllCourses = async (_req: Request, res: Response) => {
   res.json(courses);
 };
 
+
 // Get course by ID
 /*export const getCourseById = async (req: Request, res: Response) => {
   console.log("Searching for course with ID:", req.params.id);
@@ -102,7 +111,38 @@ export const getAllCourses = async (_req: Request, res: Response) => {
   course ? res.json(course) : res.status(404).json({ message: 'Course not found' });
 };*/
 
-// Get all batches
+export const updateStudentTaRole = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, role } = req.body;
+
+    if (!email || !role || !["student", "ta"].includes(role)) {
+      res.status(400).json({ message: "Valid email and role (student/ta) are required." });
+      return;
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404).json({ message: "User not found." });
+      return;
+    }
+
+    if (user.role !== "student" && user.role !== "ta") {
+      res.status(400).json({ message: "Only students or TAs can be updated." });
+      return;
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.status(200).json({ message: `Role updated to ${role}.`, user });
+  } catch (err) {
+    console.error("Role update error:", err);
+    res.status(500).json({ message: "Server error", error: err });
+  }
+};
+
+
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
     const batches = await Batch.find().populate('course', 'code name');
@@ -131,23 +171,33 @@ export const getAllBatches = async (_req: Request, res: Response): Promise<void>
 };*/
 
 // Create a batch for a course
+
 export const createBatch = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, courseId, students } = req.body;
-    console.log(courseId);
+
+    // Step 1: Check if course exists
     const course = await Course.findById(courseId);
     if (!course) {
       res.status(404).json({ message: "Course not found" });
       return;
     }
 
+    // Step 2: Check if a batch with the same name exists for this course
+    const existingBatch = await Batch.findOne({ name, course: courseId });
+    if (existingBatch) {
+      res.status(400).json({ message: "Batch name already exists for this course" });
+      return;
+    }
+
+    // Step 3: Create batch
     const batch = await Batch.create({ name, course: courseId, students });
     res.status(201).json(batch);
   } catch (err) {
+    console.error("Error creating batch:", err);
     res.status(500).json({ message: "Failed to create batch", error: err });
   }
 };
-
 // Update a batch
 /*export const updateBatch = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -168,10 +218,9 @@ export const createBatch = async (req: Request, res: Response): Promise<void> =>
 // Delete a batch
 export const deleteBatch = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name } = req.params;
-    console.log("Trying to delete batch by name:", name);
+    const { id } = req.params;
 
-    const deleted = await Batch.findOneAndDelete({ name });
+    const deleted = await Batch.findByIdAndDelete(id);
 
     if (!deleted) {
       res.status(404).json({ message: "Batch not found" });
@@ -180,6 +229,7 @@ export const deleteBatch = async (req: Request, res: Response): Promise<void> =>
 
     res.status(204).send();
   } catch (err) {
+    console.error("Failed to delete batch:", err);
     res.status(500).json({ message: "Failed to delete batch", error: err });
   }
 };

@@ -10,40 +10,16 @@ export const getPendingEvaluations = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const studentId = (req.query.studentId as string)?.trim();
-    const examId = (req.query.examId as string)?.trim();
+    const studentId = (req as any).user.id;
 
-    if (!studentId || !examId) {
-      res.status(400).json({ error: 'studentId and examId are required' });
-      return;
-    }
-
-    const exam = await Exam.findById(examId);
-    if (!exam) {
-      res.status(404).json({ error: 'Exam not found' });
-      return;
-    }
-
-    const batch = await Batch.findById(exam.batch).populate('students', '_id name email');
-    if (!batch) {
-      res.status(404).json({ error: 'Batch not found' });
-      return;
-    }
-
-    const allStudentsInBatch = batch.students as any[];
-
-    const evaluated = await Evaluation.find({
-      exam: examId,
+    const pendingEvals = await Evaluation.find({
       evaluator: studentId,
-    }).select('evaluatee');
+      status: 'pending',
+    })
+      .populate('evaluatee', 'name email')
+      .populate('exam', 'title');
 
-    const evaluatedIds = new Set(evaluated.map((e) => e.evaluatee.toString()));
-
-    const pending = allStudentsInBatch.filter(
-      (s) => s._id.toString() !== studentId && !evaluatedIds.has(s._id.toString())
-    );
-
-    res.json({ evaluatees: pending });
+    res.json({ evaluations: pendingEvals });
   } catch (err) {
     console.error(err);
     next(err);

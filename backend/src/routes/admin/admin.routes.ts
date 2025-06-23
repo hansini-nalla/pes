@@ -11,6 +11,8 @@ import {
   createBatch,
   //updateBatch,
   deleteBatch,
+  //Update the role
+  updateStudentTaRole,
 } from "../../controllers/admin/course.controller.ts";
 
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";      
@@ -31,9 +33,10 @@ router.get('/courses/',authMiddleware,authorizeRoles("admin"), getAllCourses);
 //Batch operations
 router.post("/batches",authMiddleware,authorizeRoles("admin"),createBatch);
 //router.put("/batches/:batchId",authMiddleware,authorizeRoles("admin"),updateBatch);
-router.delete("/batches/name/:name",authMiddleware,authorizeRoles("admin"),deleteBatch);
+router.delete("/batches/:id",authMiddleware,authorizeRoles("admin"),deleteBatch);
 router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
 //router.get('/batches/:id',authMiddleware,authorizeRoles("admin"), getBatchById);
+router.post('/update-student-ta-role', updateStudentTaRole);
 
 router.delete("/:courseId", deleteCourseAndBatches);
 export default router;
