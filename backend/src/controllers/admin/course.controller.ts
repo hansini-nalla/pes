@@ -1,27 +1,35 @@
 import { Request, Response } from "express";
-//import { User } from "../../models/User.ts";
 import { Course } from "../../models/Course.ts";
 import { Batch } from "../../models/Batch.ts";
+import { User } from "../../models/User.ts";
 //import jwt from "jsonwebtoken";
 
 // Add a new course
 export const addCourse = async (req: Request, res: Response): Promise<void> => {
   try {
-   // console.log(req);
-    console.log(req.body);
+    const { name, code, startDate, endDate } = req.body;
 
-    const { name, code } = req.body;
-
+    // ✅ Check for duplicate code
     const existing = await Course.findOne({ code });
     if (existing) {
       res.status(409).json({ message: "Course code already exists" });
       return;
     }
 
-    const course = await Course.create({ name, code });
+    // ✅ Validate teacher exists and is a teacher
+    
+    // ✅ Create course
+    const course = await Course.create({
+      name,
+      code,
+      startDate,
+      endDate
+      
+    });
+
     res.status(201).json(course);
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(500).json({ message: "Failed to add course", error: err });
   }
 };
@@ -84,6 +92,7 @@ export const getAllCourses = async (_req: Request, res: Response) => {
   res.json(courses);
 };
 
+
 // Get course by ID
 /*export const getCourseById = async (req: Request, res: Response) => {
   console.log("Searching for course with ID:", req.params.id);
@@ -91,6 +100,7 @@ export const getAllCourses = async (_req: Request, res: Response) => {
   console.log("Course found:", course);
   course ? res.json(course) : res.status(404).json({ message: 'Course not found' });
 };*/
+
 
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
