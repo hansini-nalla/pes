@@ -22,12 +22,17 @@ export const addCourse = async (req: Request, res: Response): Promise<void> => {
     const course = await Course.create({
       name,
       code,
-      startDate,
-      endDate
-      
+      startDate: new Date(startDate),
+      endDate: new Date(endDate)
     });
+    const responseCourse = {
+      ...course.toObject(),
+      startDate: course.startDate.toISOString().split("T")[0],
+      endDate: course.endDate.toISOString().split("T")[0],
+    };
 
-    res.status(201).json(course);
+
+    res.status(201).json(responseCourse);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to add course", error: err });
