@@ -9,7 +9,7 @@ import {
   //getCourseById,
   getAllBatches,
   //getBatchById,
-  createBatch,
+  
   //updateBatch,
   deleteBatch,
   //Update the role
@@ -65,12 +65,12 @@ router.post('/update-role', async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/courses/code/:code",authMiddleware,authorizeRoles("admin"),deleteCourseAndBatches);
+// router.delete("/courses/code/:code",authMiddleware,authorizeRoles("admin"),deleteCourseAndBatches);
 router.get('/courses/',authMiddleware,authorizeRoles("admin"), getAllCourses);
 //router.get('/courses/:id',authMiddleware,authorizeRoles("admin"), getCourseById);
 
 //Batch operations
-router.post("/batches",authMiddleware,authorizeRoles("admin"),createBatch);
+
 //router.put("/batches/:batchId",authMiddleware,authorizeRoles("admin"),updateBatch);
 router.delete("/batches/:id",authMiddleware,authorizeRoles("admin"),deleteBatch);
 router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
