@@ -10,6 +10,7 @@ import adminroutes from './routes/admin/admin.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
 import { sendEmail } from './utils/email.ts';
 
+//import admincourseroutes from './routes/admin/admin.routes.ts';
 import "./models/Course.ts";
 import "./models/Batch.ts";
 import "./models/Exam.ts";
@@ -52,9 +53,10 @@ app.use("/api/admin",adminroutes);
 // app.use("/api/admin/teachers",adminteachroutes);
 app.use("/api/student", studentRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/ta', taRoutes); 
+app.use('/api/ta', taRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use("/api/admin/courses", admincourseroutes);
 
 app.post('/api/send-custom-email', async (req: Request, res: Response): Promise<void> => {
   const { fromEmail, fromPass, to, subject, text } = req.body;
