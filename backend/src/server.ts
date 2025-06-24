@@ -5,8 +5,8 @@ import taRoutes from "./routes/ta/ta.routes.ts";
 import teacherRoutes from "./routes/teacher/teacher.routes.ts";
 import authRoutes from './routes/authorization/auth.routes.ts';
 import adminroutes from './routes/admin/admin.routes.ts';
-import adminstudentroutes from './routes/admin/student_admin.routes.ts';
-import adminteachroutes from './routes/admin/teacher.routes.ts';
+// import adminstudentroutes from './routes/admin/student_admin.routes.ts';
+// import adminteachroutes from './routes/admin/teacher.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
 import { sendEmail } from './utils/email.ts';
 
@@ -48,8 +48,8 @@ connectDB();
 
 // Routes
 app.use("/api/admin",adminroutes);
-app.use("/api/admin/student",adminstudentroutes);
-app.use("/api/admin/teachers",adminteachroutes);
+// app.use("/api/admin/student",adminstudentroutes);
+// app.use("/api/admin/teachers",adminteachroutes);
 app.use("/api/student", studentRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/ta', taRoutes); 
