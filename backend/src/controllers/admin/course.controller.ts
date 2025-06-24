@@ -57,27 +57,27 @@ export const addCourse = async (req: Request, res: Response): Promise<void> => {
 };*/
 
 // Delete a course and all its batches by course code
-export const deleteCourse = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { code } = req.params;
-    console.log("Trying to delete course with code:", code);
+// export const deleteCourse = async (req: Request, res: Response): Promise<void> => {
+//   try {
+//     const { code } = req.params;
+//     console.log("Trying to delete course with code:", code);
 
-    const course = await Course.findOne({ code });
+//     const course = await Course.findOne({ code });
 
-    if (!course) {
-      res.status(404).json({ message: "Course not found" });
-      return;
-    }
+//     if (!course) {
+//       res.status(404).json({ message: "Course not found" });
+//       return;
+//     }
 
-    await Batch.deleteMany({ course: course._id });
-    await Course.findByIdAndDelete(course._id);
+//     await Batch.deleteMany({ course: course._id });
+//     await Course.findByIdAndDelete(course._id);
 
-    res.status(204).send(); // No content
-  } catch (err) {
-    console.error("Error deleting course:", err);
-    res.status(500).json({ message: "Failed to delete course", error: err });
-  }
-};
+//     res.status(204).send(); // No content
+//   } catch (err) {
+//     console.error("Error deleting course:", err);
+//     res.status(500).json({ message: "Failed to delete course", error: err });
+//   }
+// };
 
 // ✅ New function: Delete course by ID and its batches (used in /:courseId route)
 export const deleteCourseAndBatches = async (req: Request, res: Response): Promise<void> => {
@@ -94,6 +94,7 @@ export const deleteCourseAndBatches = async (req: Request, res: Response): Promi
     await Course.findByIdAndDelete(courseId);
 
     res.status(204).send();
+    
   } catch (err) {
     console.error("Error deleting course by ID:", err);
     res.status(500).json({ message: "Failed to delete course by ID", error: err });

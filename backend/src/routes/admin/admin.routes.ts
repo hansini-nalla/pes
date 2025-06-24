@@ -3,7 +3,7 @@ import { deleteCourseAndBatches } from "../../controllers/admin/course.controlle
 import {
   addCourse,
   //updateCourse,
-  deleteCourse,
+  
   getAllCourses,
   //getCourseById,
   getAllBatches,
@@ -64,7 +64,7 @@ router.post('/update-role', async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/courses/code/:code",authMiddleware,authorizeRoles("admin"),deleteCourse);
+router.delete("/courses/code/:code",authMiddleware,authorizeRoles("admin"),deleteCourseAndBatches);
 router.get('/courses/',authMiddleware,authorizeRoles("admin"), getAllCourses);
 //router.get('/courses/:id',authMiddleware,authorizeRoles("admin"), getCourseById);
 
