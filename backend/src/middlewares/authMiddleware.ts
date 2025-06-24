@@ -20,9 +20,9 @@ export const authMiddleware = async (
   }
 
   try {
-    console.log(token);
-    console.log(process.env.JWT_SECRET);
-    console.log("---------------------");
+    // console.log(token);
+    // console.log(process.env.JWT_SECRET);
+    // console.log("---------------------");
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
 
     const user = await User.findById(decoded._id || decoded.id);
@@ -31,7 +31,7 @@ export const authMiddleware = async (
 
       return;
     }
-    req.user = user; 
+    req.user = user;
 
     next();
   } catch (err) {
@@ -39,3 +39,4 @@ export const authMiddleware = async (
     res.status(401).json({ message: "Invalid token" });
   }
 };
+export default AuthenticatedRequest;

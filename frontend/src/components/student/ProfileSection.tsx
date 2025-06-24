@@ -1,4 +1,7 @@
+// frontend/src/components/student/ProfileSection.tsx
 import { useEffect, useState } from 'react';
+
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 interface StudentProfile {
   id: string;
@@ -14,18 +17,25 @@ const ProfileSection = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      if (!token) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        const res = await fetch(`http://localhost:5000/api/student/profile`, {
+        const res = await fetch(`http://localhost:${PORT}/api/student/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const data = await res.json();
         setProfile(data);
       } catch (err) {
         console.error('Failed to fetch profile:', err);
+        setProfile(null); // Ensure profile is null on error
       } finally {
         setLoading(false);
       }
@@ -34,103 +44,68 @@ const ProfileSection = () => {
     fetchProfile();
   }, []);
 
-  const styles = {
-    container: {
-      maxWidth: '500px',
-      margin: '40px auto',
-      background: 'white',
-      padding: '40px',
-      borderRadius: '20px',
-      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-      border: '1px solid rgba(0, 0, 0, 0.08)',
-      position: 'relative' as const,
-      fontFamily: "'Inter', sans-serif",
-    },
-    topBar: {
-      position: 'absolute' as const,
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '4px',
-      background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-      borderRadius: '20px 20px 0 0',
-    },
-    header: {
-      fontSize: '1.8rem',
-      fontWeight: '800',
-      textAlign: 'center' as const,
-      marginBottom: '30px',
-      background: 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-    },
-    profileInfo: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: '20px',
-    },
-    infoItem: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: '16px',
-      background: 'rgba(102, 126, 234, 0.05)',
-      borderRadius: '12px',
-      border: '1px solid rgba(102, 126, 234, 0.1)',
-    },
-    label: {
-      fontWeight: '700',
-      color: '#1a202c',
-      minWidth: '80px',
-      marginRight: '12px',
-    },
-    value: {
-      color: '#4a5568',
-      flex: 1,
-    },
-    loadingText: {
-      textAlign: 'center' as const,
-      color: '#4a5568',
-      padding: '60px 0',
-      fontSize: '1.1rem',
-    },
-    errorText: {
-      textAlign: 'center' as const,
-      color: '#e53e3e',
-      padding: '60px 0',
-      fontSize: '1.1rem',
-    },
-  };
+  // Tailwind equivalent colors and gradients
+  const topBarGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
+  const headerGradient = 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)';
+  const infoItemBg = 'rgba(102, 126, 234, 0.05)';
+  const infoItemBorder = 'rgba(102, 126, 234, 0.1)';
+  const boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
+  const border = '1px solid rgba(0, 0, 0, 0.08)';
+
 
   if (loading) return (
-    <div style={styles.container}>
-      <div style={styles.topBar}></div>
-      <p style={styles.loadingText}>Loading profile...</p>
+    <div
+      className="max-w-[500px] mx-auto my-10 bg-white p-10 rounded-2xl relative font-sans"
+      style={{ boxShadow: boxShadow, border: border }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: topBarGradient }}></div>
+      <p className="text-center text-gray-700 py-16 text-lg">Loading profile...</p>
     </div>
   );
 
   if (!profile) return (
-    <div style={styles.container}>
-      <div style={styles.topBar}></div>
-      <p style={styles.errorText}>Failed to load profile</p>
+    <div
+      className="max-w-[500px] mx-auto my-10 bg-white p-10 rounded-2xl relative font-sans"
+      style={{ boxShadow: boxShadow, border: border }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: topBarGradient }}></div>
+      <p className="text-center text-red-600 py-16 text-lg">Failed to load profile</p>
     </div>
   );
 
   return (
-    <div style={styles.container}>
-      <div style={styles.topBar}></div>
-      <h2 style={styles.header}>My Profile</h2>
-      <div style={styles.profileInfo}>
-        <div style={styles.infoItem}>
-          <span style={styles.label}>Name:</span>
-          <span style={styles.value}>{profile.name}</span>
+    <div
+      className="max-w-[500px] mx-auto my-10 bg-white p-10 rounded-2xl relative font-sans"
+      style={{ boxShadow: boxShadow, border: border }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: topBarGradient }}></div>
+      <h2
+        className="text-3xl font-extrabold text-center mb-8 bg-clip-text text-transparent"
+        style={{ background: headerGradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+      >
+        My Profile
+      </h2>
+      <div className="flex flex-col gap-5">
+        <div
+          className="flex items-center p-4 rounded-xl border"
+          style={{ background: infoItemBg, borderColor: infoItemBorder }}
+        >
+          <span className="font-bold text-gray-900 min-w-[80px] mr-3">Name:</span>
+          <span className="text-gray-700 flex-1">{profile.name}</span>
         </div>
-        <div style={styles.infoItem}>
-          <span style={styles.label}>Email:</span>
-          <span style={styles.value}>{profile.email}</span>
+        <div
+          className="flex items-center p-4 rounded-xl border"
+          style={{ background: infoItemBg, borderColor: infoItemBorder }}
+        >
+          <span className="font-bold text-gray-900 min-w-[80px] mr-3">Email:</span>
+          <span className="text-gray-700 flex-1">{profile.email}</span>
         </div>
-        <div style={styles.infoItem}>
-          <span style={styles.label}>User ID:</span>
-          <span style={styles.value}>{profile.id}</span>
+        <div
+          className="flex items-center p-4 rounded-xl border"
+          style={{ background: infoItemBg, borderColor: infoItemBorder }}
+        >
+          <span className="font-bold text-gray-900 min-w-[80px] mr-3">User ID:</span>
+          <span className="text-gray-700 flex-1">{profile.id}</span>
         </div>
       </div>
     </div>

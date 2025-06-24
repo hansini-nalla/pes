@@ -1,4 +1,8 @@
+// frontend/src/components/student/ViewMarks.tsx
+
 import { useEffect, useState } from 'react';
+import axios from 'axios'; // Use axios for consistency
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 interface ExamInfo {
     _id: string;
@@ -10,7 +14,7 @@ interface ExamInfo {
 interface Result {
     exam: ExamInfo;
     averageMarks: string | null;
-    marks: number[][];
+    marks: number[][]; // Assuming marks can be nested arrays or single numbers
     feedback: string[];
 }
 
@@ -28,14 +32,14 @@ const ViewMarks = () => {
                 return;
             }
             try {
-                const res = await fetch('http://localhost:5000/api/student/results', {
+                // IMPORTANT: Remember to change this to `/api/...` after setting up Vite proxy
+                const res = await axios.get(`http://localhost:${PORT}/api/student/results`, { // Using axios
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const data = await res.json();
-                setMarks(data.results || []);
+                setMarks(res.data.results || []);
             } catch (err: any) {
                 setError(
-                    err.message || 'Failed to fetch marks'
+                    err.response?.data?.message || err.message || 'Failed to fetch marks' // Improved error handling with axios
                 );
             } finally {
                 setLoading(false);
@@ -44,233 +48,142 @@ const ViewMarks = () => {
         fetchMarks();
     }, []);
 
-    const componentStyles = {
-        container: {
-            maxWidth: '900px',
-            margin: '0 auto',
-            background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
-            minHeight: '100vh',
-            padding: '40px 20px',
-            fontFamily: "'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        },
-        card: {
-            background: 'white',
-            borderRadius: '20px',
-            padding: '40px',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            position: 'relative' as const,
-            overflow: 'hidden' as const,
-        },
-        cardBefore: {
-            content: "''",
-            position: 'absolute' as const,
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '4px',
-            background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
-        },
-        header: {
-            fontSize: '2rem',
-            fontWeight: '800',
-            textAlign: 'center' as const,
-            marginBottom: '40px',
-            background: 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            letterSpacing: '-1px',
-        },
-        loadingText: {
-            textAlign: 'center' as const,
-            color: '#4a5568',
-            fontSize: '1.1rem',
-            padding: '60px 0',
-            fontWeight: '500',
-        },
-        errorText: {
-            textAlign: 'center' as const,
-            color: '#e53e3e',
-            fontSize: '1.1rem',
-            padding: '60px 0',
-            fontWeight: '500',
-            background: 'rgba(229, 62, 62, 0.05)',
-            borderRadius: '12px',
-            border: '1px solid rgba(229, 62, 62, 0.2)',
-        },
-        noMarksText: {
-            textAlign: 'center' as const,
-            color: '#4a5568',
-            fontSize: '1.1rem',
-            padding: '60px 0',
-            fontWeight: '500',
-        },
-        resultsList: {
-            listStyle: 'none',
-            padding: 0,
-            margin: 0,
-            display: 'flex',
-            flexDirection: 'column' as const,
-            gap: '24px',
-        },
-        resultItem: {
-            background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)',
-            borderRadius: '16px',
-            padding: '30px',
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-            transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-            position: 'relative' as const,
-            overflow: 'hidden' as const,
-        },
-        resultItemHover: {
-            transform: 'translateY(-2px)',
-            boxShadow: '0 8px 25px rgba(0, 0, 0, 0.12)',
-        },
-        infoRow: {
-            display: 'flex',
-            flexWrap: 'wrap' as const,
-            alignItems: 'center',
-            marginBottom: '16px',
-            fontSize: '0.95rem',
-        },
-        label: {
-            fontWeight: '700',
-            color: '#1a202c',
-            marginRight: '8px',
-            minWidth: '120px',
-        },
-        value: {
-            color: '#4a5568',
-            flex: 1,
-        },
-        dateText: {
-            marginLeft: '12px',
-            color: '#718096',
-            fontSize: '0.85rem',
-            fontStyle: 'italic',
-        },
-        marksContainer: {
-            display: 'flex',
-            flexWrap: 'wrap' as const,
-            gap: '8px',
-            marginTop: '8px',
-        },
-        marksBadge: {
-            background: 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)',
-            color: 'white',
-            padding: '6px 12px',
-            borderRadius: '20px',
-            fontSize: '0.85rem',
-            fontWeight: '600',
-            boxShadow: '0 2px 8px rgba(45, 55, 72, 0.3)',
-        },
-        feedbackText: {
-            background: 'rgba(102, 126, 234, 0.05)',
-            border: '1px solid rgba(102, 126, 234, 0.2)',
-            borderRadius: '10px',
-            padding: '16px',
-            color: '#4a5568',
-            fontSize: '0.9rem',
-            lineHeight: '1.6',
-            fontStyle: 'italic',
-            marginTop: '8px',
-        },
-        averageScore: {
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: '25px',
-            fontSize: '0.9rem',
-            fontWeight: '700',
-            display: 'inline-block',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-        },
-    };
+    // --- Tailwind Classes & Inline Styles Definitions ---
+    // Defined gradients and shadows for reusability without external CSS
+    const mainBackgroundGradient = 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)';
+    const cardShadow = '0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)';
+    const cardBeforeGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
+    const headerGradient = 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)';
+    const resultItemBgGradient = 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)';
+    const resultItemShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+    const resultItemHoverShadow = '0 8px 25px rgba(0, 0, 0, 0.12)';
+    const marksBadgeGradient = 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)';
+    const marksBadgeShadow = '0 2px 8px rgba(45, 55, 72, 0.3)';
+    const averageScoreGradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    const averageScoreShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+
+
+    // Common Tailwind classes for a card-like container
+    const commonCardContainerClasses = `
+      bg-white rounded-[20px] p-10 border border-black/10 relative overflow-hidden
+      shadow-[${cardShadow}] sm:p-5
+    `;
+
+    // Classes for list items / result items
+    const commonResultItemClasses = `
+        rounded-2xl p-8 border border-black/10 relative overflow-hidden
+        transition-all duration-300 ease-in-out
+        shadow-[${resultItemShadow}] sm:p-5
+    `;
+
 
     if (loading) return (
-        <div style={componentStyles.container}>
-            <div style={componentStyles.card}>
-                <div style={componentStyles.cardBefore}></div>
-                <p style={componentStyles.loadingText}>Loading marks...</p>
+        <div className="max-w-[900px] mx-auto min-h-screen py-10 px-5 font-sans" style={{ background: mainBackgroundGradient }}>
+            <div className={commonCardContainerClasses}>
+                {/* Card Before Element */}
+                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: cardBeforeGradient }}></div>
+                <p className="text-center text-gray-600 text-lg py-10 font-medium">Loading marks...</p>
             </div>
         </div>
     );
 
     if (error) return (
-        <div style={componentStyles.container}>
-            <div style={componentStyles.card}>
-                <div style={componentStyles.cardBefore}></div>
-                <p style={componentStyles.errorText}>{error}</p>
+        <div className="max-w-[900px] mx-auto min-h-screen py-10 px-5 font-sans" style={{ background: mainBackgroundGradient }}>
+            <div className={commonCardContainerClasses}>
+                {/* Card Before Element */}
+                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: cardBeforeGradient }}></div>
+                <p className="text-center text-red-600 text-lg py-10 font-medium bg-red-50/5 rounded-xl border border-red-500/20">{error}</p>
             </div>
         </div>
     );
 
     return (
-        <div style={componentStyles.container}>
-            <div style={componentStyles.card}>
-                <div style={componentStyles.cardBefore}></div>
-                <h2 style={componentStyles.header}>My Academic Results</h2>
+        <div className="max-w-[900px] mx-auto min-h-screen py-10 px-5 font-sans" style={{ background: mainBackgroundGradient }}>
+            <div className={commonCardContainerClasses}>
+                {/* Card Before Element */}
+                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: cardBeforeGradient }}></div>
+                <h2
+                    className="text-4xl font-extrabold text-center mb-10 bg-clip-text text-transparent tracking-[-1px]"
+                    style={{ background: headerGradient }}
+                >
+                    My Academic Results
+                </h2>
                 {marks.length === 0 ? (
-                    <p style={componentStyles.noMarksText}>No examination results available at the moment.</p>
+                    <p className="text-center text-gray-600 text-lg py-10 font-medium">No examination results available at the moment.</p>
                 ) : (
-                    <ul style={componentStyles.resultsList}>
+                    <ul className="list-none p-0 m-0 flex flex-col gap-6">
                         {marks.map((result, idx) => (
-                            <li 
-                                key={idx} 
-                                style={componentStyles.resultItem}
+                            <li
+                                key={idx}
+                                className={commonResultItemClasses}
+                                style={{ background: resultItemBgGradient }}
                                 onMouseEnter={(e) => {
                                     const target = e.currentTarget as HTMLElement;
                                     target.style.transform = 'translateY(-2px)';
-                                    target.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.12)';
+                                    target.style.boxShadow = resultItemHoverShadow;
                                 }}
                                 onMouseLeave={(e) => {
                                     const target = e.currentTarget as HTMLElement;
                                     target.style.transform = 'translateY(0)';
-                                    target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+                                    target.style.boxShadow = resultItemShadow;
                                 }}
                             >
-                                <div style={componentStyles.infoRow}>
-                                    <span style={componentStyles.label}>Course:</span>
-                                    <span style={componentStyles.value}>{result.exam?.courseName || 'Course'}</span>
+                                <div className="flex flex-wrap items-center mb-4 text-base">
+                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Course:</span>
+                                    <span className="text-gray-700 flex-1">{result.exam?.courseName || 'Course'}</span>
                                 </div>
-                                
-                                <div style={componentStyles.infoRow}>
-                                    <span style={componentStyles.label}>Examination:</span>
-                                    <span style={componentStyles.value}>
+
+                                <div className="flex flex-wrap items-center mb-4 text-base">
+                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Examination:</span>
+                                    <span className="text-gray-700 flex-1">
                                         {result.exam?.title || 'Exam'}
                                         {result.exam?.startTime && (
-                                            <span style={componentStyles.dateText}>
-                                                ({result.exam.startTime.slice(0, 10)})
+                                            <span className="ml-3 text-gray-600 text-sm italic">
+                                                ({new Date(result.exam.startTime).toLocaleDateString()})
                                             </span>
                                         )}
                                     </span>
                                 </div>
-                                
-                                <div style={componentStyles.infoRow}>
-                                    <span style={componentStyles.label}>Average Score:</span>
-                                    <span style={componentStyles.averageScore}>
+
+                                <div className="flex flex-wrap items-center mb-4 text-base">
+                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Average Score:</span>
+                                    <span
+                                        className="inline-block px-4 py-2 rounded-full text-sm font-bold text-white"
+                                        style={{ background: averageScoreGradient, boxShadow: averageScoreShadow }}
+                                    >
                                         {result.averageMarks || 'N/A'}
                                     </span>
                                 </div>
-                                
-                                <div style={componentStyles.infoRow}>
-                                    <span style={componentStyles.label}>Detailed Marks:</span>
-                                    <div style={componentStyles.marksContainer}>
-                                        {Array.isArray(result.marks)
+
+                                <div className="flex flex-wrap items-center mb-4 text-base">
+                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Detailed Marks:</span>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {Array.isArray(result.marks) && result.marks.length > 0
                                             ? result.marks.map((m, i) => (
-                                                <span key={i} style={componentStyles.marksBadge}>
+                                                <span
+                                                    key={i}
+                                                    className="px-3 py-1 rounded-full text-sm font-semibold text-white"
+                                                    style={{ background: marksBadgeGradient, boxShadow: marksBadgeShadow }}
+                                                >
                                                     {Array.isArray(m) ? m.join(", ") : m}
                                                 </span>
                                             ))
-                                            : <span style={componentStyles.marksBadge}>{result.marks}</span>}
+                                            : <span
+                                                className="px-3 py-1 rounded-full text-sm font-semibold text-white"
+                                                style={{ background: marksBadgeGradient, boxShadow: marksBadgeShadow }}
+                                              >
+                                                N/A
+                                              </span>
+                                        }
                                     </div>
                                 </div>
-                                
+
                                 {(result.feedback && result.feedback.length > 0) && (
-                                    <div style={componentStyles.infoRow}>
-                                        <span style={componentStyles.label}>Feedback:</span>
-                                        <div style={componentStyles.feedbackText}>
+                                    <div className="flex flex-wrap items-start text-base"> {/* Use items-start for multiline feedback */}
+                                        <span className="font-bold text-gray-900 mr-2 min-w-[120px] mt-1">Feedback:</span>
+                                        <div
+                                            className="flex-1 p-4 text-base leading-relaxed italic text-gray-700 rounded-xl border border-indigo-500/20 bg-indigo-500/5"
+                                        >
                                             {Array.isArray(result.feedback)
                                                 ? result.feedback.join(" • ")
                                                 : result.feedback}
