@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState, useRef } from 'react';
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 type Exam = {
   _id: string;
   title: string;
@@ -21,7 +23,7 @@ type Props = {
 
 const fetchExams = async (courseId: string): Promise<Exam[]> => {
   const { data } = await axios.get(
-    `http://localhost:5000/api/student/courses/${courseId}/exams`,
+    `http://localhost:${PORT}/api/student/courses/${courseId}/exams`,
     {
       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
     }
@@ -65,7 +67,7 @@ const CourseExams = ({ courseId, onBack }: Props) => {
       formData.append('pdf', selectedFile);
       formData.append('examId', examId);
       await axios.post(
-        'http://localhost:5000/api/student/submit-answer',
+        `http://localhost:${PORT}/api/student/submit-answer`,
         formData,
         {
           headers: {

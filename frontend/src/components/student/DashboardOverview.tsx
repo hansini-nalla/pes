@@ -1,13 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 const DashboardOverview = () => {
   const token = localStorage.getItem('token');
 
   const { data: exams = [], isLoading: examsLoading } = useQuery({
     queryKey: ['upcomingExams'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:5000/api/student/exams', {
+      const { data } = await axios.get(`http://localhost:${PORT}/api/student/exams`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return data?.exams || [];
@@ -17,7 +19,7 @@ const DashboardOverview = () => {
   const { data: evaluations = [], isLoading: evalsLoading } = useQuery({
     queryKey: ['pendingEvaluations'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:5000/api/student/pending-evaluations', {
+      const { data } = await axios.get(`http://localhost:${PORT}/api/student/pending-evaluations`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return data?.evaluations || data?.evaluatees || [];
@@ -27,7 +29,7 @@ const DashboardOverview = () => {
   const { data: results = [], isLoading: resultsLoading } = useQuery({
     queryKey: ['evaluationResults'],
     queryFn: async () => {
-      const { data } = await axios.get('http://localhost:5000/api/student/results', {
+      const { data } = await axios.get(`http://localhost:${PORT}/api/student/results`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       return data?.results || [];
