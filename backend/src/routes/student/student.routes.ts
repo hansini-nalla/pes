@@ -15,6 +15,7 @@ import { submitPeerEvaluation } from "../../controllers/student/submitPeerEvalua
 import { getSubmissionPdf } from "../../controllers/student/getSubmissionPdf.controller.ts";
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
 import { getStudentCourses, getStudentCoursesWithBatches } from "../../controllers/student/course.controller.ts";
+import { changePassword } from "../../controllers/student/changePassword.controller.ts";
 const router = Router();
 const upload = multer();
 
@@ -44,6 +45,7 @@ router.get(
   authMiddleware,
   getStudentCoursesWithBatches
 );
+router.post("/change-password", authMiddleware, changePassword);
 
 
 export default router;
