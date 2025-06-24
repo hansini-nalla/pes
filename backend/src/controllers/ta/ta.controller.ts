@@ -23,7 +23,14 @@ export const getFlaggedEvaluations = async (
       populate: [
         { path: 'evaluator', select: 'name email' },
         { path: 'evaluatee', select: 'name email' },
-        { path: 'exam', select: 'title' }
+        {
+          path: 'exam',
+          select: 'title startTime endTime numQuestions createdBy',
+          populate: {
+            path: 'course',
+            select: 'name code startDate endDate'
+          }
+        }
       ]
     })
     .populate('flaggedBy', 'name email');
@@ -34,8 +41,6 @@ export const getFlaggedEvaluations = async (
     next(error);
   }
 };
-
-
 
 /**
  * Get the submission PDF associated with an evaluation
@@ -48,10 +53,19 @@ export const getSubmissionPdf = async (
   try {
     const { evaluationId } = req.params;
 
-    // Find the evaluation
-    const evaluation = await Evaluation.findById(evaluationId);
+    // Find the evaluation with better error handling
+    const evaluation = await Evaluation.findById(evaluationId)
+    .populate('exam')
+    .populate('evaluatee');
+
     if (!evaluation) {
       res.status(404).json({ error: 'Evaluation not found' });
+      return;
+    }
+
+    // Ensure exam exists (required by new model)
+    if (!evaluation.exam) {
+      res.status(404).json({ error: 'Associated exam not found' });
       return;
     }
 
@@ -66,9 +80,19 @@ export const getSubmissionPdf = async (
       return;
     }
 
+    // Validate PDF data exists
+    if (!submission.answerPdf || !submission.answerPdfMimeType) {
+      res.status(404).json({ error: 'Submission PDF data not found' });
+      return;
+    }
+
+    // Create a safe filename - remove invalid characters and limit length
+    const evaluateeName = (evaluation.evaluatee as any)?.name || 'student';
+    const safeFilename = `submission_${evaluateeName.replace(/[^a-zA-Z0-9]/g, '_')}_${evaluationId.slice(-6)}.pdf`;
+
     // Set appropriate headers for PDF download
     res.setHeader('Content-Type', submission.answerPdfMimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="submission_${evaluation.evaluatee}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
 
     // Send the PDF data
     res.send(submission.answerPdf);
@@ -92,7 +116,14 @@ export const getEvaluationDetails = async (
     const evaluation = await Evaluation.findById(id)
     .populate('evaluator', 'name email')
     .populate('evaluatee', 'name email')
-    .populate('exam');
+    .populate({
+      path: 'exam',
+      select: 'title startTime endTime numQuestions createdBy',
+      populate: {
+        path: 'course',
+        select: 'name code startDate endDate'
+      }
+    });
 
     if (!evaluation) {
       res.status(404).json({ error: 'Evaluation not found' });
@@ -111,10 +142,8 @@ export const getEvaluationDetails = async (
 };
 
 /**
- * Resolve a flagged evaluation
+ * Resolve a flagged evaluation with updated validation
  */
-// Update the resolveFlag function with this validation
-
 export const resolveFlag = async (
   req: Request,
   res: Response,
@@ -125,7 +154,7 @@ export const resolveFlag = async (
     const { resolution, newMarks, feedback } = req.body;
     const taId = (req as any).user.id;
 
-    const flag = await Flag.findById(flagId);
+    const flag = await Flag.findById(flagId).populate('evaluation');
     if (!flag) {
       res.status(404).json({ error: 'Flag not found' });
       return;
@@ -138,26 +167,35 @@ export const resolveFlag = async (
 
     // If new marks are provided, validate and update the evaluation
     if (newMarks) {
-      // Get the evaluation
-      const evaluation = await Evaluation.findById(flag.evaluation);
+      // Get the evaluation with exam details
+      const evaluation = await Evaluation.findById(flag.evaluation)
+      .populate({
+        path: 'exam',
+        select: 'numQuestions'
+      });
+
       if (!evaluation) {
         res.status(404).json({ error: 'Evaluation not found' });
         return;
       }
 
-      // Validate marks
+      // Validate marks array
       if (!Array.isArray(newMarks)) {
         res.status(400).json({ error: 'Marks must be provided as an array' });
         return;
       }
 
-      if (newMarks.length !== evaluation.marks.length) {
+      // Get expected number of questions from exam
+      const expectedQuestions = (evaluation.exam as any)?.numQuestions || evaluation.marks.length;
+
+      if (newMarks.length !== expectedQuestions) {
         res.status(400).json({
-          error: `Expected ${evaluation.marks.length} marks, but received ${newMarks.length}`
+          error: `Expected ${expectedQuestions} marks, but received ${newMarks.length}`
         });
         return;
       }
 
+      // Validate each mark
       for (const mark of newMarks) {
         if (typeof mark !== 'number' || mark < 0 || mark > 20) {
           res.status(400).json({
@@ -171,6 +209,7 @@ export const resolveFlag = async (
       await Evaluation.findByIdAndUpdate(flag.evaluation, {
         marks: newMarks,
         feedback: feedback || evaluation.feedback,
+        status: 'completed'
       });
     }
 
@@ -217,7 +256,7 @@ export const escalateToTeacher = async (
     flag.escalationReason = reason;
     await flag.save();
 
-    // Find teachers to notify
+    // Find teachers to notify (only those who can handle this course)
     const teachers = await User.find({ role: 'teacher' }).select('_id');
 
     // Create notifications for teachers
@@ -254,3 +293,29 @@ export const escalateToTeacher = async (
   }
 };
 
+/**
+ * Get TA dashboard statistics
+ */
+export const getTAStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const pendingFlags = await Flag.countDocuments({ resolutionStatus: 'pending' });
+    const resolvedFlags = await Flag.countDocuments({ resolutionStatus: 'resolved' });
+    const escalatedFlags = await Flag.countDocuments({ resolutionStatus: 'escalated' });
+
+    res.json({
+      stats: {
+        pendingFlags,
+        resolvedFlags,
+        escalatedFlags,
+        totalFlags: pendingFlags + resolvedFlags + escalatedFlags
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching TA stats:', error);
+    next(error);
+  }
+};
