@@ -6,7 +6,7 @@ import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
-type Tab = 'home' | 'course' | 'batch' | 'student' | 'teacher';
+type Tab = 'home' | 'course' | 'batch'| 'role' ;
 type Course = {
   _id: string;
   name: string;
@@ -29,25 +29,9 @@ const AdminDashboard = () => {
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
 
-  const [batchName, setBatchName] = useState('');
-  const [batchCourseCode, setBatchCourseCode] = useState('');
-  const [batchToDelete, setBatchToDelete] = useState('');
   const [batches, setBatches] = useState<any[]>([]);
 
-  const [teachers, setTeachers] = useState<any[]>([]);
-  const [teacherToDelete, setTeacherToDelete] = useState('');
-  const [assignEmail, setAssignEmail] = useState('');
-  const [assignCourseCode, setAssignCourseCode] = useState('');
-  const [unassignEmail, setUnassignEmail] = useState('');
-  const [unassignCourseCode, setUnassignCourseCode] = useState('');
-
-  const [students, setStudents] = useState<any[]>([]);
-  const [studentToDelete, setStudentToDelete] = useState('');
-  const [assignStudentEmail, setAssignStudentEmail] = useState('');
-  const [assignStudentCourseCode, setAssignStudentCourseCode] = useState('');
-  const [unassignStudentEmail, setUnassignStudentEmail] = useState('');
-  const [unassignStudentCourseCode, setUnassignStudentCourseCode] = useState('');
-
+ 
   const navigate = useNavigate();
 
   // Fetch profile data
@@ -70,7 +54,6 @@ const AdminDashboard = () => {
         });
     }, []);
   
-    // Profile icon SVG (solid avatar style)
       const ProfileSVG = () => (
         <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
           <circle cx="19" cy="19" r="19" fill="#57418d" />
@@ -140,49 +123,7 @@ const AdminDashboard = () => {
     }
   }, [activeTab]);
 
-  const handleAddBatch = async () => {
-    try {
-      const courseRes = await axios.get(`http://localhost:${PORT}/api/admin/courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const course = courseRes.data.find((c: any) => c.code === batchCourseCode);
-
-      if (!course) {
-        alert('Course not found');
-        return;
-      }
-
-      await axios.post(
-        `http://localhost:${PORT}/api/admin/batches`,
-        { name: batchName, courseId: course._id, students: [] },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      alert('Batch added successfully');
-      setBatchName('');
-      setBatchCourseCode('');
-      fetchBatches();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to add batch');
-    }
-  };
-
-const handleDeleteBatch = async () => {
-  try {
-    await axios.delete(`http://localhost:${PORT}/api/admin/batches/${batchToDelete}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    alert('Batch deleted successfully');
-    setBatchToDelete('');
-    fetchBatches(); // Refresh the list
-  } catch (err) {
-    console.error(err);
-    alert('Failed to delete batch');
-  }
-};
-
+  
   const fetchBatches = async () => {
     try {
       const res = await axios.get(`http://localhost:${PORT}/api/admin/batches`, {
@@ -201,132 +142,7 @@ const handleDeleteBatch = async () => {
     }
   }, [activeTab]);
 
-  const fetchTeachers = async () => {
-    try {
-      const res = await axios.get(`http://localhost:${PORT}/api/admin/teachers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTeachers(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleDeleteTeacher = async () => {
-    try {
-      await axios.delete(`http://localhost:${PORT}/api/admin/teachers/email/${teacherToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert('Teacher deleted successfully');
-      setTeacherToDelete('');
-      fetchTeachers();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to delete teacher');
-    }
-  };
-
-  const handleAssignCourseToTeacher = async () => {
-    try {
-      await axios.put(
-        `http://localhost:${PORT}/api/admin/teachers/assign-course`,
-        { email: assignEmail, courseCode: assignCourseCode },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert('Teacher assigned to course successfully');
-      setAssignEmail('');
-      setAssignCourseCode('');
-      fetchTeachers();
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to assign course");
-    }
-  };
-
-  const handleUnassignCourseFromTeacher = async () => {
-    try {
-      await axios.put(
-        `http://localhost:${PORT}/api/admin/teachers/unassign-course`,
-        { email: unassignEmail, courseCode: unassignCourseCode },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert('Course unassigned from teacher successfully');
-      setUnassignEmail('');
-      setUnassignCourseCode('');
-      fetchTeachers();
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to unassign course");
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'teacher') {
-      fetchTeachers();
-      fetchCourses();
-    } 
-  }, [activeTab]);
-
-  const fetchStudents = async () => {
-    try {
-      const res = await axios.get(`http://localhost:${PORT}/api/admin/student`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setStudents(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleAssignCourseToStudent = async () => {
-    try {
-      await axios.put(
-        `http://localhost:${PORT}/api/admin/student/assign-course`,
-        { email: assignStudentEmail, courseCode: assignStudentCourseCode },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert('Course assigned to student successfully');
-      setAssignStudentEmail('');
-      setAssignStudentCourseCode('');
-      fetchStudents();
-    } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to assign course");
-    }
-  };
-
-  const handleUnassignCourseFromStudent = async () => {
-    try {
-      await axios.put(
-        `http://localhost:${PORT}/api/admin/student/unassign-course`,
-        { email: unassignStudentEmail, courseCode: unassignStudentCourseCode },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert('Course unassigned from student successfully');
-      setUnassignStudentEmail('');
-      setUnassignStudentCourseCode('');
-      fetchStudents();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to unassign course');
-    }
-  };
-
-  const handleDeleteStudent = async () => {
-    try {
-      await axios.delete(`http://localhost:${PORT}/api/admin/student/email/${studentToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      alert('Student deleted successfully');
-      fetchStudents();
-    } catch (err) {
-      alert('Failed to delete student');
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'student') {
-      fetchStudents();
-      fetchCourses();
-    }
-  }, [activeTab]);
-
+  
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -365,24 +181,18 @@ const handleDeleteBatch = async () => {
                 onClick={() => setActiveTab('batch')}
                 className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
               >
-                Manage Batches
+                View Batches
               </button>
               <button
-                onClick={() => setActiveTab('teacher')}
+                onClick={() => setActiveTab('role')}
                 className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
               >
-                Manage Teachers
+                Manage Roles
               </button>
-              <button
-                onClick={() => setActiveTab('student')}
-                className="bg-purple-700 text-white px-10 py-4 text-lg rounded-3xl"
-              >
-                Manage Students
-              </button>
+              
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-4xl">
               <div
-                onClick={() => setActiveTab('teacher')}
                 className="cursor-pointer bg-[#57418d] text-white p-6 rounded-3xl shadow-md text-center hover:bg-[#402b6c] transition"
               >
                 <FaChalkboardTeacher size={32} className="mx-auto mb-2" />
@@ -398,7 +208,6 @@ const handleDeleteBatch = async () => {
                 <p className="text-sm">{counts.courses}</p>
               </div>
               <div
-                onClick={() => setActiveTab('student')}
                 className="cursor-pointer bg-[#57418d] text-white p-6 rounded-3xl shadow-md text-center hover:bg-[#402b6c] transition"
               >
                 <FaUserGraduate size={32} className="mx-auto mb-2" />
@@ -408,7 +217,34 @@ const handleDeleteBatch = async () => {
             </div>
           </div>
         );
-      case 'course':
+   case 'role':
+  return (
+    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-white p-6 rounded-3xl shadow">
+        <h2 className="text-xl font-bold mb-4">Update User Role</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-gray-700">Email ID</label>
+          <input
+            type="email"
+            placeholder="Enter user email ID"
+            className="w-full border focus:border-blue-400 px-4 py-2 rounded-xl"
+          />
+        </div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1 text-gray-700">Select Role</label>
+          <select className="w-full border focus:border-blue-400 px-4 py-2 rounded-xl">
+            <option value="">Select Role</option>
+            <option>Student</option>
+            <option>TA</option>
+          </select>
+        </div>
+        <button className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow hover:bg-[#402b6c] transition">
+          Update Role
+        </button>
+      </div>
+    </div>
+  );
+   case 'course':
         return (
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-3xl shadow">
@@ -430,13 +266,21 @@ const handleDeleteBatch = async () => {
                 onChange={(e) => setCourseCode(e.target.value)}
                 placeholder="Enter Course Code"
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
+                
               />
+<label className="block mb-2">Course Start Date</label>
+<input type="date" className="input mb-2 w-full" placeholder="Course Start Date" />
+
+<label className="block mb-2">Course End Date</label>
+<input type="date" className="input mb-4 w-full" placeholder="Course End Date" />
+
               <button
                 onClick={handleAddCourse}
                 className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
               >
                 Add Course
               </button>
+              
             </div>
             <div className="bg-white p-6 rounded-3xl shadow">
               <h2 className="text-xl font-bold mb-4">Remove Course</h2>
@@ -477,306 +321,13 @@ const handleDeleteBatch = async () => {
         );
       case 'batch':
         return (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Add New Batch</h2>
-              <input
-                name="batchName"
-                id="batchName"
-                type="text"
-                value={batchName}
-                onChange={(e) => setBatchName(e.target.value)}
-                placeholder="Enter Batch Name"
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              />
-              <select
-                name="batchCourseCode"
-                id="batchCourseCode"
-                value={batchCourseCode}
-                onChange={(e) => setBatchCourseCode(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
-              >
-                <option value="">Select Course</option>
-                {courses.map((course: any) => (
-                  <option key={course._id} value={course.code}>
-                    {course.name} ({course.code})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleAddBatch}
-                className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
-              >
-                Add Batch
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Remove Batch</h2>
-              <select
-                name="batchToDelete"
-                id="batchToDelete"
-                value={batchToDelete}
-                onChange={(e) => setBatchToDelete(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
-              >
-                <option value="">Select Batch</option>
-                 {batches.map((batch) => (
-                  <option key={batch._id} value={batch._id}>
-                    {batch.name} ({batch.course.code})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleDeleteBatch}
-                className="bg-red-600 text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-red-700"
-              >
-                Remove Batch
-              </button>
-            </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">            
             <div className="bg-white p-6 rounded-3xl shadow col-span-full">
               <h2 className="text-xl font-bold mb-4">All Batches</h2>
               <ul className="space-y-2">
                 {batches.map((batch: any) => (
                   <li key={batch._id} className="border-b pb-2">
                     <strong>{batch.name}</strong> — {batch.course?.name} ({batch.course?.code})
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        );
-      case 'teacher':
-        return (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Assign Course to Teacher</h2>
-              <select
-                name="assignEmail"
-                id="assignEmail"
-                value={assignEmail}
-                onChange={(e) => setAssignEmail(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              >
-                <option value="">Select Teacher</option>
-                {teachers.map((teacher: any) => (
-                  <option key={teacher._id} value={teacher.email}>
-                    {teacher.name} ({teacher.email})
-                  </option>
-                ))}
-              </select>
-              <select
-                name="assignCourseCode"
-                id="assignCourseCode"
-                value={assignCourseCode}
-                onChange={(e) => setAssignCourseCode(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
-              >
-                <option value="">Select Course</option>
-                {courses.map((course: any) => (
-                  <option key={course._id} value={course.code}>
-                    {course.name} ({course.code})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleAssignCourseToTeacher}
-                className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
-              >
-                Assign Course
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Unassign Course from Teacher</h2>
-              <select
-                name="unassignEmail"
-                id="unassignEmail"
-                value={unassignEmail}
-                onChange={(e) => setUnassignEmail(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              >
-                <option value="">Select Teacher</option>
-                {teachers.map((teacher: any) => (
-                  <option key={teacher._id} value={teacher.email}>
-                    {teacher.name} ({teacher.email})
-                  </option>
-                ))}
-              </select>
-              <select
-                name="unassignCourseCode"
-                id="unassignCourseCode"
-                value={unassignCourseCode}
-                onChange={(e) => setUnassignCourseCode(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
-              >
-                <option value="">Select Course</option>
-                {courses.map((course: any) => (
-                  <option key={course._id} value={course.code}>
-                    {course.name} ({course.code})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleUnassignCourseFromTeacher}
-                className="bg-red-600 text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-red-700"
-              >
-                Unassign Course
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Remove Teacher</h2>
-              <select
-                name="teacherToDelete"
-                id="teacherToDelete"
-                value={teacherToDelete}
-                onChange={(e) => setTeacherToDelete(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              >
-                <option value="">Select Teacher</option>
-                {teachers.map((teacher: any) => (
-                  <option key={teacher._id} value={teacher.email}>
-                    {teacher.name} ({teacher.email})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleDeleteTeacher}
-                className="bg-red-600 text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-red-700"
-              >
-                Remove Teacher
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow col-span-full">
-              <h2 className="text-xl font-bold mb-4">All Teachers</h2>
-              <ul className="space-y-2">
-                {teachers.map((teacher: any) => (
-                  <li key={teacher._id} className="border-b pb-2">
-                    <strong>{teacher.name}</strong> — {teacher.email}
-                    <br />
-                    <span className="text-sm text-gray-600">
-                      Courses:{" "}
-                      {teacher.enrolledCourses && teacher.enrolledCourses.length > 0
-                        ? teacher.enrolledCourses.map((c: any) => `${c.name} (${c.code})`).join(', ')
-                        : "None"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        );
-      case 'student':
-        return (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Assign Course to Student</h2>
-              <select
-                name="assignEmail"
-                id="assignEmail"
-                value={assignStudentEmail}
-                onChange={(e) => setAssignStudentEmail(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              >
-                <option value="">Select Student</option>
-                {students.map((s: any) => (
-                  <option key={s._id} value={s.email}>
-                    {s.name} ({s.email})
-                  </option>
-                ))}
-              </select>
-              <select
-                name="assignCourseCode"
-                id="assignCourseCode"
-                value={assignStudentCourseCode}
-                onChange={(e) => setAssignStudentCourseCode(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
-              >
-                <option value="">Select Course</option>
-                {courses.map((c: any) => (
-                  <option key={c._id} value={c.code}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleAssignCourseToStudent}
-                className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
-              >
-                Assign Course
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Unassign Course from Student</h2>
-              <select
-                name="unassignEmail"
-                id="unassignEmail"
-                value={unassignStudentEmail}
-                onChange={(e) => setUnassignStudentEmail(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              >
-                <option value="">Select Student</option>
-                {students.map((s: any) => (
-                  <option key={s._id} value={s.email}>
-                    {s.name} ({s.email})
-                  </option>
-                ))}
-              </select>
-              <select
-                name="unassignCourseCode"
-                id="unassignCourseCode"
-                value={unassignStudentCourseCode}
-                onChange={(e) => setUnassignStudentCourseCode(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
-              >
-                <option value="">Select Course</option>
-                {courses.map((c: any) => (
-                  <option key={c._id} value={c.code}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleUnassignCourseFromStudent}
-                className="bg-red-600 text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-red-700"
-              >
-                Unassign Course
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow">
-              <h2 className="text-xl font-bold mb-4">Remove Student</h2>
-              <select
-                name="studentToDelete"
-                id="studentToDelete"
-                value={studentToDelete}
-                onChange={(e) => setStudentToDelete(e.target.value)}
-                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
-              >
-                <option value="">Select Student</option>
-                {students.map((s: any) => (
-                  <option key={s._id} value={s.email}>
-                    {s.name} ({s.email})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={handleDeleteStudent}
-                className="bg-red-600 text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-red-700"
-              >
-                Remove Student
-              </button>
-            </div>
-            <div className="bg-white p-6 rounded-3xl shadow col-span-full">
-              <h2 className="text-xl font-bold mb-4">All Students</h2>
-              <ul className="space-y-2">
-                {students.map((s: any) => (
-                  <li key={s._id} className="border-b pb-2">
-                    <strong>{s.name}</strong> — {s.email}
-                    <br />
-                    <span className="text-sm text-gray-600">
-                      Courses:{" "}
-                      {s.enrolledCourses?.length
-                        ? s.enrolledCourses.map((c: any) => `${c.name} (${c.code})`).join(', ')
-                        : "None"}
-                    </span>
                   </li>
                 ))}
               </ul>
@@ -818,15 +369,11 @@ const handleDeleteBatch = async () => {
               <FaBoxes className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
               {showSidebar && 'Batch Manager'}
             </li>
-            <li onClick={() => setActiveTab('teacher')}
-              className={`cursor-pointer ${activeTab === 'teacher' ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}>
-              <FaChalkboardTeacher className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-              {showSidebar && 'Teacher Manager'}
-            </li>
-            <li onClick={() => setActiveTab('student')}
-              className={`cursor-pointer ${activeTab === 'student' ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}>
-              <FaUserGraduate className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-              {showSidebar && 'Student Manager'}
+            <li
+            onClick={() => setActiveTab('role')}
+            className={`cursor-pointer ${activeTab === 'role' ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}>
+             <FaUserGraduate className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
+              {showSidebar && 'Role Manager'}
             </li>
           </ul>
         </div>
