@@ -1,6 +1,8 @@
 // frontend/src/components/student/ProfileSection.tsx
 import { useEffect, useState } from 'react';
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 interface StudentProfile {
   id: string;
   name: string;
@@ -21,7 +23,7 @@ const ProfileSection = () => {
       }
 
       try {
-        const res = await fetch(`http://localhost:5000/api/student/profile`, {
+        const res = await fetch(`http://localhost:${PORT}/api/student/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

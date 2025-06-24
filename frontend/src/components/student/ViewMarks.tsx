@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import axios from 'axios'; // Use axios for consistency
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 interface ExamInfo {
     _id: string;
@@ -32,7 +33,7 @@ const ViewMarks = () => {
             }
             try {
                 // IMPORTANT: Remember to change this to `/api/...` after setting up Vite proxy
-                const res = await axios.get('http://localhost:5000/api/student/results', { // Using axios
+                const res = await axios.get(`http://localhost:${PORT}/api/student/results`, { // Using axios
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setMarks(res.data.results || []);

@@ -2,6 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 type Course = {
   _id: string;
   name: string;
@@ -13,7 +15,7 @@ type Props = {
 };
 
 const fetchCourses = async (): Promise<Course[]> => {
-  const { data } = await axios.get('http://localhost:5000/api/student/courses', {
+  const { data } = await axios.get(`http://localhost:${PORT}/api/student/courses`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   });
   return data.courses;
@@ -30,7 +32,7 @@ const CourseList = ({ onSelectCourse }: Props) => {
   const cardHoverShadow = `0 10px 20px rgba(0, 0, 0, 0.1), 0 20px 40px rgba(0, 0, 0, 0.12)`;
   const cardBeforeGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
   const buttonBg = 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)';
-  const buttonHoverBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+  //const buttonHoverBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
   const buttonShadow = '0 4px 12px rgba(45, 55, 72, 0.3)';
   const buttonHoverShadow = '0 8px 20px rgba(102, 126, 234, 0.4)';
 

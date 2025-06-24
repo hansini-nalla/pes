@@ -94,7 +94,7 @@ const CourseExams = ({ courseId, onBack }: Props) => {
   const cardHoverShadow = `0 10px 20px rgba(0, 0, 0, 0.1), 0 20px 40px rgba(0, 0, 0, 0.12)`;
   const cardBeforeGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
   const buttonBg = 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)';
-  const buttonHoverBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+  //const buttonHoverBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
   const buttonShadow = '0 4px 12px rgba(45, 55, 72, 0.3)';
   const buttonHoverShadow = '0 8px 20px rgba(102, 126, 234, 0.4)';
 
@@ -141,7 +141,7 @@ const CourseExams = ({ courseId, onBack }: Props) => {
         ← Back to Courses
       </button>
 
-      {exams.map((exam) => {
+      {exams && exams.map((exam) => {
         const isStarted = new Date(exam.startTime) <= now;
         const isEnded = new Date(exam.endTime) < now;
         const canSubmit = isStarted && !isEnded;

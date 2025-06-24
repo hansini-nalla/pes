@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 interface Evaluation {
     _id: string;
     exam: {
@@ -24,7 +26,7 @@ const PeerEvaluationsPending = () => {
             setError(null);
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get("http://localhost:5000/api/student/pending-evaluations", {
+                const res = await axios.get(`http://localhost:${PORT}/api/student/pending-evaluations`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 console.log(res.data);

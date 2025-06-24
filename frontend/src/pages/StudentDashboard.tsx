@@ -43,9 +43,9 @@ const lightPalette = {
     'shadow-light': 'rgba(128, 0, 128, 0.04)',  // Very light, subtle purple shadows
     'shadow-medium': 'rgba(128, 0, 128, 0.08)', // Medium subtle purple shadows
     'shadow-strong': 'rgba(128, 0, 128, 0.15)', // Stronger subtle purple shadows
+    'white': '#FFFFFF',               // Add white for button text
 };
 
-// Dark mode specific colors
 const darkPalette = {
     'bg-primary': '#1A1A2E',
     'bg-secondary': '#16213E',
@@ -63,6 +63,7 @@ const darkPalette = {
     'shadow-light': 'rgba(0, 0, 0, 0.2)',
     'shadow-medium': 'rgba(0, 0, 0, 0.4)',
     'shadow-strong': 'rgba(0, 0, 0, 0.6)',
+    'white': '#FFFFFF',               // Add white for button text
 };
 
 type Palette = typeof lightPalette;
@@ -130,7 +131,7 @@ const StudentDashboard = () => {
     const handleSubmitTicket = async () => {
         setIsSubmittingTicket(true);
         // Simulate API call
-        await new Promise(resolve => setTimeout(Math.random() > 0.5 ? 1500 : 2500, resolve)); // Simulate success/failure delay
+        await new Promise(resolve => setTimeout(resolve, Math.random() > 0.5 ? 1500 : 2500)); // Simulate success/failure delay
 
         if (Math.random() > 0.3) { // Simulate 70% success rate
             setTicketStatus('success');
@@ -218,7 +219,14 @@ const StudentDashboard = () => {
                                                 backgroundColor: currentPalette['bg-primary'],
                                                 color: currentPalette['text-dark'],
                                                 boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
-                                                '--tw-ring-color': currentPalette['accent-lilac'] + '70',
+                                            } as React.CSSProperties}
+                                            // @ts-ignore
+                                            style={{ 
+                                                borderColor: currentPalette['border-soft'],
+                                                backgroundColor: currentPalette['bg-primary'],
+                                                color: currentPalette['text-dark'],
+                                                boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
+                                                ['--tw-ring-color' as any]: currentPalette['accent-lilac'] + '70'
                                             }}
                                             disabled={isSubmittingTicket}
                                         ></textarea>
@@ -283,7 +291,7 @@ const StudentDashboard = () => {
                 <button
                     onClick={() => setShowSidebar(!showSidebar)}
                     className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition-transform duration-200 focus:outline-none focus:ring-2"
-                    style={{ borderColor: currentPalette['accent-lilac'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' }}
+                    style={{ borderColor: currentPalette['accent-lilac'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
                 >
                     <FiMenu className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }} />
                 </button>
@@ -312,7 +320,6 @@ const StudentDashboard = () => {
                                 `}
                                 style={{
                                     color: currentPalette['text-sidebar-dark'],
-                                    '--tw-ring-color': currentPalette['accent-lilac'] + '70',
                                 }}
                                 whileHover={{ scale: 1.03, x: 5, boxShadow: `0 0 10px ${currentPalette['shadow-light']}` }}
                                 whileTap={{ scale: 0.98 }}
@@ -337,7 +344,8 @@ const StudentDashboard = () => {
                 <motion.button
                     onClick={() => setLogoutDialog(true)}
                     className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto" // Added mt-auto to push to bottom
-                    style={{ color: currentPalette['text-sidebar-dark'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' }}
+                    style={{ color: currentPalette['text-sidebar-dark'] }}
+                    // Set --tw-ring-color via a wrapping div or a global CSS variable if needed
                     whileHover={{ scale: 1.03, x: 5 }}
                     whileTap={{ scale: 0.98 }}
                 >
@@ -407,8 +415,9 @@ const StudentDashboard = () => {
                         backgroundColor: darkMode ? currentPalette['accent-purple'] : currentPalette['accent-lilac'],
                         color: 'white', // Ensure text color is white for both modes
                         boxShadow: darkMode ? `0 4px 15px ${currentPalette['accent-purple']}60` : `0 4px 15px ${currentPalette['accent-lilac']}60`,
-                        '--tw-ring-color': darkMode ? currentPalette['accent-purple'] + '70' : currentPalette['accent-lilac'] + '70'
-                    }}
+                        // @ts-ignore
+                        ['--tw-ring-color' as any]: darkMode ? currentPalette['accent-purple'] + '70' : currentPalette['accent-lilac'] + '70'
+                    } as React.CSSProperties & Record<string, any>}
                 >
                     {darkMode ? (
                         <FiMoon className="w-6 h-6" />
