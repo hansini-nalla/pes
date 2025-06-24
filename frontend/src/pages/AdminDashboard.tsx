@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from "framer-motion";
 import axios from 'axios';
@@ -131,7 +131,7 @@ const Modal = ({ show, onClose, onConfirm, title, children }: { show: boolean, o
     );
 };
 
-const AdminDashboard = () => {
+const AdminDashboard = () => {  
   const navigate = useNavigate();
   const [token] = useState(localStorage.getItem('token'));
 
@@ -144,6 +144,7 @@ const AdminDashboard = () => {
   // Data State
   const [counts, setCounts] = useState({ teachers: 0, courses: 0, students: 0 });
   const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
+  const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
@@ -180,6 +181,24 @@ const AdminDashboard = () => {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
+  const ProfileSVG = () => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-gray-700 dark:text-gray-200"
+        >
+        <path d="M18 20a6 6 0 0 0-12 0" />
+        <circle cx="12" cy="10" r="4" />
+        <circle cx="12" cy="12" r="10" />
+    </svg>
+    );
   // Generic data fetching function
   const fetchData = async (url: string, setter: Function, errorMessage: string) => {
     try {
@@ -311,7 +330,9 @@ const AdminDashboard = () => {
   const SidebarLink = ({ tabName, icon: IconSVG, text }: { tabName: Tab, icon: React.ReactNode, text: string }) => (
     <motion.li
       key={tabName}
-      onClick={() => setActiveTab(tabName)}
+      onClick={() => {
+        if (activeTab !== tabName) setActiveTab(tabName);
+        }}
       className={`cursor-pointer flex items-center px-4 py-2 rounded-lg transition-all duration-200 transform
           ${activeTab === tabName ? 'scale-100 relative' : 'hover:scale-[1.02]'}
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
@@ -340,7 +361,7 @@ const AdminDashboard = () => {
     </motion.li>
   );
   
-  const StatCard = ({ title, value, icon: IconSVG, onMoreClick }: { title: string, value: number, icon: React.ReactNode, onMoreClick?: () => void }) => (
+  /*const StatCard = ({ title, value, icon: IconSVG, onMoreClick }: { title: string, value: number, icon: React.ReactNode, onMoreClick?: () => void }) => (
       <motion.div
           onClick={onMoreClick}
           className={`${commonCardClasses} flex items-center justify-between cursor-pointer`}
@@ -356,10 +377,8 @@ const AdminDashboard = () => {
             <span className="text-2xl" style={{ color: currentPalette['accent-purple'] }}>{IconSVG}</span>
           </div>
       </motion.div>
-  );
-
-  const renderContent = () => {
-    const Card = ({ title, children }: { title: string, children: React.ReactNode }) => (
+  );*/
+  const Card = ({ title, children }: { title: string, children: React.ReactNode }) => (
         <div className={`${commonCardClasses} w-full`} style={getCardStyles()}>
             <h2 className="text-2xl font-bold mb-6" style={{ color: currentPalette['text-dark'] }}>{title}</h2>
             {children}
@@ -431,9 +450,10 @@ const AdminDashboard = () => {
             </motion.button>
         );
     };
+  const renderContent = () => {
 
     // New HomeButton component for quick actions with lightly contrasting style
-    const HomeButton = ({ onClick, children }: { onClick: () => void, children: React.ReactNode }) => (
+    /*const HomeButton = ({ onClick, children }: { onClick: () => void, children: React.ReactNode }) => (
         <motion.button
             onClick={onClick}
             className="px-6 py-3 rounded-xl font-semibold shadow-md transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto"
@@ -448,39 +468,101 @@ const AdminDashboard = () => {
         >
             {children}
         </motion.button>
-    );
+    );*/
 
     switch (activeTab) {
       case 'home':
+        const cardBaseStyle = {
+            borderRadius: '1.5rem',
+            padding: '1.5rem',
+            textAlign: 'center' as const,
+            boxShadow: `0 6px 16px ${currentPalette['shadow-light']}`,
+            color: currentPalette['text-dark'], // ensures readable text in both modes
+            backgroundImage: darkMode
+                ? 'linear-gradient(135deg, #3b3f99, #5a63c2)' // Dark mode gradient
+                : 'linear-gradient(135deg, #e0e7ff, #c7d2fe)', // Light mode gradient
+            };
+
+        const hoverStyle = {
+            transform: 'scale(1.04)',
+            filter: 'brightness(1.08)',
+            transition: 'transform 0.2s ease, filter 0.2s ease',
+            cursor: 'pointer',
+        };
+
         return (
-            <div className='w-full'>
-                <h1 className="text-3xl font-bold mb-6" style={{ color: currentPalette['text-dark'] }}>Welcome, {profileData.name || 'Admin'}!</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <StatCard title="Teachers" value={counts.teachers} icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user-2">
-                            <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>
-                        </svg>
-                    } />
-                    <StatCard title="Students" value={counts.students} icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user">
-                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    } />
-                    <StatCard title="Courses" value={counts.courses} icon={
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h6z"/>
-                        </svg>
-                    } onMoreClick={() => setActiveTab('course')} />
+                <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+                <h1
+                    className="text-4xl font-bold text-center mb-6"
+                    style={{ color: currentPalette['text-dark'] }}
+                >
+                    <span>Hello, {profileData?.name} 👋</span>
+                    <span className="block">Welcome to Admin Dashboard</span>
+                </h1>
+
+                {/* Top buttons */}
+                <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
+                    {[
+                    { label: 'Manage Courses', tab: 'course' },
+                    { label: 'Manage Batches', tab: 'batch' },
+                    { label: 'Manage Roles', tab: 'role' },
+                    ].map((btn) => (
+                    <button
+                        key={btn.tab}
+                        onClick={() => {
+                            if (activeTab !== btn.tab) setActiveTab(btn.tab as Tab);
+                            }}
+                        className="px-10 py-4 text-lg rounded-3xl shadow-md transition-all transform active:scale-95"
+                        style={{
+                        backgroundColor: currentPalette['accent-lilac'],
+                        color: currentPalette['text-dark'],
+                        boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
+                        }}
+                        onMouseEnter={(e) => {
+                        Object.assign(e.currentTarget.style, hoverStyle);
+                        }}
+                        onMouseLeave={(e) => {
+                        Object.assign(e.currentTarget.style, {
+                            transform: '',
+                            filter: '',
+                        });
+                        }}
+                    >
+                        {btn.label}
+                    </button>
+                    ))}
                 </div>
-                <Card title="Quick Actions">
-                    <div className="flex flex-wrap gap-4">
-                        <HomeButton onClick={() => setActiveTab('course')}>Manage Courses</HomeButton>
-                        <HomeButton onClick={() => setActiveTab('batch')}>View Batches</HomeButton>
-                        <HomeButton onClick={() => setActiveTab('role')}>Manage Roles</HomeButton>
+
+                {/* Stat Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-4xl">
+                    {[
+                    { icon: '🧑‍🏫', label: 'Teachers', value: counts.teachers, tab: 'role' },
+                    { icon: '📘', label: 'Courses', value: counts.courses, tab: 'course' },
+                    { icon: '🎓', label: 'Students', value: counts.students, tab: 'batch' },
+                    ].map((card) => (
+                    <div
+                        key={card.label}
+                        onClick={() => {
+                            if (activeTab !== card.tab) setActiveTab(card.tab as Tab);
+                            }}
+                        style={cardBaseStyle}
+                        onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
+                        onMouseLeave={(e) => {
+                        Object.assign(e.currentTarget.style, {
+                            transform: '',
+                            filter: '',
+                        });
+                        }}
+                    >
+                        <span className="text-3xl mb-2 block">{card.icon}</span>
+                        <h2 className="text-lg font-semibold">{card.label}</h2>
+                        <p className="text-sm">{card.value}</p>
                     </div>
-                </Card>
+                    ))}
+                </div>
             </div>
         );
+
       case 'role':
         return (
             <Card title="Role Manager">
@@ -511,63 +593,73 @@ const AdminDashboard = () => {
         );
       case 'course':
         return (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full">
+            <div className="grid grid-cols-1 gap-8 w-full">
+            {/* Top row: Add + Remove in two columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
                 <Card title="Manage Courses">
-                     <form onSubmit={handleAddCourse} className="space-y-4 mb-8">
+                    <form onSubmit={handleAddCourse} className="space-y-4 mb-8">
                         <h3 className="font-semibold text-lg" style={{ color: currentPalette['text-dark'] }}>Add New Course</h3>
                         <div>
-                            <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Name</label>
-                            <Input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="e.g., Introduction to React" required />
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Name</label>
+                        <Input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="e.g., Introduction to React" required />
                         </div>
                         <div>
-                           <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Code</label>
-                            <Input type="text" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} placeholder="e.g., CS101" required />
-                        </div>
-                         <div>
-                           <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Start Date</label>
-                            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Code</label>
+                        <Input type="text" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} placeholder="e.g., CS101" required />
                         </div>
                         <div>
-                           <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>End Date</label>
-                            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Start Date</label>
+                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                        </div>
+                        <div>
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>End Date</label>
+                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
                         </div>
                         <div className="pt-2">
-                            <Button type="submit" variant="light-contrast">Add Course</Button>
+                        <Button type="submit" variant="light-contrast">Add Course</Button>
                         </div>
                     </form>
-                    <div className="border-t pt-6 space-y-4" style={{ borderColor: currentPalette['border-soft'] }}>
-                         <h3 className="font-semibold text-lg" style={{ color: currentPalette['text-dark'] }}>Remove Course</h3>
-                         <Select value={courseIdToDelete} onChange={(e) => setCourseIdToDelete(e.target.value)} required>
-                             <option value="" disabled>Select course to delete</option>
-                            {courses.map((course) => (
-                                <option key={course._id} value={course.code}>{course.name} ({course.code})</option>
-                            ))}
-                         </Select>
-                         <Button onClick={handleDeleteCourse} variant="danger">Remove Course</Button>
-                    </div>
                 </Card>
-                <Card title="All Courses">
-                    <ul className="space-y-3 h-96 overflow-y-auto pr-2">
-                        {courses.length > 0 ? courses.map((course) => (
-                            <li key={course._id} 
-                                className="p-4 rounded-lg"
-                                style={{
-                                    backgroundColor: currentPalette['bg-primary'],
-                                    color: currentPalette['text-dark'],
-                                    boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`
-                                }}
-                            >
-                                <p className="font-semibold">{course.name}</p>
-                                <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{course.code}</p>
-                                <p className="text-xs mt-2" style={{ color: currentPalette['text-muted'] }}>
-                                    {new Date(course.startDate).toLocaleDateString()} - {new Date(course.endDate).toLocaleDateString()}
-                                </p>
-                            </li>
-                        )) : <p className="text-base" style={{ color: currentPalette['text-muted'] }}>No courses available.</p>}
-                    </ul>
+
+                <Card title="Remove Course">
+                <div className="space-y-4">
+                    <Select value={courseIdToDelete} onChange={(e) => setCourseIdToDelete(e.target.value)} required>
+                    <option value="" disabled>Select course to delete</option>
+                    {courses.map((course) => (
+                        <option key={course._id} value={course.code}>
+                        {course.name} ({course.code})
+                        </option>
+                    ))}
+                    </Select>
+                    <Button onClick={handleDeleteCourse} variant="danger">Remove Course</Button>
+                </div>
                 </Card>
             </div>
+
+            {/* Bottom row: All Courses full width */}
+            <Card title="All Courses">
+                <ul className="space-y-3 h-96 overflow-y-auto pr-2">
+                {courses.length > 0 ? courses.map((course) => (
+                    <li key={course._id}
+                    className="p-4 rounded-lg"
+                    style={{
+                        backgroundColor: currentPalette['bg-primary'],
+                        color: currentPalette['text-dark'],
+                        boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`
+                    }}
+                    >
+                    <p className="font-semibold">{course.name}</p>
+                    <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{course.code}</p>
+                    <p className="text-xs mt-2" style={{ color: currentPalette['text-muted'] }}>
+                        {new Date(course.startDate).toLocaleDateString()} - {new Date(course.endDate).toLocaleDateString()}
+                    </p>
+                    </li>
+                )) : <p className="text-base" style={{ color: currentPalette['text-muted'] }}>No courses available.</p>}
+                </ul>
+            </Card>
+            </div>
         );
+
       case 'batch':
         return (
           <Card title="All Batches">
@@ -643,7 +735,7 @@ const AdminDashboard = () => {
         </button>
         <div className="flex-1 flex flex-col items-center">
             <h2 className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? 'text-2xl' : 'text-lg'}`} style={{ color: currentPalette['text-sidebar-dark'] }}>
-                {showSidebar ? 'Admin Panel' : 'Adm'}
+                {showSidebar ? 'Admin Panel' : 'AP'}
             </h2>
             <ul className="space-y-3 w-full">
               <SidebarLink tabName="home" icon={
@@ -724,25 +816,56 @@ const AdminDashboard = () => {
                         </span>
                     </button>
                 </div>
-                <div className="flex items-center gap-2">
-                     <span className="text-2xl" style={{ color: currentPalette['text-muted'] }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user">
-                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                        </svg>
-                     </span>
-                     <div>
-                        <p className="font-semibold text-sm" style={{ color: currentPalette['text-dark'] }}>{profileData.name}</p>
-                        <p className="text-xs" style={{ color: currentPalette['text-muted'] }}>{profileData.role}</p>
-                     </div>
+                <div className="relative">
+                    <button
+                        onClick={() => setShowProfilePopup(!showProfilePopup)}
+                        className="p-2 flex items-center justify-center rounded-full border-2 border-transparent hover:border-blue-300 transition active:scale-95 bg-white shadow"
+                        style={{ boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)' }}
+                    >
+                        <ProfileSVG />
+                    </button>
+
+                    {showProfilePopup && (
+                        <div
+                        className="absolute right-0 mt-3 w-80 p-4 z-50"
+                        style={{
+                            backgroundColor: currentPalette['bg-secondary'],
+                            borderTopLeftRadius: 0,
+                            borderTopRightRadius: 0,
+                            borderBottomLeftRadius: 24,
+                            borderBottomRightRadius: 24,
+                            boxShadow: `0 4px 14px ${currentPalette['shadow-medium']}`,
+                            color: currentPalette['text-dark']
+                        }}
+                        >
+                        <h2 className="text-xl font-bold mb-4">Profile Info</h2>
+                        <div className="space-y-2 mb-4 text-sm">
+                            <p><strong>Name:</strong> {profileData.name}</p>
+                            <p><strong>Email:</strong> {profileData.email}</p>
+                            <p><strong>Role:</strong> {profileData.role}</p>
+                        </div>
+                        <button
+                            onClick={() => setShowProfilePopup(false)}
+                            className="w-full rounded-3xl px-4 py-2"
+                            style={{
+                            backgroundColor: currentPalette['accent-purple'],
+                            color: 'white',
+                            boxShadow: `0 4px 15px ${currentPalette['accent-purple']}40`
+                            }}
+                        >
+                            OK
+                        </button>
+                        </div>
+                    )}
+                    </div>
                 </div>
-            </div>
         </header>
 
         {/* Content Area */}
         <div className="flex-1 flex justify-center items-start w-full max-w-5xl pb-8">
             <AnimatePresence mode="wait">
                 <motion.div
-                    key={activeTab} // Key is crucial for AnimatePresence to detect changes
+                    //key={activeTab} // Key is crucial for AnimatePresence to detect changes
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
