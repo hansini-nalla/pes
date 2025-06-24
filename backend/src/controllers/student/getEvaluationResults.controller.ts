@@ -20,21 +20,22 @@ export const getEvaluationResults = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Use authenticated user's ID if role is student
-    let studentId = req.user?._id?.toString();
+    const studentId = req.user?._id?.toString();
     if (!studentId) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
 
-    // Find all completed evaluations for this student
     const evaluations = await Evaluation.find({
       evaluatee: studentId,
       status: "completed",
     }).populate({
       path: "exam",
-      select: "title startTime course",
-      populate: { path: "course", select: "name" },
+      select: "title startTime course batch",
+      populate: [
+        { path: "course", select: "name" },
+        { path: "batch", select: "name" },
+      ],
     });
 
     if (!evaluations || evaluations.length === 0) {
@@ -42,7 +43,6 @@ export const getEvaluationResults = async (
       return;
     }
 
-    // Group evaluations by exam
     const resultsMap: Record<string, any> = {};
     evaluations.forEach((ev) => {
       const examKey = ev.exam?._id?.toString() || "unknown";
@@ -57,9 +57,7 @@ export const getEvaluationResults = async (
       resultsMap[examKey].feedbackList.push(ev.feedback);
     });
 
-    // Format results for frontend, including average marks and course name
     const results = Object.values(resultsMap).map((group: any) => {
-      // Flatten marks and calculate average
       const allMarks = group.marksList.flat();
       const avg =
         allMarks.length > 0
@@ -75,6 +73,8 @@ export const getEvaluationResults = async (
           title: group.exam.title,
           startTime: group.exam.startTime,
           courseName: group.exam.course?.name || "Unknown Course",
+          batchId: group.exam.batch?._id || null,
+          batchName: group.exam.batch?.name || "Unknown Batch",
         },
         averageMarks: avg,
         marks: group.marksList,
