@@ -28,9 +28,17 @@ const AdminDashboard = () => {
   const [courseCode, setCourseCode] = useState('');
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showCourseMsg, setShowCourseMsg] = useState(false);
+  const [showCourseDelMsg, setShowCourseDelMsg] = useState(false);
 
   const [batches, setBatches] = useState<any[]>([]);
 
+  const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
+  const [showRoleMsg, setShowRoleMsg] = useState(false);
+  const [roleEmail, setRoleEmail] = useState("");
+  const [roleType, setRoleType] = useState("Admin");
  
   const navigate = useNavigate();
 
@@ -62,6 +70,65 @@ const AdminDashboard = () => {
         </svg>
       );
 
+  // Role Manager
+
+  const fetchAllUsers = () => {
+      fetch(`http://localhost:${PORT}/api/admin/users`)
+        .then(res => res.json())
+        .then(data => {
+          setAllUsers(data);
+        })
+        .catch(err => console.error('Failed to fetch users:', err));
+    };
+  
+    useEffect(() => {
+      fetchAllUsers();
+    }, []);
+  
+    const handleRoleUpdate = () => {
+      if (!roleEmail || !roleType) {
+        alert('Please select a user and a role');
+        return;
+      }
+      fetch(`http://localhost:${PORT}/api/admin/update-role`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ email: roleEmail, role: roleType })
+      })
+        .then(() => {
+          setShowRoleMsg(true);
+          setTimeout(() => setShowRoleMsg(false), 1200);
+          fetchAllUsers();
+          setRoleEmail('');
+          setRoleType('admin');
+        });
+    };
+
+  const DialogBox = ({
+      show,
+      message,
+      children
+    }: { show: boolean, message: string, children?: React.ReactNode }) => {
+      if (!show) return null;
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
+            <div className="mb-2">
+              <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="28" fill="#6ddf99" />
+                <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">{message}</div>
+            {children}
+          </div>
+        </div>
+      );
+    };
+
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/dashboard/counts`)
       .then(res => res.json())
@@ -90,12 +157,24 @@ const AdminDashboard = () => {
     try {
       await axios.post(
         `http://localhost:${PORT}/api/admin/courses`,
-        { name: courseName, code: courseCode },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          name: courseName,
+          code: courseCode,
+          startDate,  // already in yyyy-mm-dd from <input type="date" />
+          endDate,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
-      alert('Course added successfully');
+      
+      //alert('Course added successfully');
+      setShowCourseMsg(true);
+      setTimeout(() => setShowCourseMsg(false), 1200);
       setCourseName('');
       setCourseCode('');
+      setStartDate('');
+      setEndDate('');
       fetchCourses();
     } catch (error) {
       console.error(error);
@@ -108,7 +187,9 @@ const AdminDashboard = () => {
       await axios.delete(`http://localhost:${PORT}/api/admin/courses/code/${courseIdToDelete}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      alert('Course deleted');
+      //alert('Course deleted');
+      setShowCourseDelMsg(true);
+      setTimeout(() => setShowCourseDelMsg(false), 1200);
       setCourseIdToDelete('');
       fetchCourses();
     } catch (error: any) {
@@ -218,32 +299,81 @@ const AdminDashboard = () => {
           </div>
         );
    case 'role':
-  return (
-    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="bg-white p-6 rounded-3xl shadow">
-        <h2 className="text-xl font-bold mb-4">Update User Role</h2>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1 text-gray-700">Email ID</label>
-          <input
-            type="email"
-            placeholder="Enter user email ID"
-            className="w-full border focus:border-blue-400 px-4 py-2 rounded-xl"
-          />
+      return (
+      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+        <h2 className="text-3xl font-bold text-[#38365e] text-center mb-8">Role Manager</h2>
+        <div className="w-full flex flex-col items-start px-6 max-w-xl">
+          <p className="mb-8 text-[#38365e] text-left">
+            Update the role of a user by selecting their name and their new role.
+          </p>
+          <form
+            name="roleUpdateForm"
+            id="roleUpdateForm"
+            className="flex flex-col gap-6 w-full"
+            onSubmit={e => {
+              e.preventDefault();
+              handleRoleUpdate();
+            }}
+          >
+            <div className="flex flex-col items-start gap-1 w-full">
+              <div className="flex flex-col items-start gap-1 w-full">
+                <label className="text-[#38365e] font-semibold mb-1">Select User</label>
+                <select
+                  name="selectUser"
+                  id="selectUser"
+                  value={roleEmail}
+                  onChange={(e) => setRoleEmail(e.target.value)}
+                  className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full"
+                  required
+                >
+                  <option value="">Select User</option>
+                  <optgroup label="Teaching Assistants (TAs)">
+                    {allUsers
+                      .filter(user => user.role === 'ta')
+                      .map(user => (
+                        <option key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="Students">
+                    {allUsers
+                      .filter(user => user.role === 'student')
+                      .map(user => (
+                        <option key={user.email} value={user.email}>
+                          {user.name} ({user.email})
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-1 w-full">
+              <label className="text-[#38365e] font-semibold mb-1">Select Role</label>
+              <select
+                name="selectRole"
+                id="selectRole"
+                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full"
+                value={roleType}
+                onChange={(e) => setRoleType(e.target.value)}
+                required
+              >
+                <option value="">Select Role</option>
+                <option value="student">Student</option>
+                <option value="ta">Teaching Assistant (TA)</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c] mt-2"
+              style={{ minWidth: 140 }}
+            >
+              Update Role
+            </button>
+          </form>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1 text-gray-700">Select Role</label>
-          <select className="w-full border focus:border-blue-400 px-4 py-2 rounded-xl">
-            <option value="">Select Role</option>
-            <option>Student</option>
-            <option>TA</option>
-          </select>
-        </div>
-        <button className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow hover:bg-[#402b6c] transition">
-          Update Role
-        </button>
       </div>
-    </div>
-  );
+    );
    case 'course':
         return (
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -268,11 +398,21 @@ const AdminDashboard = () => {
                 className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
                 
               />
-<label className="block mb-2">Course Start Date</label>
-<input type="date" className="input mb-2 w-full" placeholder="Course Start Date" />
+              <label className="block mb-2">Course Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input mb-2 w-full border focus:border-blue-400 px-4 py-2 rounded-xl"
+              />
 
-<label className="block mb-2">Course End Date</label>
-<input type="date" className="input mb-4 w-full" placeholder="Course End Date" />
+              <label className="block mb-2">Course End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input mb-4 w-full border focus:border-blue-400 px-4 py-2 rounded-xl"
+              />
 
               <button
                 onClick={handleAddCourse}
@@ -312,7 +452,9 @@ const AdminDashboard = () => {
                   <li key={course._id} className="border-b pb-2">
                     <strong>{course.name}</strong> — <code>{course.code}</code>
                     <br />
-                    <span className="text-sm text-gray-500">ID: {course._id}</span>
+                    {/*<span className="text-sm text-gray-500">
+                      Start: {new Date(course.startDate).toLocaleDateString()} – End: {new Date(course.endDate).toLocaleDateString()}
+                    </span>*/}
                   </li>
                 ))}
               </ul>
@@ -341,6 +483,10 @@ const AdminDashboard = () => {
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(180deg,#ffe3ec 80%,#f0f0f5 100%)" }}>
+      {/* Success Dialog */}
+      <DialogBox show={showRoleMsg} message="Role Updated Successfully!" />
+      <DialogBox show={showCourseMsg} message="Course Added Successfully!" />
+      <DialogBox show={showCourseDelMsg} message="Course Delete Successfully!" />
       {/* Sidebar */}
       <div className={`${showSidebar ? 'w-64' : 'w-20'} bg-gradient-to-b from-[#493a6b] to-[#2D2150] text-white flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300`}>
         <button
