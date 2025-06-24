@@ -220,14 +220,7 @@ const StudentDashboard = () => {
                                                 color: currentPalette['text-dark'],
                                                 boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
                                             } as React.CSSProperties}
-                                            // @ts-ignore
-                                            style={{ 
-                                                borderColor: currentPalette['border-soft'],
-                                                backgroundColor: currentPalette['bg-primary'],
-                                                color: currentPalette['text-dark'],
-                                                boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
-                                                ['--tw-ring-color' as any]: currentPalette['accent-lilac'] + '70'
-                                            }}
+                                            
                                             disabled={isSubmittingTicket}
                                         ></textarea>
                                         <div className="flex justify-end mt-4">
