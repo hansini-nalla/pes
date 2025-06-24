@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { deleteCourseAndBatches } from "../../controllers/admin/course.controller.ts";
+import { createBatchWithNames } from "../../controllers/admin/course.controller.ts";
 import {
   addCourse,
   //updateCourse,
@@ -75,7 +76,7 @@ router.delete("/batches/:id",authMiddleware,authorizeRoles("admin"),deleteBatch)
 router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
 //router.get('/batches/:id',authMiddleware,authorizeRoles("admin"), getBatchById);
 router.put('/update-student-ta-role', updateStudentTaRole);
-
+router.post('/create-batch-with-names', createBatchWithNames);
 router.delete("/:courseId", deleteCourseAndBatches);
 export default router;
 
