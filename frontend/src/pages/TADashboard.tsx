@@ -17,6 +17,15 @@ interface FlaggedEvaluation {
     feedback?: string;
     exam: {
       title: string;
+      startTime?: string;
+      endTime?: string;
+      numQuestions?: number;
+      course?: {
+        name: string;
+        code: string;
+        startDate?: string;
+        endDate?: string;
+      }
     }
   };
   flaggedBy: {
@@ -155,6 +164,8 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     setNewMarks(updatedMarks);
   };
 
+  // In the confirmUpdateMarks function, replace the validation logic:
+
   const confirmUpdateMarks = async () => {
     if (!updateMarksDialog.id) return;
 
@@ -170,6 +181,10 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         alert("Please enter valid marks between 0 and 20 for all questions");
         return;
       }
+
+      // Updated calculation using numQuestions from exam model
+      const totalMarks = newMarks.reduce((sum, mark) => sum + mark, 0);
+      const maxMarks = (updateMarksDialog.evaluation?.exam?.numQuestions || newMarks.length) * 20;
 
       const response = await fetch(`http://localhost:${PORT}/api/ta/resolve-flag/${updateMarksDialog.id}`, {
         method: 'POST',
@@ -202,7 +217,6 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       setNewMarks([]);
     }
   };
-
   const handleSendToTeacher = (flagId: string) => {
     setCommentDialog({ show: true, id: flagId });
   };
@@ -368,7 +382,22 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
           </div>
           <div>
           <p className="text-gray-600">Course:</p>
+          <p className="font-semibold">{flag.evaluation.exam.course?.name || 'N/A'}</p>
+          <p className="text-sm text-gray-500">
+          Code: {flag.evaluation.exam.course?.code || 'N/A'}
+          </p>
+          </div>
+          <div>
+          <p className="text-gray-600">Exam:</p>
           <p className="font-semibold">{flag.evaluation.exam.title}</p>
+          <p className="text-sm text-gray-500">
+          Questions: {flag.evaluation.exam.numQuestions || 'N/A'}
+          </p>
+          {flag.evaluation.exam.startTime && (
+            <p className="text-sm text-gray-500">
+            Start: {new Date(flag.evaluation.exam.startTime).toLocaleDateString()}
+            </p>
+          )}
           </div>
           <div>
           <p className="text-gray-600">Current Marks:</p>
@@ -498,10 +527,9 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     ))}
 
     <div className="mt-3 text-right">
-    <span className="font-medium">
-    Total: {newMarks.reduce((sum, mark) => sum + mark, 0)}
-    / {newMarks.length * 20}
-    </span>
+    <strong>
+    Total: {newMarks.reduce((sum, mark) => sum + mark, 0)} / {(updateMarksDialog.evaluation?.exam?.numQuestions || newMarks.length) * 20}
+    </strong>
     </div>
     </div>
 
