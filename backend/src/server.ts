@@ -1,4 +1,5 @@
-import express, {Request, Response} from "express";
+
+import express from "express";
 import connectDB from "./config/db.ts";
 import studentRoutes from "./routes/student/student.routes.ts";
 import taRoutes from "./routes/ta/ta.routes.ts"; 
@@ -8,9 +9,10 @@ import adminroutes from './routes/admin/admin.routes.ts';
 // import adminstudentroutes from './routes/admin/student_admin.routes.ts';
 // import adminteachroutes from './routes/admin/teacher.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
-import { sendEmail } from './utils/email.ts';
+import admincourseroutes from './routes/admin/admin.routes.ts';
 
-//import admincourseroutes from './routes/admin/admin.routes.ts';
+
+
 import "./models/Course.ts";
 import "./models/Batch.ts";
 import "./models/Exam.ts";
@@ -57,21 +59,6 @@ app.use('/api/ta', taRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use("/api/admin/courses", admincourseroutes);
-
-app.post('/api/send-custom-email', async (req: Request, res: Response): Promise<void> => {
-  const { fromEmail, fromPass, to, subject, text } = req.body;
-  if (!fromEmail || !fromPass || !to || !subject || !text) {
-    res.status(400).json({ message: 'Missing required fields' });
-    return;
-  }
-  try {
-    await sendEmail(fromEmail, fromPass, to, subject, text);
-    res.json({ message: 'Email sent successfully!' });
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-    res.status(500).json({ message: 'Failed to send email', error: errorMsg });
-  }
-});
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
