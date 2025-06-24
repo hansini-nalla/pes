@@ -35,7 +35,8 @@ router.get("/submissions", authMiddleware, getSubmissions);
 router.post("/flag-evaluation", authMiddleware, flagEvaluation);
 router.post("/submit-peer-evaluation", authMiddleware, submitPeerEvaluation);
 router.get(
-  "/submission-pdf/:examId/:studentId",
+  "/submission-pdf/:submissionId",
+  authMiddleware,
   getSubmissionPdf
 );
 

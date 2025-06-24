@@ -10,11 +10,8 @@ export const getSubmissionPdf = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { examId, studentId } = req.params;
-    const submission = await Submission.findOne({
-      exam: examId,
-      student: studentId,
-    });
+    const { submissionId } = req.params;
+    const submission = await Submission.findById(submissionId);
     if (!submission || !submission.answerPdf) {
       res.status(404).send("PDF not found");
       return;
