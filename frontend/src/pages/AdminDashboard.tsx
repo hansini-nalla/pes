@@ -33,6 +33,9 @@ const AdminDashboard = () => {
   const [showCourseMsg, setShowCourseMsg] = useState(false);
   const [showCourseDelMsg, setShowCourseDelMsg] = useState(false);
 
+  const [batchName, setBatchName] = useState('');
+  const [batchCourseCode, setBatchCourseCode] = useState('');
+  const [batchToDelete, setBatchToDelete] = useState('');
   const [batches, setBatches] = useState<any[]>([]);
 
   const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
@@ -205,6 +208,49 @@ const AdminDashboard = () => {
   }, [activeTab]);
 
   
+  const handleAddBatch = async () => {
+    try {
+      const courseRes = await axios.get(`http://localhost:${PORT}/api/admin/courses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const course = courseRes.data.find((c: any) => c.code === batchCourseCode);
+
+      if (!course) {
+        alert('Course not found');
+        return;
+      }
+
+      await axios.post(
+        `http://localhost:${PORT}/api/admin/batches`,
+        { name: batchName, courseId: course._id, students: [] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert('Batch added successfully');
+      setBatchName('');
+      setBatchCourseCode('');
+      fetchBatches();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add batch');
+    }
+  };
+
+const handleDeleteBatch = async () => {
+  try {
+    await axios.delete(`http://localhost:${PORT}/api/admin/batches/${batchToDelete}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    alert('Batch deleted successfully');
+    setBatchToDelete('');
+    fetchBatches(); // Refresh the list
+  } catch (err) {
+    console.error(err);
+    alert('Failed to delete batch');
+  }
+};
+
   const fetchBatches = async () => {
     try {
       const res = await axios.get(`http://localhost:${PORT}/api/admin/batches`, {
@@ -463,7 +509,62 @@ const AdminDashboard = () => {
         );
       case 'batch':
         return (
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">            
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-3xl shadow">
+              <h2 className="text-xl font-bold mb-4">Add New Batch</h2>
+              <input
+                name="batchName"
+                id="batchName"
+                type="text"
+                value={batchName}
+                onChange={(e) => setBatchName(e.target.value)}
+                placeholder="Enter Batch Name"
+                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-2"
+              />
+              <select
+                name="batchCourseCode"
+                id="batchCourseCode"
+                value={batchCourseCode}
+                onChange={(e) => setBatchCourseCode(e.target.value)}
+                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
+              >
+                <option value="">Select Course</option>
+                {courses.map((course: any) => (
+                  <option key={course._id} value={course.code}>
+                    {course.name} ({course.code})
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleAddBatch}
+                className="bg-[#57418d] text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-[#402b6c]"
+              >
+                Add Batch
+              </button>
+            </div>
+            <div className="bg-white p-6 rounded-3xl shadow">
+              <h2 className="text-xl font-bold mb-4">Remove Batch</h2>
+              <select
+                name="batchToDelete"
+                id="batchToDelete"
+                value={batchToDelete}
+                onChange={(e) => setBatchToDelete(e.target.value)}
+                className="border focus:border-blue-400 px-4 py-2 rounded-xl w-full mb-4"
+              >
+                <option value="">Select Batch</option>
+                 {batches.map((batch) => (
+                  <option key={batch._id} value={batch._id}>
+                    {batch.name} ({batch.course.code})
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleDeleteBatch}
+                className="bg-red-600 text-white px-7 py-2 rounded-2xl font-semibold shadow transition hover:bg-red-700"
+              >
+                Remove Batch
+              </button>
+            </div>
             <div className="bg-white p-6 rounded-3xl shadow col-span-full">
               <h2 className="text-xl font-bold mb-4">All Batches</h2>
               <ul className="space-y-2">
