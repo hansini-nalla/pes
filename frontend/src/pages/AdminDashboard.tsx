@@ -283,7 +283,8 @@ const AdminDashboard = () => {
   const [batchCourseCode, setBatchCourseCode] = useState('');
   const [batchToDelete, setBatchToDelete] = useState('');
   const [batches, setBatches] = useState<any[]>([]);
-  const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
+  const [batchInstructor, setBatchInstructor] = useState('');
+  const [allUsers, setAllUsers] = useState<{ _id: string | number | readonly string[] | undefined; role: string; email: string; name: string }[]>([]);
 
   // Form & Message State
   const [courseName, setCourseName] = useState('');
@@ -365,6 +366,7 @@ const AdminDashboard = () => {
     if (activeTab === 'batch') {
         fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
         fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
+        fetchData(`http://localhost:${PORT}/api/admin/users`, setAllUsers, 'Failed to fetch instructors for batches');
     }
     if(activeTab === 'role') {
         fetchData(`http://localhost:${PORT}/api/admin/users`, setAllUsers, 'Failed to fetch users');
@@ -393,7 +395,7 @@ const AdminDashboard = () => {
         return;
     }
     try {
-      await axios.delete(`http://localhost:${PORT}/api/admin/courses/code/${courseIdToDelete}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`http://localhost:${PORT}/api/admin/courses/${courseIdToDelete}`, { headers: { Authorization: `Bearer ${token}` } });
       showToast('Course deleted');
       setCourseIdToDelete('');
       fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error refetching courses');
@@ -415,15 +417,26 @@ const AdminDashboard = () => {
         return;
       }
 
+      if (!batchInstructor) {
+        showToast('Please select an instructor', 'error');
+        return;
+      }
+      console.log({
+        batchName: batchName,
+        courseId: course._id,
+        instructorId: batchInstructor,
+        students: []
+      });
       await axios.post(
-        `http://localhost:${PORT}/api/admin/batches`,
-        { name: batchName, courseId: course._id, students: [] },
+        `http://localhost:${PORT}/api/admin/create-batch-with-names`,
+        { batchName: batchName, courseId: course._id, instructorId: batchInstructor, students: [] },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       showToast('Batch added successfully');
       setBatchName('');
       setBatchCourseCode('');
+      setBatchInstructor(''); 
       fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
       fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
     } catch (err) {
@@ -652,11 +665,13 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 gap-8 w-full">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
                 <Card title="Manage Courses" currentPalette={currentPalette}>
-                    <form onSubmit={handleAddCourse} className="space-y-4 mb-8">
+                    <form id="add-course-form" name="add-course-form" onSubmit={handleAddCourse} className="space-y-4 mb-8">
                         <h3 className="font-semibold text-lg" style={{ color: currentPalette['text-dark'] }}>Add New Course</h3>
                         <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Name</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }} htmlFor="courseName">Course Name</label>
                         <Input 
+                          id ="courseName"
+                          name = "courseName"
                           currentPalette={currentPalette}
                           type="text" 
                           value={courseName} 
@@ -666,8 +681,10 @@ const AdminDashboard = () => {
                         />
                         </div>
                         <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Code</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }} htmlFor="courseCode">Course Code</label>
                         <Input 
+                          id="courseCode"
+                          name="courseCode"
                           currentPalette={currentPalette}
                           type="text" 
                           value={courseCode} 
@@ -677,8 +694,10 @@ const AdminDashboard = () => {
                         />
                         </div>
                         <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Start Date</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }} htmlFor="startDate">Start Date</label>
                         <Input 
+                          id="startDate"
+                          name="startDate"
                           currentPalette={currentPalette}
                           type="date" 
                           value={startDate} 
@@ -687,8 +706,10 @@ const AdminDashboard = () => {
                         />
                         </div>
                         <div>
-                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>End Date</label>
+                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }} htmlFor="endDate">End Date</label>
                         <Input 
+                          id="endDate"
+                          name="endDate"
                           currentPalette={currentPalette}
                           type="date" 
                           value={endDate} 
@@ -711,6 +732,8 @@ const AdminDashboard = () => {
                 <Card title="Remove Course" currentPalette={currentPalette}>
                 <div className="space-y-4">
                     <Select 
+                      id="courseIdToDelete"
+                      name="courseIdToDelete"
                       value={courseIdToDelete} 
                       onChange={(e) => setCourseIdToDelete(e.target.value)} 
                       required
@@ -718,7 +741,7 @@ const AdminDashboard = () => {
                     >
                     <option value="">Select course to delete</option>
                     {courses.map((course) => (
-                        <option key={course._id} value={course.code}>
+                        <option key={course._id} value={course._id}>
                         {course.name} ({course.code})
                         </option>
                     ))}
@@ -794,6 +817,27 @@ const AdminDashboard = () => {
                       ))}
                     </Select>
                   </div>
+                  {/* Instructor Dropdown */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
+                      Select Instructor
+                    </label>
+                    <Select
+                      currentPalette={currentPalette}
+                      value={batchInstructor}
+                      onChange={(e) => setBatchInstructor(e.target.value)}
+                      required
+                    >
+                      <option value="">Select Instructor</option>
+                      {allUsers
+                        .filter(user => user.role === 'teacher')
+                        .map(user => (
+                          <option key={user.email} value={user._id}>
+                            {user.name} ({user.email})
+                          </option>
+                        ))}
+                    </Select>
+                  </div>
                   <div className="pt-2">
                     <Button 
                       onClick={handleAddBatch} 
@@ -854,6 +898,12 @@ const AdminDashboard = () => {
                       <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
                         {batch.course?.name} ({batch.course?.code})
                       </p>
+                      {/* Optionally show instructor */}
+                      {batch.instructor && (
+                        <p className="text-xs mt-1" style={{ color: currentPalette['text-muted'] }}>
+                          Instructor: {batch.instructor.name} ({batch.instructor.email})
+                        </p>
+                      )}
                     </li>
                   ))
                 ) : (
