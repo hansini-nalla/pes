@@ -27,9 +27,7 @@ const ProfileSection = () => {
 
       try {
         const res = await axios.get(`http://localhost:${PORT}/api/student/profile`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setProfile(res.data);
       } catch (err) {
@@ -56,9 +54,7 @@ const ProfileSection = () => {
         `http://localhost:${PORT}/api/student/change-password`,
         { currentPassword, newPassword },
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       setMessage(res.data.message || "Password updated");
@@ -70,62 +66,40 @@ const ProfileSection = () => {
     }
   };
 
-  const topBarGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
-  const headerGradient = 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)';
-  const infoItemBg = 'rgba(102, 126, 234, 0.05)';
-  const infoItemBorder = 'rgba(102, 126, 234, 0.1)';
-  const boxShadow = '0 10px 30px rgba(0, 0, 0, 0.1)';
-  const border = '1px solid rgba(0, 0, 0, 0.08)';
-
   if (loading)
     return (
-      <div
-        className="max-w-[500px] mx-auto my-10 bg-white p-10 rounded-2xl relative font-sans"
-        style={{ boxShadow, border }}
-      >
-        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: topBarGradient }}></div>
-        <p className="text-center text-gray-700 py-16 text-lg">Loading profile...</p>
+      <div className="max-w-2xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow-md">
+        <p className="text-center text-gray-600 text-lg">Loading profile...</p>
       </div>
     );
 
   if (!profile)
     return (
-      <div
-        className="max-w-[500px] mx-auto my-10 bg-white p-10 rounded-2xl relative font-sans"
-        style={{ boxShadow, border }}
-      >
-        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: topBarGradient }}></div>
-        <p className="text-center text-red-600 py-16 text-lg">Failed to load profile</p>
+      <div className="max-w-2xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow-md">
+        <p className="text-center text-red-600 text-lg">Failed to load profile</p>
       </div>
     );
 
   return (
-    <div
-      className="max-w-[500px] mx-auto my-10 bg-white p-10 rounded-2xl relative font-sans"
-      style={{ boxShadow, border }}
-    >
-      <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl" style={{ background: topBarGradient }}></div>
-      <h2
-        className="text-3xl font-extrabold text-center mb-8 bg-clip-text text-transparent"
-        style={{ background: headerGradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-      >
+    <div className="max-w-2xl mx-auto mt-10 bg-white p-8 rounded-2xl shadow-md space-y-6">
+      <h2 className="text-3xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-800 to-indigo-600">
         My Profile
       </h2>
 
-      <div className="flex flex-col gap-5">
+      <div className="space-y-4">
         <ProfileItem label="Name" value={profile.name} />
         <ProfileItem label="Email" value={profile.email} />
         {profile.id && <ProfileItem label="User ID" value={profile.id} />}
       </div>
 
-      <hr className="border-t my-6" />
+      <hr className="border-t border-gray-200 my-4" />
 
       <form onSubmit={handlePasswordChange} className="space-y-4">
-        <h3 className="text-xl font-semibold text-gray-700">Change Password</h3>
+        <h3 className="text-xl font-semibold text-gray-800">Change Password</h3>
         <input
           type="password"
           placeholder="Current Password"
-          className="w-full px-4 py-2 border rounded-xl"
+          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-500"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           required
@@ -133,7 +107,7 @@ const ProfileSection = () => {
         <input
           type="password"
           placeholder="New Password"
-          className="w-full px-4 py-2 border rounded-xl"
+          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-500"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           required
@@ -141,33 +115,29 @@ const ProfileSection = () => {
         <input
           type="password"
           placeholder="Confirm New Password"
-          className="w-full px-4 py-2 border rounded-xl"
+          className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-violet-500"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
         />
         <button
           type="submit"
-          className="bg-indigo-600 text-white px-4 py-2 rounded-xl w-full"
+          className="w-full bg-gradient-to-r from-purple-800 to-indigo-700 text-white py-2 rounded-xl font-semibold hover:opacity-90 transition"
         >
           Update Password
         </button>
-        {message && <p className="text-center text-sm text-gray-600">{message}</p>}
+        {message && (
+          <p className="text-center text-sm text-gray-700">{message}</p>
+        )}
       </form>
     </div>
   );
 };
 
 const ProfileItem = ({ label, value }: { label: string; value: string }) => (
-  <div
-    className="flex items-center p-4 rounded-xl border"
-    style={{
-      background: 'rgba(102, 126, 234, 0.05)',
-      borderColor: 'rgba(102, 126, 234, 0.1)',
-    }}
-  >
-    <span className="font-bold text-gray-900 min-w-[80px] mr-3">{label}:</span>
-    <span className="text-gray-700 flex-1">{value}</span>
+  <div className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+    <span className="font-medium text-gray-800">{label}:</span>
+    <span className="text-gray-700">{value}</span>
   </div>
 );
 

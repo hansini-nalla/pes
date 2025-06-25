@@ -236,7 +236,6 @@ const PeerEvaluationsPending = () => {
           ))}
         </div>
       )}
-      // --- the rest of your existing code ---
 
 {openEval && (
   <div className="fixed inset-0 z-50 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center">
@@ -300,7 +299,6 @@ const PeerEvaluationsPending = () => {
   </div>
 )}
 
-// --- closing tags and export default PeerEvaluationsPending ---
 
     </div>
     
