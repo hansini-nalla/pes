@@ -1,138 +1,335 @@
-import { useState,useEffect } from 'react';
-import {useNavigate } from 'react-router-dom';
-import './StudentDashboard.css';
-import ProfileSection from '../components/student/ProfileSection';
-import CourseList from '../components/student/CourseList';
-import CourseExams from '../components/student/CourseExams';
-import ViewMarks from '../components/student/ViewMarks';
-import DashboardOverview from '../components/student/DashboardOverview';
-import PeerEvaluationsPending from '../components/student/PeerEvaluationsPending';
+// frontend/src/pages/StudentDashboard.tsx
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+    FiMenu,
+    FiLogOut,
+    FiHome,
+    FiBook,
+    FiUsers,
+    FiCheckCircle,
+    FiUploadCloud,
+    FiUser,
+    FiSun, // For light mode icon
+    FiMoon, // For dark mode icon
+} from 'react-icons/fi';
+import { motion, AnimatePresence } from "framer-motion"; // For advanced animations
 
-const menuItems = [
-  { label: 'Dashboard' },
-  { label: 'Courses' },
-  { label: 'Peer Evaluation' },
-  { label: 'View Marks' },
-  { label: 'Raise Ticket' },
-  { label: 'Profile' },
-  { label: 'Logout' },
-];
+// Import your existing components
+import ProfileSection from "../components/student/ProfileSection";
+import CourseList from "../components/student/CourseList";
+import CourseExams from "../components/student/CourseExams";
+import ViewMarks from "../components/student/ViewMarks";
+import DashboardOverview from "../components/student/DashboardOverview";
+import PeerEvaluationsPending from "../components/student/PeerEvaluationsPending";
 
-export default function StudentDashboard() {
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
-  const [activeMenu, setActiveMenu] = useState('Dashboard');
-  const [darkMode, setDarkMode] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+// Custom "Pinkish, Lilac, Purple & Yellow" Palette - Revised Mix (Light Mode)
+const lightPalette = {
+    'bg-primary': '#FFFBF6',         // Very Light Creamy Yellow (dominant background)
+    'bg-secondary': '#FFFAF2',       // Slightly darker creamy yellow (for card/section backgrounds)
+    'accent-bright-yellow': '#FFD700', // Bright Gold/Yellow (main energetic accent)
+    'accent-light-yellow': '#FFECB3', // Lighter Yellow (for subtle use)
+    'accent-pink': '#FF8DA1',        // Primary Pink Accent
+    'accent-lilac': '#C8A2C8',       // Soft Lilac (modern cool accent)
+    'accent-purple': '#800080',      // Deep Purple (primary purple accent)
+    'accent-light-purple': '#DDA0DD', // Medium Lilac/Purple (for subtle use)
+    'sidebar-bg': '#E6E6FA',         // Lavender Blush (sidebar background)
+    'text-dark': '#4B0082',          // Indigo (Very Dark Purple for primary text on light backgrounds)
+    'text-muted': '#A9A9A9',         // Dark Gray (Medium Gray for secondary text/borders)
+    'text-sidebar-dark': '#4B0082', // Dark text for sidebar for contrast on light lavender
+    'border-soft': '#F0E6EF',        // Very Light Pinkish-Purple for subtle borders
+    'shadow-light': 'rgba(128, 0, 128, 0.04)',  // Very light, subtle purple shadows
+    'shadow-medium': 'rgba(128, 0, 128, 0.08)', // Medium subtle purple shadows
+    'shadow-strong': 'rgba(128, 0, 128, 0.15)', // Stronger subtle purple shadows
+    'white': '#FFFFFF',               // Add white for button text
+};
 
-  // Logout handling
-  const navigate = useNavigate();
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
-  }
+const darkPalette = {
+    'bg-primary': '#1A1A2E',
+    'bg-secondary': '#16213E',
+    'accent-bright-yellow': '#FFEB3B',
+    'accent-light-yellow': '#FFEE58',
+    'accent-pink': '#EC407A',
+    'accent-lilac': '#9C27B0',
+    'accent-purple': '#6A1B9A',
+    'accent-light-purple': '#8E24AA',
+    'sidebar-bg': '#0F3460',
+    'text-dark': '#E0E0E0',
+    'text-muted': '#B0BEC5',
+    'text-sidebar-dark': '#E0E0E0',
+    'border-soft': '#3F51B5',
+    'shadow-light': 'rgba(0, 0, 0, 0.2)',
+    'shadow-medium': 'rgba(0, 0, 0, 0.4)',
+    'shadow-strong': 'rgba(0, 0, 0, 0.6)',
+    'white': '#FFFFFF',               // Add white for button text
+};
 
-  useEffect(() => {
-      if (darkMode) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
+type Palette = typeof lightPalette;
+
+const getColors = (isDarkMode: boolean): Palette => isDarkMode ? darkPalette : lightPalette;
+
+
+
+const StudentDashboard = () => {
+    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+    const [activeMenu, setActiveMenu] = useState('dashboard');
+    const [darkMode, setDarkMode] = useState(false);
+    const [showSidebar, setShowSidebar] = useState(true);
+    const [logoutDialog, setLogoutDialog] = useState(false);
+
+    const navigate = useNavigate();
+    const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        navigate("/login");
+    }
+
+    useEffect(() => {
+        // Apply or remove 'dark' class from the document HTML element
+        if (darkMode) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
     }, [darkMode]);
 
     const toggleDarkMode = () => {
-      setDarkMode(!darkMode);
-      document.documentElement.classList.toggle('dark');
+        setDarkMode(prevMode => !prevMode);
     };
 
-  const renderContent = () => {
-    switch (activeMenu) {
-      case 'Dashboard':
-        return (
-          <DashboardOverview />
-        );
-      case 'Courses':
-        return selectedCourseId ? (
-          <CourseExams
-            courseId={selectedCourseId}
-            onBack={() => setSelectedCourseId(null)}
-          />
-        ) : (
-          <CourseList onSelectCourse={(id) => setSelectedCourseId(id)} />
-        );
-      case 'Peer Evaluation':
-        return (
-          <PeerEvaluationsPending/>
-        );
-      case 'View Marks':
-        return (
-          <ViewMarks />
-        );
-      case 'Raise Ticket':
-        return (
-          <div className="card">
-            <h2>Raise a Ticket</h2>
-            <textarea placeholder="Describe your issue..." rows={4}></textarea>
-            <br />
-            <button className="btn">Submit Ticket</button>
-          </div>
-        );
-      case 'Profile':
-        return (
-          <ProfileSection />
-        );
-      case 'Logout':
-        return (
-          <div className="card">
-            <h2>Are you sure you want to logout?</h2>
-            <button className="btn" onClick={handleLogout}>Confirm Logout</button>
-          </div>
-        );
-      default:
-        return <div>Select a menu option</div>;
-    }
-  };
+    
 
-  return (
-    <div className="dashboard-container">
-      <div className="sidebar">
-        <h2 className="sidebar-title">Student</h2>
-        <ul className="menu">
-          {menuItems.map(({ label }) => (
-            <li
-              key={label}
-              className={label === activeMenu ? 'active' : ''}
-              onClick={() => setActiveMenu(label)}
+
+    // Common Tailwind classes for cards and buttons based on the new palette
+    const commonCardClasses = `
+        rounded-xl p-6 space-y-4 border transition-all duration-300
+        hover:shadow-xl transform hover:translate-y-[-4px]
+    `;
+    const getCardStyles = () => ({
+        backgroundColor: currentPalette['bg-secondary'],
+        borderColor: currentPalette['border-soft'],
+        boxShadow: `0 8px 20px ${currentPalette['shadow-medium']}`,
+    });
+
+    const commonButtonClasses = `
+        px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
+        focus:outline-none focus:ring-2 focus:ring-offset-2
+    `;
+    const getButtonStyles = (colorKey: keyof Palette, textColorKey: keyof Palette = 'text-dark') => ({
+        backgroundColor: currentPalette[colorKey],
+        color: currentPalette[textColorKey],
+        boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
+        '--tw-ring-color': currentPalette[colorKey] + '50', // For focus ring
+    });
+
+
+    const renderContent = () => {
+        return (
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={activeMenu} // Key is crucial for AnimatePresence to detect changes
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="w-full" // Ensure it takes full width within the container
+                >
+                    {(() => {
+                        switch (activeMenu) {
+                            case 'dashboard':
+                                return <DashboardOverview />;
+                            case 'courses':
+                                return selectedCourseId ? (
+                                    <CourseExams
+                                        courseId={selectedCourseId}
+                                        onBack={() => setSelectedCourseId(null)}
+                                    />
+                                ) : (
+                                    <CourseList onSelectCourse={(id) => setSelectedCourseId(id)} />
+                                );
+                            case 'peerEvaluation':
+                                return <PeerEvaluationsPending />;
+                            case 'viewMarks':
+                                return <ViewMarks />;
+                            
+                            case 'profile':
+                                return <ProfileSection />;
+                            default:
+                                return (
+                                    <div className={`${commonCardClasses} text-center`} style={getCardStyles()}>
+                                        <p className="text-lg" style={{ color: currentPalette['text-muted'] }}>Please select an option from the sidebar.</p>
+                                    </div>
+                                );
+                        }
+                    })()}
+                </motion.div>
+            </AnimatePresence>
+        );
+    };
+
+    return (
+        <div className="flex h-screen overflow-hidden relative" style={{
+            background: currentPalette['bg-primary']
+        }}>
+            {/* Subtle background pattern for visual interest, blending with white */}
+            <div className="absolute inset-0 z-0 opacity-[0.03]" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='${encodeURIComponent(currentPalette['text-muted'])}' fill-opacity='0.1' fill-rule='evenodd'%3E%3Cpath d='M3 0L0 3l3 3 3-3z'/%3E%3C/g%3E%3C/svg%3E")`,
+                backgroundSize: '80px 80px',
+                background: `linear-gradient(135deg, ${currentPalette['bg-primary']} 0%, ${currentPalette['bg-primary']} 50%, ${currentPalette['bg-primary']} 100%)`
+            }}></div>
+
+            {/* Sidebar */}
+            <motion.div
+                // Removed custom animation classes that rely on tailwind.config.js
+                className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300 shadow-xl z-20 overflow-hidden ${showSidebar ? 'w-64' : 'w-20'}`}
+                style={{
+                    backgroundColor: currentPalette['sidebar-bg'],
+                    backgroundImage: `linear-gradient(180deg, ${currentPalette['sidebar-bg']}, ${currentPalette['sidebar-bg']}E0)`,
+                    boxShadow: `8px 0 30px ${currentPalette['shadow-medium']}`
+                }}
             >
-              {label}
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="main-content">{renderContent()}</div>
+                <button
+                    onClick={() => setShowSidebar(!showSidebar)}
+                    className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition-transform duration-200 focus:outline-none focus:ring-2"
+                    style={{ borderColor: currentPalette['accent-lilac'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
+                >
+                    <FiMenu className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }} />
+                </button>
+                <div className="flex-1 flex flex-col items-center">
+                    <h2 className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? 'text-2xl' : 'text-lg'}`} style={{ color: currentPalette['text-sidebar-dark'] }}>
+                        {showSidebar ? 'Student Panel' : 'Stu'}
+                    </h2>
+                    <ul className="space-y-3 w-full">
+                        {[
+                            { key: 'dashboard', icon: FiHome, label: 'Dashboard' },
+                            { key: 'courses', icon: FiBook, label: 'Courses' },
+                            { key: 'peerEvaluation', icon: FiUsers, label: 'Peer Evaluation' },
+                            { key: 'viewMarks', icon: FiCheckCircle, label: 'View Marks' },
+                            { key: 'profile', icon: FiUser, label: 'Profile' }
+                        ].map(({ key, icon: Icon, label }) => (
+                            <motion.li
+                                key={key}
+                                onClick={() => {
+                                    setActiveMenu(key);
+                                    setSelectedCourseId(null);
+                                }}
+                                className={`cursor-pointer flex items-center px-4 py-2 rounded-lg transition-all duration-200 transform
+                                     ${activeMenu === key ? 'scale-100 relative' : 'hover:scale-[1.02]'}
+                                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                                `}
+                                style={{
+                                    color: currentPalette['text-sidebar-dark'],
+                                }}
+                                whileHover={{ scale: 1.03, x: 5, boxShadow: `0 0 10px ${currentPalette['shadow-light']}` }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                {activeMenu === key && (
+                                    <motion.div
+                                        layoutId="activePill"
+                                        className="absolute inset-0 rounded-lg -z-10"
+                                        style={{
+                                            backgroundColor: currentPalette['accent-light-purple'] + '20',
+                                            boxShadow: `0 0 15px ${currentPalette['accent-light-purple']}40`
+                                        }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    />
+                                )}
+                                <Icon className={`transition-all duration-300 ${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`} />
+                                {showSidebar && <span className="font-medium whitespace-nowrap">{label}</span>}
+                            </motion.li>
+                        ))}
+                    </ul>
+                </div>
+                <motion.button
+                    onClick={() => setLogoutDialog(true)}
+                    className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto" // Added mt-auto to push to bottom
+                    style={{ color: currentPalette['text-sidebar-dark'] }}
+                    // Set --tw-ring-color via a wrapping div or a global CSS variable if needed
+                    whileHover={{ scale: 1.03, x: 5 }}
+                    whileTap={{ scale: 0.98 }}
+                >
+                    <FiLogOut className={`${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`} />
+                    {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
+                </motion.button>
+            </motion.div>
 
-      {/* Settings Button */}
-      <div className="absolute bottom-6 right-6 z-20">
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="h-12 w-12 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-700"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.397-.164-.853-.142-1.203.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.142-.854-.108-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.806.272 1.203.107.397-.165.71-.505.781-.929l.149-.894zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
-
-        {showSettings && (
-          <div className="mt-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-xl p-4 text-sm space-y-4 w-60">
-            <div className="flex items-center justify-between gap-6">
-              <span className="text-gray-800 dark:text-white">Dark Mode</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-600 rounded-full peer dark:bg-gray-600 peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-              </label>
+            {/* Main Content */}
+            <div className="flex-1 relative overflow-y-auto flex justify-center items-start z-10 p-4"> {/* Added padding here */}
+                <div
+                    className="rounded-xl shadow-xl w-full h-auto mt-8 mb-8 p-6 flex items-start justify-center overflow-auto max-w-5xl transform transition-all duration-300" // Adjusted max-w
+                    style={{
+                        minHeight: "calc(100vh - 64px)", // Adjusted minHeight based on p-4
+                        backgroundColor: currentPalette['bg-primary'],
+                        boxShadow: `0 10px 40px ${currentPalette['shadow-medium']}`
+                    }}
+                >
+                    {renderContent()}
+                </div>
             </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+
+            {/* Logout Dialog */}
+            <AnimatePresence>
+                {logoutDialog && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="rounded-lg p-6 w-80 text-center shadow-2xl"
+                            style={{ backgroundColor: currentPalette['bg-primary'], boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}` }}
+                        >
+                            <p className="text-lg font-semibold" style={{ color: currentPalette['text-dark'] }}>Are you sure you want to logout?</p>
+                            <div className="flex justify-around mt-6 space-x-4">
+                                <button
+                                    onClick={() => setLogoutDialog(false)}
+                                    className="px-5 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200 active:scale-95 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => { setLogoutDialog(false); handleLogout(); }}
+                                    className={`${commonButtonClasses} focus:ring-offset-2`}
+                                    style={getButtonStyles('accent-purple', 'white')} // Changed text color to white for better contrast on purple
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Dark Mode Toggle */}
+            <div className="fixed bottom-6 right-6 z-20">
+                <button
+                    onClick={toggleDarkMode}
+                    className="h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                    style={{
+                        backgroundColor: darkMode ? currentPalette['accent-purple'] : currentPalette['accent-lilac'],
+                        color: 'white', // Ensure text color is white for both modes
+                        boxShadow: darkMode ? `0 4px 15px ${currentPalette['accent-purple']}60` : `0 4px 15px ${currentPalette['accent-lilac']}60`,
+                        // @ts-ignore
+                        ['--tw-ring-color' as any]: darkMode ? currentPalette['accent-purple'] + '70' : currentPalette['accent-lilac'] + '70'
+                    } as React.CSSProperties & Record<string, any>}
+                >
+                    {darkMode ? (
+                        <FiMoon className="w-6 h-6" />
+                    ) : (
+                        <FiSun className="w-6 h-6" />
+                    )}
+                </button>
+            </div>
+
+            
+        </div>
+    );
+};
+
+export default StudentDashboard;
