@@ -1,202 +1,231 @@
-// frontend/src/components/student/ViewMarks.tsx
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-import { useEffect, useState } from 'react';
-import axios from 'axios'; // Use axios for consistency
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
-interface ExamInfo {
-    _id: string;
-    title: string;
-    startTime?: string;
-    courseName?: string;
+interface Batch {
+  _id: string;
+  name: string;
 }
 
-interface Result {
-    exam: ExamInfo;
-    averageMarks: string | null;
-    marks: number[][]; // Assuming marks can be nested arrays or single numbers
-    feedback: string[];
+interface Course {
+  _id: string;
+  name: string;
+  batches: Batch[];
+}
+
+interface Evaluator {
+  _id: string;
+  name: string;
+}
+
+interface ExamResult {
+  exam: {
+    _id: string;
+    title: string;
+    startTime: string;
+    courseName: string;
+    batchId?: string;
+    batchName?: string;
+  };
+  averageMarks: string | null;
+  marks: number[][];
+  feedback: string[];
+  evaluators: Evaluator[];
 }
 
 const ViewMarks = () => {
-    const [marks, setMarks] = useState<Result[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [allResults, setAllResults] = useState<ExamResult[]>([]);
+  const [filteredResults, setFilteredResults] = useState<ExamResult[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [selectedBatch, setSelectedBatch] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState<string | null>(null);
+  const [raiseTicketMap, setRaiseTicketMap] = useState<{ [key: string]: boolean }>({});
+  const [ticketMessages, setTicketMessages] = useState<{ [key: string]: string }>({});
 
-    useEffect(() => {
-        const fetchMarks = async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                setError('Not authenticated');
-                setLoading(false);
-                return;
-            }
-            try {
-                // IMPORTANT: Remember to change this to `/api/...` after setting up Vite proxy
-                const res = await axios.get(`http://localhost:${PORT}/api/student/results`, { // Using axios
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                setMarks(res.data.results || []);
-            } catch (err: any) {
-                setError(
-                    err.response?.data?.message || err.message || 'Failed to fetch marks' // Improved error handling with axios
-                );
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchMarks();
-    }, []);
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const [coursesRes, resultsRes] = await Promise.all([
+          axios.get(`http://localhost:${PORT}/api/student/enrolled-courses-batches`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`http://localhost:${PORT}/api/student/results`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
 
-    // --- Tailwind Classes & Inline Styles Definitions ---
-    // Defined gradients and shadows for reusability without external CSS
-    const mainBackgroundGradient = 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)';
-    const cardShadow = '0 10px 30px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05)';
-    const cardBeforeGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
-    const headerGradient = 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)';
-    const resultItemBgGradient = 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)';
-    const resultItemShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
-    const resultItemHoverShadow = '0 8px 25px rgba(0, 0, 0, 0.12)';
-    const marksBadgeGradient = 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)';
-    const marksBadgeShadow = '0 2px 8px rgba(45, 55, 72, 0.3)';
-    const averageScoreGradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-    const averageScoreShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
+        setCourses(coursesRes.data.courses || []);
+        setAllResults(resultsRes.data.results || []);
+        setFilteredResults(resultsRes.data.results || []);
+      } catch (err) {
+        console.error("Failed to fetch data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    fetchInitialData();
+  }, []);
 
-    // Common Tailwind classes for a card-like container
-    const commonCardContainerClasses = `
-      bg-white rounded-[20px] p-10 border border-black/10 relative overflow-hidden
-      shadow-[${cardShadow}] sm:p-5
-    `;
+  useEffect(() => {
+    if (!selectedCourse && !selectedBatch) {
+      setFilteredResults(allResults);
+      return;
+    }
 
-    // Classes for list items / result items
-    const commonResultItemClasses = `
-        rounded-2xl p-8 border border-black/10 relative overflow-hidden
-        transition-all duration-300 ease-in-out
-        shadow-[${resultItemShadow}] sm:p-5
-    `;
+    const courseName = courses.find(c => c._id === selectedCourse)?.name;
+    const results = allResults.filter(r => {
+      const matchCourse = courseName ? r.exam.courseName === courseName : true;
+      const matchBatch = selectedBatch ? r.exam.batchId === selectedBatch : true;
+      return matchCourse && matchBatch;
+    });
 
+    setFilteredResults(results);
+  }, [selectedCourse, selectedBatch, allResults, courses]);
 
-    if (loading) return (
-        <div className="max-w-[900px] mx-auto min-h-screen py-10 px-5 font-sans" style={{ background: mainBackgroundGradient }}>
-            <div className={commonCardContainerClasses}>
-                {/* Card Before Element */}
-                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: cardBeforeGradient }}></div>
-                <p className="text-center text-gray-600 text-lg py-10 font-medium">Loading marks...</p>
-            </div>
-        </div>
-    );
+  const toggleRaiseTicket = (key: string) => {
+    setRaiseTicketMap(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
-    if (error) return (
-        <div className="max-w-[900px] mx-auto min-h-screen py-10 px-5 font-sans" style={{ background: mainBackgroundGradient }}>
-            <div className={commonCardContainerClasses}>
-                {/* Card Before Element */}
-                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: cardBeforeGradient }}></div>
-                <p className="text-center text-red-600 text-lg py-10 font-medium bg-red-50/5 rounded-xl border border-red-500/20">{error}</p>
-            </div>
-        </div>
-    );
+  const handleTicketChange = (key: string, message: string) => {
+    setTicketMessages(prev => ({ ...prev, [key]: message }));
+  };
 
-    return (
-        <div className="max-w-[900px] mx-auto min-h-screen py-10 px-5 font-sans" style={{ background: mainBackgroundGradient }}>
-            <div className={commonCardContainerClasses}>
-                {/* Card Before Element */}
-                <div className="absolute top-0 left-0 right-0 h-1" style={{ background: cardBeforeGradient }}></div>
-                <h2
-                    className="text-4xl font-extrabold text-center mb-10 bg-clip-text text-transparent tracking-[-1px]"
-                    style={{ background: headerGradient }}
+  const submitTicket = async (examId: string, evaluatorId: string, key: string) => {
+    const message = ticketMessages[key];
+    if (!message.trim()) return alert("Please enter a concern message.");
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `http://localhost:${PORT}/api/student/raise-ticket`,
+        {
+          examId,
+          evaluatorId,
+          message,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      alert("Ticket submitted successfully.");
+      toggleRaiseTicket(key);
+    } catch (err) {
+      console.error("Failed to raise ticket", err);
+      alert("Ticket submission failed.");
+    }
+  };
+
+  return (
+    <div className="p-10 w-full max-w-5xl space-y-8">
+      <h2 className="text-3xl font-bold text-[#38365e] mb-4">Your Marks</h2>
+
+      <div className="flex gap-4">
+        <select
+          className="border px-4 py-2 rounded-xl"
+          value={selectedCourse}
+          onChange={(e) => {
+            setSelectedCourse(e.target.value);
+            setSelectedBatch("");
+          }}
+        >
+          <option value="">All Courses</option>
+          {courses.map((c) => (
+            <option key={c._id} value={c._id}>{c.name}</option>
+          ))}
+        </select>
+
+        <select
+          className="border px-4 py-2 rounded-xl"
+          value={selectedBatch}
+          onChange={(e) => setSelectedBatch(e.target.value)}
+          disabled={!selectedCourse}
+        >
+          <option value="">All Batches</option>
+          {courses.find((c) => c._id === selectedCourse)?.batches.map((b) => (
+            <option key={b._id} value={b._id}>{b.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : filteredResults.length === 0 ? (
+        <div>No results to display</div>
+      ) : (
+        <div className="space-y-4">
+          {filteredResults.map((res) => (
+            <div key={res.exam._id} className="bg-white rounded-xl p-6 shadow border">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="text-xl font-semibold">{res.exam.title}</div>
+                  <div className="text-sm text-gray-600">
+                    Course: {res.exam.courseName} | Batch: {res.exam.batchName}
+                  </div>
+                  <div className="text-sm text-gray-700">Average Marks: {res.averageMarks}</div>
+                </div>
+                <button
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-xl"
+                  onClick={() =>
+                    setDetailsOpen(detailsOpen === res.exam._id ? null : res.exam._id)
+                  }
                 >
-                    My Academic Results
-                </h2>
-                {marks.length === 0 ? (
-                    <p className="text-center text-gray-600 text-lg py-10 font-medium">No examination results available at the moment.</p>
-                ) : (
-                    <ul className="list-none p-0 m-0 flex flex-col gap-6">
-                        {marks.map((result, idx) => (
-                            <li
-                                key={idx}
-                                className={commonResultItemClasses}
-                                style={{ background: resultItemBgGradient }}
-                                onMouseEnter={(e) => {
-                                    const target = e.currentTarget as HTMLElement;
-                                    target.style.transform = 'translateY(-2px)';
-                                    target.style.boxShadow = resultItemHoverShadow;
-                                }}
-                                onMouseLeave={(e) => {
-                                    const target = e.currentTarget as HTMLElement;
-                                    target.style.transform = 'translateY(0)';
-                                    target.style.boxShadow = resultItemShadow;
-                                }}
+                  {detailsOpen === res.exam._id ? "Hide Details" : "View Details"}
+                </button>
+              </div>
+
+              {detailsOpen === res.exam._id && (
+                <div className="mt-4 space-y-4">
+                  {res.marks.map((markSet, idx) => {
+                    const evaluator = res.evaluators?.[idx];
+                    const key = `${res.exam._id}-${idx}`;
+                    return (
+                      <div key={idx} className="border rounded-xl px-4 py-3 bg-gray-50">
+                        <div className="font-medium">Evaluator: {evaluator?.name || `Peer ${idx + 1}`}</div>
+                        <div className="text-sm">Marks: {markSet.join(", ")}</div>
+                        <div className="text-sm">Feedback: {res.feedback[idx] || "No feedback"}</div>
+
+                        <button
+                          className="text-blue-600 underline mt-1 text-sm"
+                          onClick={() => toggleRaiseTicket(key)}
+                        >
+                          {raiseTicketMap[key] ? "Cancel" : "Raise Ticket"}
+                        </button>
+
+                        {raiseTicketMap[key] && (
+                          <div className="mt-2">
+                            <textarea
+                              placeholder="Describe your concern..."
+                              className="w-full border rounded-xl px-3 py-2 text-sm"
+                              value={ticketMessages[key] || ""}
+                              onChange={e => handleTicketChange(key, e.target.value)}
+                            />
+                            <button
+                              onClick={() => {
+                                if (evaluator?._id)
+                                  submitTicket(res.exam._id, evaluator._id, key);
+                              }}
+                              className="bg-red-600 text-white mt-2 px-4 py-1 rounded-xl text-sm"
                             >
-                                <div className="flex flex-wrap items-center mb-4 text-base">
-                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Course:</span>
-                                    <span className="text-gray-700 flex-1">{result.exam?.courseName || 'Course'}</span>
-                                </div>
-
-                                <div className="flex flex-wrap items-center mb-4 text-base">
-                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Examination:</span>
-                                    <span className="text-gray-700 flex-1">
-                                        {result.exam?.title || 'Exam'}
-                                        {result.exam?.startTime && (
-                                            <span className="ml-3 text-gray-600 text-sm italic">
-                                                ({new Date(result.exam.startTime).toLocaleDateString()})
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-wrap items-center mb-4 text-base">
-                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Average Score:</span>
-                                    <span
-                                        className="inline-block px-4 py-2 rounded-full text-sm font-bold text-white"
-                                        style={{ background: averageScoreGradient, boxShadow: averageScoreShadow }}
-                                    >
-                                        {result.averageMarks || 'N/A'}
-                                    </span>
-                                </div>
-
-                                <div className="flex flex-wrap items-center mb-4 text-base">
-                                    <span className="font-bold text-gray-900 mr-2 min-w-[120px]">Detailed Marks:</span>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {Array.isArray(result.marks) && result.marks.length > 0
-                                            ? result.marks.map((m, i) => (
-                                                <span
-                                                    key={i}
-                                                    className="px-3 py-1 rounded-full text-sm font-semibold text-white"
-                                                    style={{ background: marksBadgeGradient, boxShadow: marksBadgeShadow }}
-                                                >
-                                                    {Array.isArray(m) ? m.join(", ") : m}
-                                                </span>
-                                            ))
-                                            : <span
-                                                className="px-3 py-1 rounded-full text-sm font-semibold text-white"
-                                                style={{ background: marksBadgeGradient, boxShadow: marksBadgeShadow }}
-                                              >
-                                                N/A
-                                              </span>
-                                        }
-                                    </div>
-                                </div>
-
-                                {(result.feedback && result.feedback.length > 0) && (
-                                    <div className="flex flex-wrap items-start text-base"> {/* Use items-start for multiline feedback */}
-                                        <span className="font-bold text-gray-900 mr-2 min-w-[120px] mt-1">Feedback:</span>
-                                        <div
-                                            className="flex-1 p-4 text-base leading-relaxed italic text-gray-700 rounded-xl border border-indigo-500/20 bg-indigo-500/5"
-                                        >
-                                            {Array.isArray(result.feedback)
-                                                ? result.feedback.join(" • ")
-                                                : result.feedback}
-                                        </div>
-                                    </div>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                )}
+                              Submit Ticket
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
+          ))}
         </div>
-    );
+      )}
+    </div>
+  );
 };
 
 export default ViewMarks;

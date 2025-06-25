@@ -12,8 +12,6 @@ import {
     FiUser,
     FiSun, // For light mode icon
     FiMoon, // For dark mode icon
-    FiXCircle, // For error/close icon
-    FiCheckCircle as FiSuccessCheck // Alias for success icon
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from "framer-motion"; // For advanced animations
 
@@ -70,31 +68,6 @@ type Palette = typeof lightPalette;
 
 const getColors = (isDarkMode: boolean): Palette => isDarkMode ? darkPalette : lightPalette;
 
-// A simple Toast component
-const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
-    const [darkMode] = useState(document.documentElement.classList.contains('dark')); // Check initial dark mode state
-    const currentPalette = getColors(darkMode);
-
-    const bgColor = type === 'success' ? currentPalette['accent-lilac'] : currentPalette['accent-pink'];
-    const textColor = 'white'; // Keep white for contrast
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.8 }}
-            transition={{ duration: 0.3 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl flex items-center space-x-3 z-50 min-w-[250px] justify-between"
-            style={{ backgroundColor: bgColor, color: textColor }}
-        >
-            {type === 'success' ? <FiSuccessCheck className="text-2xl" /> : <FiXCircle className="text-2xl" />}
-            <span className="text-lg font-medium flex-grow text-center">{message}</span>
-            <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20 transition-colors duration-200">
-                <FiXCircle className="text-xl" />
-            </button>
-        </motion.div>
-    );
-};
 
 
 const StudentDashboard = () => {
@@ -103,9 +76,6 @@ const StudentDashboard = () => {
     const [darkMode, setDarkMode] = useState(false);
     const [showSidebar, setShowSidebar] = useState(true);
     const [logoutDialog, setLogoutDialog] = useState(false);
-    const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
-    const [ticketMessage, setTicketMessage] = useState('');
-    const [ticketStatus, setTicketStatus] = useState<'success' | 'error' | null>(null);
 
     const navigate = useNavigate();
     const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
@@ -128,27 +98,7 @@ const StudentDashboard = () => {
         setDarkMode(prevMode => !prevMode);
     };
 
-    const handleSubmitTicket = async () => {
-        setIsSubmittingTicket(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, Math.random() > 0.5 ? 1500 : 2500)); // Simulate success/failure delay
-
-        if (Math.random() > 0.3) { // Simulate 70% success rate
-            setTicketStatus('success');
-            setTicketMessage('Ticket submitted successfully!');
-            // Clear textarea
-            const textarea = document.getElementById('ticket-textarea') as HTMLTextAreaElement;
-            if (textarea) textarea.value = '';
-        } else {
-            setTicketStatus('error');
-            setTicketMessage('Failed to submit ticket. Please try again.');
-        }
-        setIsSubmittingTicket(false);
-        setTimeout(() => {
-            setTicketStatus(null);
-            setTicketMessage('');
-        }, 5000); // Hide toast after 5 seconds
-    };
+    
 
 
     // Common Tailwind classes for cards and buttons based on the new palette
@@ -202,49 +152,7 @@ const StudentDashboard = () => {
                                 return <PeerEvaluationsPending />;
                             case 'viewMarks':
                                 return <ViewMarks />;
-                            case 'raiseTicket':
-                                return (
-                                    <div className={`${commonCardClasses}`} style={getCardStyles()}>
-                                        <h2 className="mb-4 text-2xl font-extrabold tracking-tight" style={{ color: currentPalette['text-dark'] }}>Raise a Ticket</h2>
-                                        <p className="text-sm mb-4" style={{ color: currentPalette['text-muted'] }}>
-                                            Describe your issue or query below. Our support team will get back to you shortly.
-                                        </p>
-                                        <textarea
-                                            id="ticket-textarea"
-                                            placeholder="e.g., I'm unable to view my marks for Calculus I..."
-                                            rows={6}
-                                            className="w-full p-4 rounded-xl border-2 resize-y font-sans transition-all duration-300 ease-in focus:outline-none focus:shadow-md text-base"
-                                            style={{
-                                                borderColor: currentPalette['border-soft'],
-                                                backgroundColor: currentPalette['bg-primary'],
-                                                color: currentPalette['text-dark'],
-                                                boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
-                                            } as React.CSSProperties}
-                                            
-                                            disabled={isSubmittingTicket}
-                                        ></textarea>
-                                        <div className="flex justify-end mt-4">
-                                            <button
-                                                onClick={handleSubmitTicket}
-                                                className={commonButtonClasses}
-                                                style={getButtonStyles('accent-purple', 'text-dark')} // Using purple for submit
-                                                disabled={isSubmittingTicket}
-                                            >
-                                                {isSubmittingTicket ? (
-                                                    <span className="flex items-center">
-                                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                                        </svg>
-                                                        Submitting...
-                                                    </span>
-                                                ) : (
-                                                    'Submit Ticket'
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
+                            
                             case 'profile':
                                 return <ProfileSection />;
                             default:
@@ -298,7 +206,6 @@ const StudentDashboard = () => {
                             { key: 'courses', icon: FiBook, label: 'Courses' },
                             { key: 'peerEvaluation', icon: FiUsers, label: 'Peer Evaluation' },
                             { key: 'viewMarks', icon: FiCheckCircle, label: 'View Marks' },
-                            { key: 'raiseTicket', icon: FiUploadCloud, label: 'Raise Ticket' },
                             { key: 'profile', icon: FiUser, label: 'Profile' }
                         ].map(({ key, icon: Icon, label }) => (
                             <motion.li
@@ -420,16 +327,7 @@ const StudentDashboard = () => {
                 </button>
             </div>
 
-            {/* Ticket Submission Toast */}
-            <AnimatePresence>
-                {ticketStatus && (
-                    <Toast
-                        message={ticketMessage}
-                        type={ticketStatus}
-                        onClose={() => setTicketStatus(null)}
-                    />
-                )}
-            </AnimatePresence>
+            
         </div>
     );
 };

@@ -14,7 +14,9 @@ import { flagEvaluation } from "../../controllers/student/flagEvaluation.control
 import { submitPeerEvaluation } from "../../controllers/student/submitPeerEvaluation.controller.ts";
 import { getSubmissionPdf } from "../../controllers/student/getSubmissionPdf.controller.ts";
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
-import { getStudentCourses } from "../../controllers/student/course.controller.ts";
+import { getStudentCourses, getStudentCoursesWithBatches } from "../../controllers/student/course.controller.ts";
+import { changePassword } from "../../controllers/student/changePassword.controller.ts";
+import { raiseTicket } from "../../controllers/student/raiseTIcket.controller.ts";
 const router = Router();
 const upload = multer();
 
@@ -35,9 +37,17 @@ router.get("/submissions", authMiddleware, getSubmissions);
 router.post("/flag-evaluation", authMiddleware, flagEvaluation);
 router.post("/submit-peer-evaluation", authMiddleware, submitPeerEvaluation);
 router.get(
-  "/submission-pdf/:examId/:studentId",
+  "/submission-pdf/:submissionId",
+  authMiddleware,
   getSubmissionPdf
 );
+router.get(
+  "/enrolled-courses-batches",
+  authMiddleware,
+  getStudentCoursesWithBatches
+);
+router.post("/change-password", authMiddleware, changePassword);
+router.post("/raise-ticket", authMiddleware, raiseTicket);
 
 
 export default router;
