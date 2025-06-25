@@ -65,12 +65,8 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
     const textColor = 'white'; // Keep white for contrast for toasts
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.8 }}
-            transition={{ duration: 0.3 }}
-            className="fixed bottom-8 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl flex items-center space-x-3 z-50 min-w-[250px] justify-between"
+        <div
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 p-4 rounded-lg shadow-xl flex items-center space-x-3 z-50 min-w-[250px] justify-between transition-all duration-300"
             style={{ backgroundColor: bgColor, color: textColor }}
         >
             <span className="text-2xl">{type === 'success' ? '✅' : '❌'}</span>
@@ -78,8 +74,9 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
             <button onClick={onClose} className="p-1 rounded-full hover:bg-white/20 transition-colors duration-200">
                 <span className="text-xl">✖️</span>
             </button>
-        </motion.div>
+        </div>
     );
+
 };
 
 // A reusable Modal component (adapted from StudentDashboard style)
@@ -90,22 +87,20 @@ const Modal = ({ show, onClose, onConfirm, title, children }: { show: boolean, o
     if (!show) return null;
 
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        >
-            <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="rounded-2xl p-6 w-full max-w-md m-4 shadow-xl text-center"
-                style={{ backgroundColor: currentPalette['bg-primary'], boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}` }}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div
+                className="rounded-2xl p-6 w-full max-w-md m-4 shadow-xl text-center transition-all duration-300"
+                style={{
+                    backgroundColor: currentPalette['bg-primary'],
+                    boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}`,
+                }}
             >
-                <h3 className="text-xl font-bold mb-4" style={{ color: currentPalette['text-dark'] }}>{title}</h3>
-                <div className="mb-6" style={{ color: currentPalette['text-muted'] }}>{children}</div>
+                <h3 className="text-xl font-bold mb-4" style={{ color: currentPalette['text-dark'] }}>
+                    {title}
+                </h3>
+                <div className="mb-6" style={{ color: currentPalette['text-muted'] }}>
+                    {children}
+                </div>
                 <div className="flex justify-around gap-4">
                     <button
                         onClick={onClose}
@@ -126,9 +121,10 @@ const Modal = ({ show, onClose, onConfirm, title, children }: { show: boolean, o
                         Confirm
                     </button>
                 </div>
-            </motion.div>
-        </motion.div>
+            </div>
+        </div>
     );
+
 };
 
 const AdminDashboard = () => {  
@@ -328,37 +324,35 @@ const AdminDashboard = () => {
 
   // Replaced react-icons with Unicode characters/emojis
   const SidebarLink = ({ tabName, icon: IconSVG, text }: { tabName: Tab, icon: React.ReactNode, text: string }) => (
-    <motion.li
+    <li
       key={tabName}
       onClick={() => {
         if (activeTab !== tabName) setActiveTab(tabName);
-        }}
+      }}
       className={`cursor-pointer flex items-center px-4 py-2 rounded-lg transition-all duration-200 transform
           ${activeTab === tabName ? 'scale-100 relative' : 'hover:scale-[1.02]'}
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
       `}
       style={{
-          color: currentPalette['text-sidebar-dark'],
-          // @ts-ignore: Allow custom CSS property for Tailwind ring color
-          '--tw-ring-color': currentPalette['accent-lilac'] + '70',
-      } as any}
-      whileHover={{ scale: 1.03, x: 5, boxShadow: `0 0 10px ${currentPalette['shadow-light']}` }}
-      whileTap={{ scale: 0.98 }}
+        color: currentPalette['text-sidebar-dark'],
+        '--tw-ring-color': currentPalette['accent-lilac'] + '70',
+      } as React.CSSProperties & Record<string, any>}
     >
       {activeTab === tabName && (
-        <motion.div
-            layoutId="activePill"
-            className="absolute inset-0 rounded-lg -z-10"
-            style={{
-                backgroundColor: currentPalette['accent-light-purple'] + '20',
-                boxShadow: `0 0 15px ${currentPalette['accent-light-purple']}40`
-            }}
-            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        <div
+          className="absolute inset-0 rounded-lg -z-10 transition-all duration-300"
+          style={{
+            backgroundColor: currentPalette['accent-light-purple'] + '20',
+            boxShadow: `0 0 15px ${currentPalette['accent-light-purple']}40`,
+          }}
         />
       )}
-      <span className={`transition-all duration-300 ${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`}>{IconSVG}</span>
+      <span className={`transition-all duration-300 ${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`}>
+        {IconSVG}
+      </span>
       {showSidebar && <span className="font-medium whitespace-nowrap">{text}</span>}
-    </motion.li>
+    </li>
+
   );
   
   /*const StatCard = ({ title, value, icon: IconSVG, onMoreClick }: { title: string, value: number, icon: React.ReactNode, onMoreClick?: () => void }) => (
@@ -438,16 +432,14 @@ const AdminDashboard = () => {
         }
 
         return (
-            <motion.button
+            <button
                 type={type}
                 onClick={onClick}
                 className={commonButtonClasses}
                 style={getButtonStyles(buttonPaletteKey, textColorKey)}
-                whileHover={{ scale: 1.03, boxShadow: `0 6px 20px ${currentPalette[buttonPaletteKey]}60` }}
-                whileTap={{ scale: 0.95 }}
             >
                 {children}
-            </motion.button>
+            </button>
         );
     };
   const renderContent = () => {
@@ -502,35 +494,26 @@ const AdminDashboard = () => {
 
                 {/* Top buttons */}
                 <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
-                    {[
+                  {[
                     { label: 'Manage Courses', tab: 'course' },
                     { label: 'Manage Batches', tab: 'batch' },
                     { label: 'Manage Roles', tab: 'role' },
-                    ].map((btn) => (
+                  ].map((btn) => (
                     <button
-                        key={btn.tab}
-                        onClick={() => {
-                            if (activeTab !== btn.tab) setActiveTab(btn.tab as Tab);
-                            }}
-                        className="px-10 py-4 text-lg rounded-3xl shadow-md transition-all transform active:scale-95"
-                        style={{
+                      key={btn.tab}
+                      onClick={() => {
+                        if (activeTab !== btn.tab) setActiveTab(btn.tab as Tab);
+                      }}
+                      className="px-10 py-4 text-lg rounded-3xl shadow-md transition-all transform active:scale-95 hover:scale-105 hover:brightness-105"
+                      style={{
                         backgroundColor: currentPalette['accent-lilac'],
                         color: currentPalette['text-dark'],
                         boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
-                        }}
-                        onMouseEnter={(e) => {
-                        Object.assign(e.currentTarget.style, hoverStyle);
-                        }}
-                        onMouseLeave={(e) => {
-                        Object.assign(e.currentTarget.style, {
-                            transform: '',
-                            filter: '',
-                        });
-                        }}
+                      }}
                     >
-                        {btn.label}
+                      {btn.label}
                     </button>
-                    ))}
+                  ))}
                 </div>
 
                 {/* Stat Cards */}
@@ -708,73 +691,74 @@ const AdminDashboard = () => {
       </AnimatePresence>
 
       {/* Sidebar */}
-      <motion.aside 
-          className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300 shadow-xl z-20 overflow-hidden ${showSidebar ? 'w-64' : 'w-20'}`}
-          style={{
-              backgroundColor: currentPalette['sidebar-bg'],
-              backgroundImage: `linear-gradient(180deg, ${currentPalette['sidebar-bg']}, ${currentPalette['sidebar-bg']}E0)`,
-              boxShadow: `8px 0 30px ${currentPalette['shadow-medium']}`
-          }}
-      >
-        <button
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition-transform duration-200 focus:outline-none focus:ring-2"
-            style={{ borderColor: currentPalette['accent-lilac'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
+        <aside 
+            className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300 shadow-xl z-20 overflow-hidden ${showSidebar ? 'w-64' : 'w-20'}`}
+            style={{
+                backgroundColor: currentPalette['sidebar-bg'],
+                backgroundImage: `linear-gradient(180deg, ${currentPalette['sidebar-bg']}, ${currentPalette['sidebar-bg']}E0)`,
+                boxShadow: `8px 0 30px ${currentPalette['shadow-medium']}`
+            }}
         >
-            <span className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }}>
-              {showSidebar ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x">
-                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition-transform duration-200 focus:outline-none focus:ring-2"
+              style={{ borderColor: currentPalette['accent-lilac'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
+          >
+              <span className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }}>
+                {showSidebar ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x">
+                      <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                    </svg>
+                ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu">
+                      <line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>
+                    </svg>
+                )}
+              </span>
+          </button>
+
+          <div className="flex-1 flex flex-col items-center">
+              <h2 className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? 'text-2xl' : 'text-lg'}`} style={{ color: currentPalette['text-sidebar-dark'] }}>
+                  {showSidebar ? 'Admin Panel' : 'AP'}
+              </h2>
+              <ul className="space-y-3 w-full">
+                <SidebarLink tabName="home" icon={
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-home">
+                      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                } text="Home" />
+                <SidebarLink tabName="course" icon={
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open-text">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h6z"/><path d="M10 12H7"/><path d="M10 16H7"/>
+                    </svg>
+                } text="Course Manager" />
+                <SidebarLink tabName="batch" icon={
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-box">
+                      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+                    </svg>
+                } text="Batch Manager" />
+                <SidebarLink tabName="role" icon={
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                } text="Role Manager" />
+              </ul>
+          </div>
+
+          <button
+              onClick={() => setShowLogoutModal(true)}
+              className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto"
+              style={{ color: currentPalette['text-sidebar-dark'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
+          >
+              <span className={`${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/>
                   </svg>
-              ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu">
-                    <line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>
-                  </svg>
-              )}
-            </span>
-        </button>
-        <div className="flex-1 flex flex-col items-center">
-            <h2 className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? 'text-2xl' : 'text-lg'}`} style={{ color: currentPalette['text-sidebar-dark'] }}>
-                {showSidebar ? 'Admin Panel' : 'AP'}
-            </h2>
-            <ul className="space-y-3 w-full">
-              <SidebarLink tabName="home" icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-home">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-                  </svg>
-              } text="Home" />
-              <SidebarLink tabName="course" icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open-text">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h6z"/><path d="M10 12H7"/><path d="M10 16H7"/>
-                  </svg>
-              } text="Course Manager" />
-              <SidebarLink tabName="batch" icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-box">
-                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
-                  </svg>
-              } text="Batch Manager" />
-              <SidebarLink tabName="role" icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-              } text="Role Manager" />
-            </ul>
-        </div>
-        <motion.button
-            onClick={() => setShowLogoutModal(true)}
-            className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto"
-            style={{ color: currentPalette['text-sidebar-dark'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
-            whileHover={{ scale: 1.03, x: 5 }}
-            whileTap={{ scale: 0.98 }}
-        >
-            <span className={`${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="17 16 22 12 17 8"/><line x1="22" x2="10" y1="12" y2="12"/>
-                </svg>
-            </span>
-            {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
-        </motion.button>
-      </motion.aside>
+              </span>
+              {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
+          </button>
+        </aside>
+
 
       {/* Main Content */}
       <main className="flex-1 relative overflow-y-auto flex flex-col items-center z-10 p-4">
@@ -863,19 +847,11 @@ const AdminDashboard = () => {
 
         {/* Content Area */}
         <div className="flex-1 flex justify-center items-start w-full max-w-5xl pb-8">
-            <AnimatePresence mode="wait">
-                <motion.div
-                    //key={activeTab} // Key is crucial for AnimatePresence to detect changes
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                    className="w-full" // Ensure it takes full width within the container
-                >
-                    {renderContent()}
-                </motion.div>
-            </AnimatePresence>
+            <div className="w-full">
+                {renderContent()}
+            </div>
         </div>
+
       </main>
     </div>
   );
