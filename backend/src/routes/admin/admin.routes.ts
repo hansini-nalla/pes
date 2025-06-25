@@ -31,7 +31,7 @@ router.post("/courses",authMiddleware,authorizeRoles("admin"),addCourse);
 
 router.get('/users', async (_req: Request, res: Response) => {
   try {
-    const users = await User.find({ role: { $in: ['student', 'ta'] } }).select('name email role');
+    const users = await User.find().select('name email role');
     res.json(users);
   } catch (error) {
     console.error('Error fetching users:', error);

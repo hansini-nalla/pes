@@ -9,25 +9,54 @@ const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 const DialogBox = ({
   show,
   message,
+  type = 'success',
   children,
   onClose,
 }: {
   show: boolean;
   message: string;
+  type?: 'success' | 'error';
   children?: React.ReactNode;
   onClose?: () => void;
 }) => {
   if (!show) return null;
+
+  const icon =
+    type === 'success' ? (
+      <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="28" fill="#6ddf99" />
+        <path
+          d="M18 30l7 7 13-13"
+          stroke="#fff"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ) : (
+      <svg width={56} height={56} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="12" fill="#f87171" />
+        <path
+          d="M15 9l-6 6M9 9l6 6"
+          stroke="#fff"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
       <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
-        <div className="mb-2">
-          <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-            <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-            <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+        <div className="mb-2">{icon}</div>
+        <div
+          className={`text-lg font-semibold text-center mb-1 ${
+            type === 'success' ? 'text-[#235d3a]' : 'text-red-600'
+          }`}
+        >
+          {message}
         </div>
-        <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">{message}</div>
         {children}
         <button
           onClick={onClose}
@@ -39,6 +68,7 @@ const DialogBox = ({
     </div>
   );
 };
+
 
 export default function Register() {
   const [darkMode, setDarkMode] = useState(false);
@@ -54,6 +84,7 @@ export default function Register() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
   const [msgContent, setMsgContent] = useState('');
+  const [msgType, setMsgType] = useState<'success' | 'error'>('success');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,17 +123,18 @@ export default function Register() {
   };
 
   // Show message function for errors (uses DialogBox)
-  const showMessage = (message: string) => {
-    setMsgContent(message);
-    setShowMsg(true);
+  const showMessage = (message: string, type: 'success' | 'error' = 'success') => {
+  setMsgContent(message);
+  setMsgType(type);
+  setShowMsg(true);
   };
 
   // Handle registration
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
-      showMessage('Passwords do not match');
+    if (password !== confirmPassword) { 
+      showMessage('Passwords do not match', 'error');
       return;
     }
 
@@ -128,9 +160,9 @@ export default function Register() {
       else navigate('/dashboard');*/
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        showMessage(err.response?.data?.message || 'Registration failed');
+        showMessage(err.response?.data?.message || 'Registration failed', 'error');
       } else {
-        showMessage('Registration failed');
+        showMessage('Registration failed', 'error');
       }
       console.error(err);
     } finally {
@@ -144,6 +176,7 @@ export default function Register() {
       <DialogBox
         show={showMsg}
         message={msgContent}
+        type={msgType}
         onClose={() => setShowMsg(false)}
       />
 

@@ -49,15 +49,19 @@ export const getPendingEvaluations = async (
         return {
           _id: ev._id.toString(),
           exam: {
-            _id: ev.exam._id.toString(),
-            title: ev.exam.title,
-            questions: ev.exam.questions,
+            _id: ev.exam._id,
+            title:
+              typeof ev.exam === "object" && "title" in ev.exam
+                ? ev.exam.title
+                : "No Title",
+            questions:
+              typeof ev.exam === "object" && "questions" in ev.exam
+                ? ev.exam.questions
+                : [],
           },
-          evaluatee: {
-            _id: ev.evaluatee._id.toString(),
-          },
+          submissionId: submission ? submission._id : null,
           pdfUrl: submission
-            ? `http://localhost:5000/api/student/submission-pdf/${ev.exam._id}/${ev.evaluatee._id}?token=${token}`
+            ? `http://localhost:5000/api/student/submission-pdf/${submission._id}`
             : null,
         };
       })
