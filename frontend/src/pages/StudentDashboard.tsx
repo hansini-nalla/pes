@@ -8,12 +8,14 @@ import {
     FiBook,
     FiUsers,
     FiCheckCircle,
-    FiUploadCloud,
     FiUser,
     FiSun, // For light mode icon
     FiMoon, // For dark mode icon
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from "framer-motion"; // For advanced animations
+import axios from 'axios';
+
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 // Import your existing components
 import ProfileSection from "../components/student/ProfileSection";
@@ -71,11 +73,16 @@ const getColors = (isDarkMode: boolean): Palette => isDarkMode ? darkPalette : l
 
 
 const StudentDashboard = () => {
+    const [token] = useState(localStorage.getItem('token'));
+
     const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
     const [activeMenu, setActiveMenu] = useState('dashboard');
     const [darkMode, setDarkMode] = useState(false);
     const [showSidebar, setShowSidebar] = useState(true);
     const [logoutDialog, setLogoutDialog] = useState(false);
+
+    const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
+    const [showProfilePopup, setShowProfilePopup] = useState(false);
 
     const navigate = useNavigate();
     const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
@@ -98,7 +105,42 @@ const StudentDashboard = () => {
         setDarkMode(prevMode => !prevMode);
     };
 
-    
+    const ProfileSVG = () => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-gray-700 dark:text-gray-200"
+        >
+        <path d="M18 20a6 6 0 0 0-12 0" />
+        <circle cx="12" cy="10" r="4" />
+        <circle cx="12" cy="12" r="10" />
+    </svg>
+    );
+
+    const fetchData = async (url: string, setter: Function, errorMessage: string) => {
+        try {
+            const res = await axios.get(url, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setter(res.data);
+            } catch (error) {
+            console.error(errorMessage, error);
+        }
+    };
+    useEffect(() => {
+        if (!token) {
+            navigate('/'); // Redirect to login
+            return;
+        }
+        fetchData(`http://localhost:${PORT}/api/dashboard/profile`, setProfileData, 'Failed to fetch profile');
+      }, [token, navigate]);
 
 
     // Common Tailwind classes for cards and buttons based on the new palette
@@ -255,9 +297,58 @@ const StudentDashboard = () => {
             </motion.div>
 
             {/* Main Content */}
-            <div className="flex-1 relative overflow-y-auto flex justify-center items-start z-10 p-4"> {/* Added padding here */}
+            <div className="flex-1 relative overflow-y-auto p-4 flex flex-col z-10"> 
+            
+                <div className="w-full flex justify-end pr-10">
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowProfilePopup(!showProfilePopup)}
+                            className="p-2 flex items-center justify-center rounded-full border-2 border-transparent hover:border-blue-300 transition active:scale-95 bg-white shadow"
+                            style={{ boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)' }}
+                        >
+                            <ProfileSVG />
+                        </button>
+
+                        {showProfilePopup && (
+                            <div
+                            className="absolute right-0 mt-3 w-80 p-4 z-50"
+                            style={{
+                                backgroundColor: currentPalette['bg-secondary'],
+                                borderTopLeftRadius: 0,
+                                borderTopRightRadius: 0,
+                                borderBottomLeftRadius: 24,
+                                borderBottomRightRadius: 24,
+                                boxShadow: `0 4px 14px ${currentPalette['shadow-medium']}`,
+                                color: currentPalette['text-dark']
+                            }}
+                            >
+                            <h2 className="text-xl font-bold mb-4">Profile Info</h2>
+                            <div className="space-y-2 mb-4 text-sm">
+                                <p><strong>Name:</strong> {profileData.name}</p>
+                                <p><strong>Email:</strong> {profileData.email}</p>
+                                <p><strong>Role:</strong> {profileData.role}</p>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setShowProfilePopup(false);
+                                    setActiveMenu('profile') // or the route you want
+                                }}
+                                className="w-full rounded-3xl px-4 py-2"
+                                style={{
+                                backgroundColor: currentPalette['accent-purple'],
+                                color: 'white',
+                                boxShadow: `0 4px 15px ${currentPalette['accent-purple']}40`
+                                }}
+                            >
+                                Go to Profile
+                            </button>
+                            </div>
+                        )}
+                        </div>
+                    </div>
+                
                 <div
-                    className="rounded-xl shadow-xl w-full h-auto mt-8 mb-8 p-6 flex items-start justify-center overflow-auto max-w-5xl transform transition-all duration-300" // Adjusted max-w
+                    className="rounded-xl shadow-xl w-full h-auto mt-8 mb-8 p-6 flex items-start justify-center overflow-auto max-w-5xl mx-auto transform transition-all duration-300" // Adjusted max-w
                     style={{
                         minHeight: "calc(100vh - 64px)", // Adjusted minHeight based on p-4
                         backgroundColor: currentPalette['bg-primary'],
