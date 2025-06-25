@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Evaluation } from "../../models/Evaluation.ts";
+import { IUser } from "../../models/User.ts";
 
 // Extend Express Request interface to include 'user'
 declare global {
@@ -29,14 +30,20 @@ export const getEvaluationResults = async (
     const evaluations = await Evaluation.find({
       evaluatee: studentId,
       status: "completed",
-    }).populate({
-      path: "exam",
-      select: "title startTime course batch",
-      populate: [
-        { path: "course", select: "name" },
-        { path: "batch", select: "name" },
-      ],
-    });
+    })
+      .populate({
+        path: "exam",
+        select: "title startTime course batch",
+        populate: [
+          { path: "course", select: "name" },
+          { path: "batch", select: "name" },
+        ],
+      })
+      .populate({
+        path: "evaluator",
+        model: "User",
+        select: "name",
+      });
 
     if (!evaluations || evaluations.length === 0) {
       res.status(200).json({ message: "No evaluations found" });
@@ -44,17 +51,33 @@ export const getEvaluationResults = async (
     }
 
     const resultsMap: Record<string, any> = {};
+
     evaluations.forEach((ev) => {
       const examKey = ev.exam?._id?.toString() || "unknown";
+
       if (!resultsMap[examKey]) {
         resultsMap[examKey] = {
           exam: ev.exam,
           marksList: [],
           feedbackList: [],
+          evaluators: [],
         };
       }
+
+      const evaluator =
+        typeof ev.evaluator === "object" && "name" in ev.evaluator
+          ? {
+              _id: ev.evaluator._id.toString(),
+              name: (ev.evaluator as unknown as IUser).name,
+            }
+          : {
+              _id: ev.evaluator?.toString() || "unknown",
+              name: "Unknown",
+            };
+
       resultsMap[examKey].marksList.push(ev.marks);
       resultsMap[examKey].feedbackList.push(ev.feedback);
+      resultsMap[examKey].evaluators.push(evaluator);
     });
 
     const results = Object.values(resultsMap).map((group: any) => {
@@ -79,6 +102,7 @@ export const getEvaluationResults = async (
         averageMarks: avg,
         marks: group.marksList,
         feedback: group.feedbackList,
+        evaluators: group.evaluators,
       };
     });
 

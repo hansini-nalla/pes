@@ -98,7 +98,7 @@ const DashboardOverview = () => {
           <ul className="list-disc pl-5 space-y-2 text-gray-700 text-base leading-relaxed">
             {results.slice(0, 3).map((r: any) => (
               <li key={r.exam._id}>
-                {r.exam.courseName}: <span className="font-semibold text-gray-900">{r.averageMarks}/100</span>
+                {r.exam.courseName}: <span className="font-semibold text-gray-900">{r.averageMarks}</span>
               </li>
             ))}
           </ul>

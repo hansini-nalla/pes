@@ -14,6 +14,11 @@ interface Course {
   batches: Batch[];
 }
 
+interface Evaluator {
+  _id: string;
+  name: string;
+}
+
 interface ExamResult {
   exam: {
     _id: string;
@@ -26,6 +31,7 @@ interface ExamResult {
   averageMarks: string | null;
   marks: number[][];
   feedback: string[];
+  evaluators: Evaluator[];
 }
 
 const ViewMarks = () => {
@@ -90,8 +96,7 @@ const ViewMarks = () => {
     setTicketMessages(prev => ({ ...prev, [key]: message }));
   };
 
-  const submitTicket = async (examId: string, index: number) => {
-    const key = `${examId}-${index}`;
+  const submitTicket = async (examId: string, evaluatorId: string, key: string) => {
     const message = ticketMessages[key];
     if (!message.trim()) return alert("Please enter a concern message.");
     try {
@@ -100,8 +105,8 @@ const ViewMarks = () => {
         `http://localhost:${PORT}/api/student/raise-ticket`,
         {
           examId,
+          evaluatorId,
           message,
-          peerIndex: index,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -176,10 +181,11 @@ const ViewMarks = () => {
               {detailsOpen === res.exam._id && (
                 <div className="mt-4 space-y-4">
                   {res.marks.map((markSet, idx) => {
+                    const evaluator = res.evaluators?.[idx];
                     const key = `${res.exam._id}-${idx}`;
                     return (
                       <div key={idx} className="border rounded-xl px-4 py-3 bg-gray-50">
-                        <div className="font-medium">Peer {idx + 1}:</div>
+                        <div className="font-medium">Evaluator: {evaluator?.name || `Peer ${idx + 1}`}</div>
                         <div className="text-sm">Marks: {markSet.join(", ")}</div>
                         <div className="text-sm">Feedback: {res.feedback[idx] || "No feedback"}</div>
 
@@ -199,7 +205,10 @@ const ViewMarks = () => {
                               onChange={e => handleTicketChange(key, e.target.value)}
                             />
                             <button
-                              onClick={() => submitTicket(res.exam._id, idx)}
+                              onClick={() => {
+                                if (evaluator?._id)
+                                  submitTicket(res.exam._id, evaluator._id, key);
+                              }}
                               className="bg-red-600 text-white mt-2 px-4 py-1 rounded-xl text-sm"
                             >
                               Submit Ticket

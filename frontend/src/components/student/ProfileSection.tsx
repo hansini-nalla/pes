@@ -89,7 +89,7 @@ const ProfileSection = () => {
       <div className="space-y-4">
         <ProfileItem label="Name" value={profile.name} />
         <ProfileItem label="Email" value={profile.email} />
-        {profile.id && <ProfileItem label="User ID" value={profile.id} />}
+        
       </div>
 
       <hr className="border-t border-gray-200 my-4" />
