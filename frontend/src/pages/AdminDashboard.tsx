@@ -1,6 +1,6 @@
 import { useState, useEffect} from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from "framer-motion";
+//import { motion, AnimatePresence } from "framer-motion";
 import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
@@ -142,6 +142,9 @@ const AdminDashboard = () => {
   const [profileData, setProfileData] = useState({ name: "", email: "", role: "" });
   const [showProfilePopup, setShowProfilePopup] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [batchName, setBatchName] = useState('');
+  const [batchCourseCode, setBatchCourseCode] = useState('');
+  const [batchToDelete, setBatchToDelete] = useState('');
   const [batches, setBatches] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<{ role: string; email: string; name: string }[]>([]);
 
@@ -152,7 +155,7 @@ const AdminDashboard = () => {
   const [endDate, setEndDate] = useState('');
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [roleEmail, setRoleEmail] = useState("");
-  const [roleType, setRoleType] = useState("student"); // Default to student
+  const [roleType, setRoleType] = useState("admin"); // Default to admin
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
@@ -265,6 +268,51 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAddBatch = async () => {
+    try {
+      const courseRes = await axios.get(`http://localhost:${PORT}/api/admin/courses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const course = courseRes.data.find((c: any) => c.code === batchCourseCode);
+
+      if (!course) {
+        alert('Course not found');
+        return;
+      }
+
+      await axios.post(
+        `http://localhost:${PORT}/api/admin/batches`,
+        { name: batchName, courseId: course._id, students: [] },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      alert('Batch added successfully');
+      setBatchName('');
+      setBatchCourseCode('');
+      fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
+      fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to add batch');
+    }
+  };
+
+const handleDeleteBatch = async () => {
+    try {
+        await axios.delete(`http://localhost:${PORT}/api/admin/batches/${batchToDelete}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        });
+
+        alert('Batch deleted successfully');
+        setBatchToDelete('');
+        fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
+        fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
+    } catch (err) {
+        console.error(err);
+        alert('Failed to delete batch');
+    }
+};
+
   const handleRoleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!roleEmail || !roleType) {
@@ -276,7 +324,7 @@ const AdminDashboard = () => {
         showToast('Role updated successfully');
         fetchData(`http://localhost:${PORT}/api/admin/users`, setAllUsers, 'Failed to refetch users');
         setRoleEmail('');
-        setRoleType('student');
+        setRoleType('admin');
     } catch(error) {
         console.error("Failed to update role", error);
         showToast("Failed to update role", 'error');
@@ -290,10 +338,7 @@ const AdminDashboard = () => {
   };
 
   // Common Tailwind classes for cards and buttons based on the new palette
-  const commonCardClasses = `
-      rounded-xl p-6 space-y-4 border transition-all duration-300
-      hover:shadow-xl transform hover:translate-y-[-4px]
-  `;
+  const commonCardClasses = `rounded-xl p-6 space-y-4 border`;
   const getCardStyles = () => ({
       backgroundColor: currentPalette['bg-secondary'],
       borderColor: currentPalette['border-soft'],
@@ -550,22 +595,37 @@ const AdminDashboard = () => {
         return (
             <Card title="Role Manager">
                 <p className="text-base mb-6" style={{ color: currentPalette['text-muted'] }}>Update the role of a user by selecting their email and assigning a new role.</p>
-                <form onSubmit={handleRoleUpdate} className="space-y-4 max-w-lg">
+                <form  name="roleUpdateForm" id="roleUpdateForm" onSubmit={handleRoleUpdate} className="space-y-4 max-w-lg">
                     <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>User</label>
                         <Select value={roleEmail} onChange={(e) => setRoleEmail(e.target.value)} required>
-                            <option value="" disabled>Select a User</option>
-                            {allUsers.map(user => (
-                                <option key={user.email} value={user.email}>{user.name} ({user.email})</option>
-                            ))}
+                            <option value="">Select User</option>
+                            <optgroup label="Teaching Assistants (TAs)">
+                                {allUsers
+                                .filter(user => user.role === 'ta')
+                                .map(user => (
+                                    <option key={user.email} value={user.email}>
+                                    {user.name} ({user.email})
+                                    </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Students">
+                                {allUsers
+                                .filter(user => user.role === 'student')
+                                .map(user => (
+                                    <option key={user.email} value={user.email}>
+                                    {user.name} ({user.email})
+                                    </option>
+                                ))}
+                            </optgroup>
                         </Select>
                     </div>
                     <div>
                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>New Role</label>
-                        <Select value={roleType} onChange={(e) => setRoleType(e.target.value)} required>
+                        <Select name="selectRole" id="selectRole" value={roleType} onChange={(e) => setRoleType(e.target.value)} required>
+                            <option value="">Select Role</option>
                             <option value="student">Student</option>
                             <option value="ta">Teaching Assistant (TA)</option>
-                            <option value="admin">Admin</option>
                         </Select>
                     </div>
                     <div className="pt-2">
@@ -607,7 +667,7 @@ const AdminDashboard = () => {
                 <Card title="Remove Course">
                 <div className="space-y-4">
                     <Select value={courseIdToDelete} onChange={(e) => setCourseIdToDelete(e.target.value)} required>
-                    <option value="" disabled>Select course to delete</option>
+                    <option value="">Select course to delete</option>
                     {courses.map((course) => (
                         <option key={course._id} value={course.code}>
                         {course.name} ({course.code})
@@ -645,23 +705,102 @@ const AdminDashboard = () => {
 
       case 'batch':
         return (
-          <Card title="All Batches">
-             <ul className="space-y-3">
-                {batches.length > 0 ? batches.map((batch: any) => (
-                    <li key={batch._id} 
+            <div className="grid grid-cols-1 gap-8 w-full">
+            {/* Top row: Add + Remove in two columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+                <Card title="Add New Batch">
+                <div className="space-y-4 mb-8">
+                    <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
+                        Batch Name
+                    </label>
+                    <Input
+                        type="text"
+                        value={batchName}
+                        onChange={(e) => setBatchName(e.target.value)}
+                        placeholder="Enter Batch Name"
+                        required
+                    />
+                    </div>
+                    <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
+                        Select Course
+                    </label>
+                    <Select
+                        value={batchCourseCode}
+                        onChange={(e) => setBatchCourseCode(e.target.value)}
+                        required
+                    >
+                        <option value="">Select Course</option>
+                        {courses.map((course: any) => (
+                        <option key={course._id} value={course.code}>
+                            {course.name} ({course.code})
+                        </option>
+                        ))}
+                    </Select>
+                    </div>
+                    <div className="pt-2">
+                    <Button onClick={handleAddBatch} variant="light-contrast">
+                        Add Batch
+                    </Button>
+                    </div>
+                </div>
+                </Card>
+
+                <Card title="Remove Batch">
+                <div className="space-y-4">
+                    <div>
+                    <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
+                        Select Batch
+                    </label>
+                    <Select
+                        value={batchToDelete}
+                        onChange={(e) => setBatchToDelete(e.target.value)}
+                        required
+                    >
+                        <option value="">Select Batch</option>
+                        {batches.map((batch) => (
+                        <option key={batch._id} value={batch._id}>
+                            {batch.name} ({batch.course?.code})
+                        </option>
+                        ))}
+                    </Select>
+                    </div>
+                    <Button onClick={handleDeleteBatch} variant="danger">
+                    Remove Batch
+                    </Button>
+                </div>
+                </Card>
+            </div>
+
+            {/* Bottom row: All Batches full width */}
+            <Card title="All Batches">
+                <ul className="space-y-3 h-96 overflow-y-auto pr-2">
+                {batches.length > 0 ? (
+                    batches.map((batch: any) => (
+                    <li
+                        key={batch._id}
                         className="p-4 rounded-lg"
                         style={{
-                            backgroundColor: currentPalette['bg-primary'],
-                            color: currentPalette['text-dark'],
-                            boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`
+                        backgroundColor: currentPalette['bg-primary'],
+                        color: currentPalette['text-dark'],
+                        boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`,
                         }}
                     >
                         <p className="font-semibold">{batch.name}</p>
-                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{batch.course?.name} ({batch.course?.code})</p>
+                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
+                        {batch.course?.name} ({batch.course?.code})
+                        </p>
                     </li>
-                )) : <p className="text-base" style={{ color: currentPalette['text-muted'] }}>No batches available.</p>}
-            </ul>
-          </Card>
+                    ))
+                ) : (
+                    <p className="text-base" style={{ color: currentPalette['text-muted'] }}>
+                    No batches available.
+                    </p>
+                )}
+                </ul>
+            </Card>
+            </div>
         );
       default:
         return null;
@@ -677,18 +816,24 @@ const AdminDashboard = () => {
           background: `linear-gradient(135deg, ${currentPalette['bg-primary']} 0%, ${currentPalette['bg-primary']} 50%, ${currentPalette['bg-primary']} 100%)`
       }}></div>
 
-      <AnimatePresence>
-          {showLogoutModal && (
-              <Modal show={showLogoutModal} onClose={() => setShowLogoutModal(false)} onConfirm={handleLogout} title="Confirm Logout">
-                Are you sure you want to log out?
-              </Modal>
-          )}
-      </AnimatePresence>
-      <AnimatePresence>
-          {toastMessage && (
-              <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage('')} />
-          )}
-      </AnimatePresence>
+      {showLogoutModal && (
+        <Modal
+            show={showLogoutModal}
+            onClose={() => setShowLogoutModal(false)}
+            onConfirm={handleLogout}
+            title="Confirm Logout"
+        >
+            Are you sure you want to log out?
+        </Modal>
+        )}
+
+        {toastMessage && (
+        <Toast
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setToastMessage('')}
+        />
+        )}
 
       {/* Sidebar */}
         <aside 
