@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { FaRegSmileBeam, FaRegPaperPlane, FaRegFilePdf } from "react-icons/fa";
+import { FaRegSmileBeam, FaRegPaperPlane } from "react-icons/fa";
 import { BsStars } from "react-icons/bs";
 import { PiExam } from "react-icons/pi";
 
@@ -72,6 +72,10 @@ const PeerEvaluationsPending = () => {
     setSubmitStatus("idle");
     setMarkErrors(Array(ev.exam.questions.length).fill(""));
     setPdfUrl(null);
+
+    const collapseBtn = document.querySelector('button:has(svg.text-2xl)') as HTMLButtonElement;
+    if (collapseBtn) collapseBtn.click();
+
     if (ev.submissionId) {
       try {
         const token = localStorage.getItem("token");
@@ -83,8 +87,6 @@ const PeerEvaluationsPending = () => {
           const blob = await res.blob();
           const blobUrl = window.URL.createObjectURL(blob);
           setPdfUrl(blobUrl);
-        } else {
-          setPdfUrl(null);
         }
       } catch {
         setPdfUrl(null);
@@ -119,27 +121,6 @@ const PeerEvaluationsPending = () => {
     marks.length !== openEval.exam.questions.length ||
     marks.some(m => m === "" || typeof m !== "number") ||
     markErrors.some(e => e);
-
-  const handleDownloadPdf = async (submissionId: string) => {
-    try {
-      const token = localStorage.getItem("token");
-      const url = `http://localhost:${PORT}/api/student/submission-pdf/${submissionId}`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
-      link.download = "submission.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => window.URL.revokeObjectURL(link.href), 10000);
-    } catch {
-      alert("Failed to download PDF.");
-    }
-  };
 
   const handleCloseModal = () => {
     setOpenEval(null);
@@ -237,73 +218,91 @@ const PeerEvaluationsPending = () => {
         </div>
       )}
 
-{openEval && (
-  <div className="fixed inset-0 z-50 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center">
-    <div className="bg-white rounded-2xl shadow-xl max-w-xl w-full p-6 space-y-6">
-      <h3 className="text-2xl font-bold text-indigo-700">Evaluate: {openEval.exam.title}</h3>
+      {openEval && (
+        <div className="fixed inset-0 z-50 backdrop-blur-md bg-white/30 flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-xl w-[90vw] max-h-[90vh] overflow-auto p-6 flex gap-6">
+            <div className="w-3/5 h-[650px] border rounded-xl overflow-hidden relative">
+              {pdfUrl ? (
+                <>
+                  <iframe
+                    src={pdfUrl}
+                    title="PDF Preview"
+                    className="w-full h-full"
+                  />
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute bottom-2 right-2 text-blue-600 underline text-sm bg-white px-2 py-1 rounded shadow"
+                  >
+                    View Larger
+                  </a>
+                </>
+              ) : (
+                <div className="text-gray-500 p-4">No PDF available</div>
+              )}
+            </div>
 
-      {openEval.exam.questions.map((q, idx) => (
-        <div key={idx} className="space-y-1">
-          <label className="block font-medium text-gray-700">
-            Q{idx + 1}: {q.questionText} (Max: {q.maxMarks})
-          </label>
-          <input
-            type="number"
-            className="w-full px-4 py-2 border rounded-xl"
-            value={marks[idx]}
-            onChange={(e) => handleMarkChange(idx, e.target.value)}
-            placeholder="Enter marks"
-            min={0}
-            max={q.maxMarks}
-          />
-          {markErrors[idx] && <p className="text-red-500 text-sm">{markErrors[idx]}</p>}
+            <div className="w-2/5 space-y-4">
+              <h3 className="text-2xl font-bold text-indigo-700">
+                Evaluate: {openEval.exam.title}
+              </h3>
+
+              {openEval.exam.questions.map((q, idx) => (
+                <div key={idx} className="space-y-1">
+                  <label className="block font-medium text-gray-700">
+                    Q{idx + 1}: {q.questionText} (Max: {q.maxMarks})
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full px-4 py-2 border rounded-xl"
+                    value={marks[idx]}
+                    onChange={(e) => handleMarkChange(idx, e.target.value)}
+                    placeholder="Enter marks"
+                    min={0}
+                    max={q.maxMarks}
+                  />
+                  {markErrors[idx] && (
+                    <p className="text-red-500 text-sm">{markErrors[idx]}</p>
+                  )}
+                </div>
+              ))}
+
+              <div className="space-y-1">
+                <label className="block font-medium text-gray-700">Feedback</label>
+                <textarea
+                  className="w-full px-4 py-2 border rounded-xl"
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Write feedback for your peer"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-4 justify-end mt-6">
+                <button
+                  onClick={handleCloseModal}
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitDisabled}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold text-white flex items-center gap-2 ${
+                    isSubmitDisabled
+                      ? "bg-indigo-300 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-700"
+                  }`}
+                >
+                  <FaRegPaperPlane /> Submit Evaluation
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      ))}
-
-      <div className="space-y-1">
-        <label className="block font-medium text-gray-700">Feedback</label>
-        <textarea
-          className="w-full px-4 py-2 border rounded-xl"
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder="Write feedback for your peer"
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-4 justify-end mt-6">
-        {pdfUrl && (
-          <button
-            onClick={() => handleDownloadPdf(openEval.submissionId!)}
-            className="bg-red-100 text-red-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2"
-          >
-            <FaRegFilePdf /> Download PDF
-          </button>
-        )}
-        <button
-          onClick={handleCloseModal}
-          className="bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitDisabled}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold text-white flex items-center gap-2 ${
-            isSubmitDisabled ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-          }`}
-        >
-          <FaRegPaperPlane /> Submit Evaluation
-        </button>
-      </div>
+      )}
     </div>
-  </div>
-)}
-
-
-    </div>
-    
   );
-  
 };
 
 export default PeerEvaluationsPending;
