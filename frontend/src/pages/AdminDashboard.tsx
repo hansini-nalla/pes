@@ -1,6 +1,5 @@
-import { useState, useEffect} from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-//import { motion, AnimatePresence } from "framer-motion";
 import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
@@ -57,12 +56,14 @@ type Palette = typeof lightPalette;
 
 const getColors = (isDarkMode: boolean): Palette => isDarkMode ? darkPalette : lightPalette;
 
-const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
-    const [darkMode] = useState(document.documentElement.classList.contains('dark')); // Check initial dark mode state
-    const currentPalette = getColors(darkMode);
-
+const Toast = ({ message, type, onClose, currentPalette }: { 
+  message: string; 
+  type: 'success' | 'error'; 
+  onClose: () => void;
+  currentPalette: Palette;
+}) => {
     const bgColor = type === 'success' ? currentPalette['accent-lilac'] : currentPalette['accent-pink'];
-    const textColor = 'white'; // Keep white for contrast for toasts
+    const textColor = 'white';
 
     return (
         <div
@@ -76,14 +77,23 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
             </button>
         </div>
     );
-
 };
 
-// A reusable Modal component (adapted from StudentDashboard style)
-const Modal = ({ show, onClose, onConfirm, title, children }: { show: boolean, onClose: () => void, onConfirm: () => void, title: string, children: React.ReactNode }) => {
-    const [darkMode] = useState(document.documentElement.classList.contains('dark'));
-    const currentPalette = getColors(darkMode);
-
+const Modal = ({ 
+  show, 
+  onClose, 
+  onConfirm, 
+  title, 
+  children,
+  currentPalette 
+}: { 
+  show: boolean, 
+  onClose: () => void, 
+  onConfirm: () => void, 
+  title: string, 
+  children: React.ReactNode,
+  currentPalette: Palette 
+}) => {
     if (!show) return null;
 
     return (
@@ -124,7 +134,134 @@ const Modal = ({ show, onClose, onConfirm, title, children }: { show: boolean, o
             </div>
         </div>
     );
+};
 
+const Card = ({ 
+  title, 
+  children,
+  currentPalette 
+}: { 
+  title: string, 
+  children: React.ReactNode,
+  currentPalette: Palette 
+}) => {
+  const cardStyles = {
+    backgroundColor: currentPalette['bg-secondary'],
+    borderColor: currentPalette['border-soft'],
+    boxShadow: `0 8px 20px ${currentPalette['shadow-medium']}`,
+  };
+
+  return (
+    <div 
+      className="rounded-xl p-6 space-y-4 border w-full" 
+      style={cardStyles}
+    >
+      <h2 className="text-2xl font-bold mb-6" style={{ color: currentPalette['text-dark'] }}>
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+};
+
+const Input = ({ 
+  currentPalette, 
+  ...props 
+}: { 
+  currentPalette: Palette 
+} & React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input 
+    {...props} 
+    className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition text-base font-sans"
+    style={{
+      borderColor: currentPalette['border-soft'],
+      backgroundColor: currentPalette['bg-primary'],
+      color: currentPalette['text-dark'],
+      boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`,
+      '--tw-ring-color': currentPalette['accent-lilac'] + '70',
+    } as React.CSSProperties & Record<string, any>}
+  />
+);
+
+const Select = ({ 
+  currentPalette, 
+  ...props 
+}: { 
+  currentPalette: Palette 
+} & React.SelectHTMLAttributes<HTMLSelectElement>) => (
+  <select 
+    {...props} 
+    className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition text-base font-sans"
+    style={{
+      borderColor: currentPalette['border-soft'],
+      backgroundColor: currentPalette['bg-primary'],
+      color: currentPalette['text-dark'],
+      boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`,
+      '--tw-ring-color': currentPalette['accent-lilac'] + '70',
+    } as React.CSSProperties & Record<string, any>}
+  />
+);
+
+const Button = ({ 
+  children, 
+  onClick, 
+  type = 'button', 
+  variant = 'primary',
+  currentPalette 
+}: { 
+  children: React.ReactNode, 
+  onClick?: (e: any) => void, 
+  type?: 'button' | 'submit' | 'reset', 
+  variant?: 'primary' | 'danger' | 'light-contrast',
+  currentPalette: Palette
+}) => {
+  const getButtonStyles = (colorKey: keyof Palette, textColorKey: 'white' | 'text-dark' = 'text-dark') => {
+    let bgColor = currentPalette[colorKey];
+    let textColor = textColorKey === 'white' ? 'white' : currentPalette[textColorKey];
+
+    if (colorKey === 'accent-purple' || colorKey === 'accent-pink') {
+      textColor = 'white';
+    }
+    
+    return {
+      backgroundColor: bgColor,
+      color: textColor,
+      boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
+      '--tw-ring-color': currentPalette[colorKey] + '50',
+    };
+  };
+
+  let buttonPaletteKey: keyof Palette;
+  let textColorKey: 'white' | 'text-dark' = 'white';
+
+  if (variant === 'primary') {
+    buttonPaletteKey = 'accent-purple';
+    textColorKey = 'white';
+  } else if (variant === 'danger') {
+    buttonPaletteKey = 'accent-pink';
+    textColorKey = 'white';
+  } else if (variant === 'light-contrast') {
+    buttonPaletteKey = 'accent-lilac';
+    textColorKey = 'text-dark';
+  } else {
+    buttonPaletteKey = 'accent-purple';
+  }
+
+  const commonButtonClasses = `
+    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
+    focus:outline-none focus:ring-2 focus:ring-offset-2
+  `;
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      className={commonButtonClasses}
+      style={getButtonStyles(buttonPaletteKey, textColorKey)}
+    >
+      {children}
+    </button>
+  );
 };
 
 const AdminDashboard = () => {  
@@ -159,9 +296,7 @@ const AdminDashboard = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
-
   const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
-
 
   // Apply dark mode on initial load and when it changes
   useEffect(() => {
@@ -198,6 +333,7 @@ const AdminDashboard = () => {
         <circle cx="12" cy="12" r="10" />
     </svg>
     );
+    
   // Generic data fetching function
   const fetchData = async (url: string, setter: Function, errorMessage: string) => {
     try {
@@ -234,7 +370,6 @@ const AdminDashboard = () => {
         fetchData(`http://localhost:${PORT}/api/admin/users`, setAllUsers, 'Failed to fetch users');
     }
   }, [activeTab]);
-
 
   const handleAddCourse = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,7 +411,7 @@ const AdminDashboard = () => {
       const course = courseRes.data.find((c: any) => c.code === batchCourseCode);
 
       if (!course) {
-        alert('Course not found');
+        showToast('Course not found', 'error');
         return;
       }
 
@@ -286,32 +421,32 @@ const AdminDashboard = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      alert('Batch added successfully');
+      showToast('Batch added successfully');
       setBatchName('');
       setBatchCourseCode('');
       fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
       fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
     } catch (err) {
       console.error(err);
-      alert('Failed to add batch');
+      showToast('Failed to add batch', 'error');
     }
   };
 
-const handleDeleteBatch = async () => {
+  const handleDeleteBatch = async () => {
     try {
-        await axios.delete(`http://localhost:${PORT}/api/admin/batches/${batchToDelete}`, {
+      await axios.delete(`http://localhost:${PORT}/api/admin/batches/${batchToDelete}`, {
         headers: { Authorization: `Bearer ${token}` },
-        });
+      });
 
-        alert('Batch deleted successfully');
-        setBatchToDelete('');
-        fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
-        fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
+      showToast('Batch deleted successfully');
+      setBatchToDelete('');
+      fetchData(`http://localhost:${PORT}/api/admin/batches`, setBatches, 'Error fetching batches');
+      fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error fetching courses for batches');
     } catch (err) {
-        console.error(err);
-        alert('Failed to delete batch');
+      console.error(err);
+      showToast('Failed to delete batch', 'error');
     }
-};
+  };
 
   const handleRoleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,44 +466,12 @@ const handleDeleteBatch = async () => {
     }
   };
 
-
   const handleLogout = () => {
     localStorage.clear();
     navigate('/');
   };
 
-  // Common Tailwind classes for cards and buttons based on the new palette
-  const commonCardClasses = `rounded-xl p-6 space-y-4 border`;
-  const getCardStyles = () => ({
-      backgroundColor: currentPalette['bg-secondary'],
-      borderColor: currentPalette['border-soft'],
-      boxShadow: `0 8px 20px ${currentPalette['shadow-medium']}`,
-  });
-
-  const commonButtonClasses = `
-      px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
-      focus:outline-none focus:ring-2 focus:ring-offset-2
-  `;
-    const getButtonStyles = (colorKey: keyof Palette, textColorKey: 'white' | 'text-dark' = 'text-dark') => { // Added 'text-dark' to textColorKey type
-        let bgColor = currentPalette[colorKey];
-        let textColor = textColorKey === 'white' ? 'white' : currentPalette[textColorKey];
-
-        // Ensure text is white for accent-purple and accent-pink for better contrast
-        if (colorKey === 'accent-purple' || colorKey === 'accent-pink') {
-            textColor = 'white';
-        }
-        
-        return {
-            backgroundColor: bgColor,
-            color: textColor,
-            boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
-            '--tw-ring-color': currentPalette[colorKey] + '50', // For focus ring
-        };
-    };
-
-
-  // Replaced react-icons with Unicode characters/emojis
-  const SidebarLink = ({ tabName, icon: IconSVG, text }: { tabName: Tab, icon: React.ReactNode, text: string }) => (
+  const SidebarLink = useMemo(() => ({ tabName, icon: IconSVG, text }: { tabName: Tab, icon: React.ReactNode, text: string }) => (
     <li
       key={tabName}
       onClick={() => {
@@ -397,116 +500,9 @@ const handleDeleteBatch = async () => {
       </span>
       {showSidebar && <span className="font-medium whitespace-nowrap">{text}</span>}
     </li>
+  ), [activeTab, currentPalette, showSidebar]);
 
-  );
-  
-  /*const StatCard = ({ title, value, icon: IconSVG, onMoreClick }: { title: string, value: number, icon: React.ReactNode, onMoreClick?: () => void }) => (
-      <motion.div
-          onClick={onMoreClick}
-          className={`${commonCardClasses} flex items-center justify-between cursor-pointer`}
-          style={getCardStyles()}
-          whileHover={{ scale: 1.03, y: -4, boxShadow: `0 10px 25px ${currentPalette['shadow-medium']}` }}
-          whileTap={{ scale: 0.98 }}
-      >
-          <div>
-              <p className="text-sm font-medium uppercase" style={{ color: currentPalette['text-muted'] }}>{title}</p>
-              <p className="text-3xl font-bold" style={{ color: currentPalette['text-dark'] }}>{value}</p>
-          </div>
-          <div className="p-4 rounded-full" style={{ backgroundColor: currentPalette['accent-lilac'] + '20' }}>
-            <span className="text-2xl" style={{ color: currentPalette['accent-purple'] }}>{IconSVG}</span>
-          </div>
-      </motion.div>
-  );*/
-  const Card = ({ title, children }: { title: string, children: React.ReactNode }) => (
-        <div className={`${commonCardClasses} w-full`} style={getCardStyles()}>
-            <h2 className="text-2xl font-bold mb-6" style={{ color: currentPalette['text-dark'] }}>{title}</h2>
-            {children}
-        </div>
-    );
-    const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-        <input {...props} 
-            className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition text-base font-sans"
-            style={{
-                borderColor: currentPalette['border-soft'],
-                backgroundColor: currentPalette['bg-primary'],
-                color: currentPalette['text-dark'],
-                boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`,
-                '--tw-ring-color': currentPalette['accent-lilac'] + '70',
-            } as React.CSSProperties & Record<string, any>}
-        />
-    );
-    /*const TextArea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-        <textarea {...props}
-            className="w-full p-4 rounded-xl border-2 resize-y font-sans transition-all duration-300 ease-in focus:outline-none focus:shadow-md text-base"
-            style={{
-                borderColor: currentPalette['border-soft'],
-                backgroundColor: currentPalette['bg-primary'],
-                color: currentPalette['text-dark'],
-                boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
-                '--tw-ring-color': currentPalette['accent-lilac'] + '70',
-            }}
-        />
-    );*/
-    const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-        <select {...props} 
-            className="w-full px-4 py-2 border-2 rounded-lg focus:outline-none focus:ring-2 transition text-base font-sans"
-            style={{
-                borderColor: currentPalette['border-soft'],
-                backgroundColor: currentPalette['bg-primary'],
-                color: currentPalette['text-dark'],
-                boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`,
-                '--tw-ring-color': currentPalette['accent-lilac'] + '70',
-            } as React.CSSProperties & Record<string, any>}
-        />
-    );
-    const Button = ({ children, onClick, type = 'button', variant = 'primary' }: { children: React.ReactNode, onClick?: (e: any) => void, type?: 'button' | 'submit' | 'reset', variant?: 'primary' | 'danger' | 'light-contrast' }) => {
-        let buttonPaletteKey: keyof Palette;
-        let textColorKey: 'white' | 'text-dark' = 'white';
-
-        if (variant === 'primary') {
-            buttonPaletteKey = 'accent-purple';
-            textColorKey = 'white';
-        } else if (variant === 'danger') {
-            buttonPaletteKey = 'accent-pink';
-            textColorKey = 'white';
-        } else if (variant === 'light-contrast') {
-            buttonPaletteKey = 'accent-lilac'; // Light contrasting color
-            textColorKey = 'text-dark'; // Dark text for contrast on light background
-        } else {
-            buttonPaletteKey = 'accent-purple'; // Default to primary
-        }
-
-        return (
-            <button
-                type={type}
-                onClick={onClick}
-                className={commonButtonClasses}
-                style={getButtonStyles(buttonPaletteKey, textColorKey)}
-            >
-                {children}
-            </button>
-        );
-    };
   const renderContent = () => {
-
-    // New HomeButton component for quick actions with lightly contrasting style
-    /*const HomeButton = ({ onClick, children }: { onClick: () => void, children: React.ReactNode }) => (
-        <motion.button
-            onClick={onClick}
-            className="px-6 py-3 rounded-xl font-semibold shadow-md transition-transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 w-full sm:w-auto"
-            style={{
-                backgroundColor: currentPalette['accent-lilac'], // Using accent-lilac for light contrast
-                color: currentPalette['text-dark'], // Dark text on lilac for visibility
-                boxShadow: `0 4px 15px ${currentPalette['accent-lilac']}40`,
-                '--tw-ring-color': currentPalette['accent-lilac'] + '50',
-            } as React.CSSProperties & Record<string, any>}
-            whileHover={{ scale: 1.03, boxShadow: `0 6px 20px ${currentPalette['accent-lilac']}60` }}
-            whileTap={{ scale: 0.95 }}
-        >
-            {children}
-        </motion.button>
-    );*/
-
     switch (activeTab) {
       case 'home':
         const cardBaseStyle = {
@@ -514,11 +510,11 @@ const handleDeleteBatch = async () => {
             padding: '1.5rem',
             textAlign: 'center' as const,
             boxShadow: `0 6px 16px ${currentPalette['shadow-light']}`,
-            color: currentPalette['text-dark'], // ensures readable text in both modes
+            color: currentPalette['text-dark'],
             backgroundImage: darkMode
-                ? 'linear-gradient(135deg, #3b3f99, #5a63c2)' // Dark mode gradient
-                : 'linear-gradient(135deg, #e0e7ff, #c7d2fe)', // Light mode gradient
-            };
+                ? 'linear-gradient(135deg, #3b3f99, #5a63c2)'
+                : 'linear-gradient(135deg, #e0e7ff, #c7d2fe)',
+        };
 
         const hoverStyle = {
             transform: 'scale(1.04)',
@@ -528,77 +524,80 @@ const handleDeleteBatch = async () => {
         };
 
         return (
-                <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-                <h1
-                    className="text-4xl font-bold text-center mb-6"
-                    style={{ color: currentPalette['text-dark'] }}
+          <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+            <h1
+                className="text-4xl font-bold text-center mb-6"
+                style={{ color: currentPalette['text-dark'] }}
+            >
+                <span>Hello, {profileData?.name} 👋</span>
+                <span className="block">Welcome to Admin Dashboard</span>
+            </h1>
+
+            <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
+              {[
+                { label: 'Manage Courses', tab: 'course' },
+                { label: 'Manage Batches', tab: 'batch' },
+                { label: 'Manage Roles', tab: 'role' },
+              ].map((btn) => (
+                <button
+                  key={btn.tab}
+                  onClick={() => {
+                    if (activeTab !== btn.tab) setActiveTab(btn.tab as Tab);
+                  }}
+                  className="px-10 py-4 text-lg rounded-3xl shadow-md transition-all transform active:scale-95 hover:scale-105 hover:brightness-105"
+                  style={{
+                    backgroundColor: currentPalette['accent-lilac'],
+                    color: currentPalette['text-dark'],
+                    boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
+                  }}
                 >
-                    <span>Hello, {profileData?.name} 👋</span>
-                    <span className="block">Welcome to Admin Dashboard</span>
-                </h1>
-
-                {/* Top buttons */}
-                <div className="mt-10 flex flex-col md:flex-row justify-center gap-6 w-full max-w-2xl">
-                  {[
-                    { label: 'Manage Courses', tab: 'course' },
-                    { label: 'Manage Batches', tab: 'batch' },
-                    { label: 'Manage Roles', tab: 'role' },
-                  ].map((btn) => (
-                    <button
-                      key={btn.tab}
-                      onClick={() => {
-                        if (activeTab !== btn.tab) setActiveTab(btn.tab as Tab);
-                      }}
-                      className="px-10 py-4 text-lg rounded-3xl shadow-md transition-all transform active:scale-95 hover:scale-105 hover:brightness-105"
-                      style={{
-                        backgroundColor: currentPalette['accent-lilac'],
-                        color: currentPalette['text-dark'],
-                        boxShadow: `0 4px 12px ${currentPalette['shadow-light']}`,
-                      }}
-                    >
-                      {btn.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Stat Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-4xl">
-                    {[
-                    { icon: '🧑‍🏫', label: 'Teachers', value: counts.teachers, tab: 'role' },
-                    { icon: '📘', label: 'Courses', value: counts.courses, tab: 'course' },
-                    { icon: '🎓', label: 'Students', value: counts.students, tab: 'batch' },
-                    ].map((card) => (
-                    <div
-                        key={card.label}
-                        onClick={() => {
-                            if (activeTab !== card.tab) setActiveTab(card.tab as Tab);
-                            }}
-                        style={cardBaseStyle}
-                        onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
-                        onMouseLeave={(e) => {
-                        Object.assign(e.currentTarget.style, {
-                            transform: '',
-                            filter: '',
-                        });
-                        }}
-                    >
-                        <span className="text-3xl mb-2 block">{card.icon}</span>
-                        <h2 className="text-lg font-semibold">{card.label}</h2>
-                        <p className="text-sm">{card.value}</p>
-                    </div>
-                    ))}
-                </div>
+                  {btn.label}
+                </button>
+              ))}
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 w-full max-w-4xl">
+                {[
+                { icon: '🧑‍🏫', label: 'Teachers', value: counts.teachers, tab: 'role' },
+                { icon: '📘', label: 'Courses', value: counts.courses, tab: 'course' },
+                { icon: '🎓', label: 'Students', value: counts.students, tab: 'batch' },
+                ].map((card) => (
+                <div
+                    key={card.label}
+                    onClick={() => {
+                        if (activeTab !== card.tab) setActiveTab(card.tab as Tab);
+                        }}
+                    style={cardBaseStyle}
+                    onMouseEnter={(e) => Object.assign(e.currentTarget.style, hoverStyle)}
+                    onMouseLeave={(e) => {
+                    Object.assign(e.currentTarget.style, {
+                        transform: '',
+                        filter: '',
+                    });
+                    }}
+                >
+                    <span className="text-3xl mb-2 block">{card.icon}</span>
+                    <h2 className="text-lg font-semibold">{card.label}</h2>
+                    <p className="text-sm">{card.value}</p>
+                </div>
+                ))}
+            </div>
+          </div>
         );
 
       case 'role':
         return (
-            <Card title="Role Manager">
+            <Card title="Role Manager" currentPalette={currentPalette}>
                 <p className="text-base mb-6" style={{ color: currentPalette['text-muted'] }}>Update the role of a user by selecting their email and assigning a new role.</p>
-                <form  name="roleUpdateForm" id="roleUpdateForm" onSubmit={handleRoleUpdate} className="space-y-4 max-w-lg">
+                <form name="roleUpdateForm" id="roleUpdateForm" onSubmit={handleRoleUpdate} className="space-y-4 max-w-lg">
                     <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>User</label>
-                        <Select value={roleEmail} onChange={(e) => setRoleEmail(e.target.value)} required>
+                        <Select 
+                          value={roleEmail} 
+                          onChange={(e) => setRoleEmail(e.target.value)} 
+                          required
+                          currentPalette={currentPalette}
+                        >
                             <option value="">Select User</option>
                             <optgroup label="Teaching Assistants (TAs)">
                                 {allUsers
@@ -622,51 +621,101 @@ const handleDeleteBatch = async () => {
                     </div>
                     <div>
                        <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>New Role</label>
-                        <Select name="selectRole" id="selectRole" value={roleType} onChange={(e) => setRoleType(e.target.value)} required>
+                        <Select 
+                          name="selectRole" 
+                          id="selectRole" 
+                          value={roleType} 
+                          onChange={(e) => setRoleType(e.target.value)} 
+                          required
+                          currentPalette={currentPalette}
+                        >
                             <option value="">Select Role</option>
                             <option value="student">Student</option>
                             <option value="ta">Teaching Assistant (TA)</option>
                         </Select>
                     </div>
                     <div className="pt-2">
-                        <Button type="submit" variant="light-contrast">Update Role</Button>
+                        <Button 
+                          type="submit" 
+                          variant="light-contrast"
+                          currentPalette={currentPalette}
+                        >
+                          Update Role
+                        </Button>
                     </div>
                 </form>
             </Card>
         );
+
       case 'course':
         return (
             <div className="grid grid-cols-1 gap-8 w-full">
-            {/* Top row: Add + Remove in two columns */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-                <Card title="Manage Courses">
+                <Card title="Manage Courses" currentPalette={currentPalette}>
                     <form onSubmit={handleAddCourse} className="space-y-4 mb-8">
                         <h3 className="font-semibold text-lg" style={{ color: currentPalette['text-dark'] }}>Add New Course</h3>
                         <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Name</label>
-                        <Input type="text" value={courseName} onChange={(e) => setCourseName(e.target.value)} placeholder="e.g., Introduction to React" required />
+                        <Input 
+                          currentPalette={currentPalette}
+                          type="text" 
+                          value={courseName} 
+                          onChange={(e) => setCourseName(e.target.value)} 
+                          placeholder="e.g., Introduction to React" 
+                          required 
+                        />
                         </div>
                         <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Course Code</label>
-                        <Input type="text" value={courseCode} onChange={(e) => setCourseCode(e.target.value)} placeholder="e.g., CS101" required />
+                        <Input 
+                          currentPalette={currentPalette}
+                          type="text" 
+                          value={courseCode} 
+                          onChange={(e) => setCourseCode(e.target.value)} 
+                          placeholder="e.g., CS101" 
+                          required 
+                        />
                         </div>
                         <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>Start Date</label>
-                        <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+                        <Input 
+                          currentPalette={currentPalette}
+                          type="date" 
+                          value={startDate} 
+                          onChange={(e) => setStartDate(e.target.value)} 
+                          required 
+                        />
                         </div>
                         <div>
                         <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>End Date</label>
-                        <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+                        <Input 
+                          currentPalette={currentPalette}
+                          type="date" 
+                          value={endDate} 
+                          onChange={(e) => setEndDate(e.target.value)} 
+                          required 
+                        />
                         </div>
                         <div className="pt-2">
-                        <Button type="submit" variant="light-contrast">Add Course</Button>
+                        <Button 
+                          type="submit" 
+                          variant="light-contrast"
+                          currentPalette={currentPalette}
+                        >
+                          Add Course
+                        </Button>
                         </div>
                     </form>
                 </Card>
 
-                <Card title="Remove Course">
+                <Card title="Remove Course" currentPalette={currentPalette}>
                 <div className="space-y-4">
-                    <Select value={courseIdToDelete} onChange={(e) => setCourseIdToDelete(e.target.value)} required>
+                    <Select 
+                      value={courseIdToDelete} 
+                      onChange={(e) => setCourseIdToDelete(e.target.value)} 
+                      required
+                      currentPalette={currentPalette}
+                    >
                     <option value="">Select course to delete</option>
                     {courses.map((course) => (
                         <option key={course._id} value={course.code}>
@@ -674,13 +723,18 @@ const handleDeleteBatch = async () => {
                         </option>
                     ))}
                     </Select>
-                    <Button onClick={handleDeleteCourse} variant="danger">Remove Course</Button>
+                    <Button 
+                      onClick={handleDeleteCourse} 
+                      variant="danger"
+                      currentPalette={currentPalette}
+                    >
+                      Remove Course
+                    </Button>
                 </div>
                 </Card>
             </div>
 
-            {/* Bottom row: All Courses full width */}
-            <Card title="All Courses">
+            <Card title="All Courses" currentPalette={currentPalette}>
                 <ul className="space-y-3 h-96 overflow-y-auto pr-2">
                 {courses.length > 0 ? courses.map((course) => (
                     <li key={course._id}
@@ -705,102 +759,111 @@ const handleDeleteBatch = async () => {
 
       case 'batch':
         return (
-            <div className="grid grid-cols-1 gap-8 w-full">
-            {/* Top row: Add + Remove in two columns */}
+          <div className="grid grid-cols-1 gap-8 w-full">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
-                <Card title="Add New Batch">
+              <Card title="Add New Batch" currentPalette={currentPalette}>
                 <div className="space-y-4 mb-8">
-                    <div>
+                  <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
-                        Batch Name
+                      Batch Name
                     </label>
                     <Input
-                        type="text"
-                        value={batchName}
-                        onChange={(e) => setBatchName(e.target.value)}
-                        placeholder="Enter Batch Name"
-                        required
+                      currentPalette={currentPalette}
+                      type="text"
+                      value={batchName}
+                      onChange={(e) => setBatchName(e.target.value)}
+                      placeholder="Enter Batch Name"
+                      required
                     />
-                    </div>
-                    <div>
+                  </div>
+                  <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
-                        Select Course
+                      Select Course
                     </label>
                     <Select
-                        value={batchCourseCode}
-                        onChange={(e) => setBatchCourseCode(e.target.value)}
-                        required
+                      currentPalette={currentPalette}
+                      value={batchCourseCode}
+                      onChange={(e) => setBatchCourseCode(e.target.value)}
+                      required
                     >
-                        <option value="">Select Course</option>
-                        {courses.map((course: any) => (
+                      <option value="">Select Course</option>
+                      {courses.map((course: any) => (
                         <option key={course._id} value={course.code}>
-                            {course.name} ({course.code})
+                          {course.name} ({course.code})
                         </option>
-                        ))}
+                      ))}
                     </Select>
-                    </div>
-                    <div className="pt-2">
-                    <Button onClick={handleAddBatch} variant="light-contrast">
-                        Add Batch
+                  </div>
+                  <div className="pt-2">
+                    <Button 
+                      onClick={handleAddBatch} 
+                      variant="light-contrast"
+                      currentPalette={currentPalette}
+                    >
+                      Add Batch
                     </Button>
-                    </div>
+                  </div>
                 </div>
-                </Card>
+              </Card>
 
-                <Card title="Remove Batch">
+              <Card title="Remove Batch" currentPalette={currentPalette}>
                 <div className="space-y-4">
-                    <div>
+                  <div>
                     <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
-                        Select Batch
+                      Select Batch
                     </label>
                     <Select
-                        value={batchToDelete}
-                        onChange={(e) => setBatchToDelete(e.target.value)}
-                        required
+                      currentPalette={currentPalette}
+                      value={batchToDelete}
+                      onChange={(e) => setBatchToDelete(e.target.value)}
+                      required
                     >
-                        <option value="">Select Batch</option>
-                        {batches.map((batch) => (
+                      <option value="">Select Batch</option>
+                      {batches.map((batch) => (
                         <option key={batch._id} value={batch._id}>
-                            {batch.name} ({batch.course?.code})
+                          {batch.name} ({batch.course?.code})
                         </option>
-                        ))}
+                      ))}
                     </Select>
-                    </div>
-                    <Button onClick={handleDeleteBatch} variant="danger">
+                  </div>
+                  <Button 
+                    onClick={handleDeleteBatch} 
+                    variant="danger"
+                    currentPalette={currentPalette}
+                  >
                     Remove Batch
-                    </Button>
+                  </Button>
                 </div>
-                </Card>
+              </Card>
             </div>
 
-            {/* Bottom row: All Batches full width */}
-            <Card title="All Batches">
-                <ul className="space-y-3 h-96 overflow-y-auto pr-2">
+            <Card title="All Batches" currentPalette={currentPalette}>
+              <ul className="space-y-3 h-96 overflow-y-auto pr-2">
                 {batches.length > 0 ? (
-                    batches.map((batch: any) => (
+                  batches.map((batch: any) => (
                     <li
-                        key={batch._id}
-                        className="p-4 rounded-lg"
-                        style={{
+                      key={batch._id}
+                      className="p-4 rounded-lg"
+                      style={{
                         backgroundColor: currentPalette['bg-primary'],
                         color: currentPalette['text-dark'],
                         boxShadow: `0 2px 8px ${currentPalette['shadow-light']}`,
-                        }}
+                      }}
                     >
-                        <p className="font-semibold">{batch.name}</p>
-                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
+                      <p className="font-semibold">{batch.name}</p>
+                      <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
                         {batch.course?.name} ({batch.course?.code})
-                        </p>
+                      </p>
                     </li>
-                    ))
+                  ))
                 ) : (
-                    <p className="text-base" style={{ color: currentPalette['text-muted'] }}>
+                  <p className="text-base" style={{ color: currentPalette['text-muted'] }}>
                     No batches available.
-                    </p>
+                  </p>
                 )}
-                </ul>
+              </ul>
             </Card>
-            </div>
+          </div>
         );
       default:
         return null;
@@ -818,12 +881,12 @@ const handleDeleteBatch = async () => {
 
       {showLogoutModal && (
         <Modal
-            show={showLogoutModal}
-            onClose={() => setShowLogoutModal(false)}
-            onConfirm={handleLogout}
-            title="Confirm Logout"
-        >
-            Are you sure you want to log out?
+        show={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+        title="Confirm Logout" 
+        currentPalette={currentPalette}>
+        Are you sure you want to log out?
         </Modal>
         )}
 
@@ -832,6 +895,7 @@ const handleDeleteBatch = async () => {
             message={toastMessage}
             type={toastType}
             onClose={() => setToastMessage('')}
+            currentPalette={currentPalette}
         />
         )}
 
