@@ -151,7 +151,7 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
 
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const batches = await Batch.find().populate('course', 'code name');
+    const batches = await Batch.find().populate('course', 'code name').populate('instructor', 'name email');
     console.log("All batches:", batches.map(b => ({ id: b._id, name: b.name })));
     res.json(batches);
   } catch (err) {
@@ -270,39 +270,39 @@ export const deleteBatchAndRelated = async (req: Request, res: Response) => {
 
 export const createBatchWithNames = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { batchName, courseName, instructorName } = req.body;
+    const { batchName, courseId, instructorId, students } = req.body;
 
-    if (!batchName || !courseName || !instructorName) {
-      res.status(400).json({ message: "Batch name, course name, and instructor name are required." });
+    if (!batchName || !courseId || !instructorId) {
+      res.status(400).json({ message: "Batch name, course ID, and instructor ID are required." });
       return;
     }
 
-    // 1. Find course by name
-    const course = await Course.findOne({ name: courseName });
+    // Find course and instructor by ID
+    const course = await Course.findById(courseId);
     if (!course) {
       res.status(404).json({ message: "Course not found." });
       return;
     }
 
-    // 2. Find instructor by name and role
-    const instructor = await User.findOne({ name: instructorName, role: "teacher" });
-    if (!instructor) {
+    const instructor = await User.findById(instructorId);
+    if (!instructor || instructor.role !== "teacher") {
       res.status(404).json({ message: "Instructor not found or not a teacher." });
       return;
     }
 
-    // 3. Check for duplicate batch in the same course
-    const existing = await Batch.findOne({ name: batchName, course: course._id });
+    // Check for duplicate batch
+    const existing = await Batch.findOne({ name: batchName, course: courseId });
     if (existing) {
       res.status(400).json({ message: "Batch name already exists for this course." });
       return;
     }
 
-    // 4. Create the batch
+    // Create batch with optional students array
     const batch = await Batch.create({
       name: batchName,
-      course: course._id,
-      instructor: instructor._id,
+      course: courseId,
+      instructor: instructorId,
+      students: students || [],
     });
 
     res.status(201).json({ message: "Batch created successfully", batch });
