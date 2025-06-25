@@ -1,56 +1,49 @@
-import { Link,useNavigate } from 'react-router-dom';
-import { useState,useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FiMoon, FiSun } from 'react-icons/fi';
 import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
+const currentPalette = {
+  'accent-purple': '#7c3aed',
+  'accent-lilac': '#c4b5fd'
+};
+
 export default function Login() {
   const [darkMode, setDarkMode] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
+  const toggleDarkMode = () => setDarkMode(!darkMode);
+
+  const showMessage = (message: string) => {
+    alert(message); // Replace with modal or toast for better UX
   };
 
-  // Handle login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const res = await axios.post(`http://localhost:${PORT}/api/auth/login`, {
-        email,
-        password,
-      }, {
-        withCredentials: true 
-      });
+      const res = await axios.post(
+        `http://localhost:${PORT}/api/auth/login`,
+        { email, password },
+        { withCredentials: true }
+      );
 
       const { token, role } = res.data;
-
-      // Save token and role in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('role', role);
 
-      console.log('Login successful:', res.data);
-      console.log('Token:', token);
-      console.log('Role:', role);
-
-      // Navigate according to role
       if (role === 'admin') navigate('/admin');
       else if (role === 'teacher') navigate('/teacher');
       else if (role === 'ta') navigate('/ta');
@@ -63,98 +56,55 @@ export default function Login() {
     }
   };
 
-  // Show message function for errors
-  const showMessage = (message: string) => {
-    alert(message); // You can use a toast or modal for better UX
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-200">
-      {/* Home icon to route back to homepage */}
-      <Link
-        to="/"
-        style={{
-          position: 'absolute',
-          top: 24,
-          left: 24,
-          zIndex: 2,
-          background: '#fff',
-          borderRadius: '50%',
-          boxShadow: '0 2px 8px rgba(60, 60, 120, 0.10)',
-          width: 40,
-          height: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          textDecoration: 'none',
-        }}
-        aria-label="Go to homepage"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-5h-6v5H4a1 1 0 0 1-1-1V10.5z"
-            stroke="#667eea"
-            strokeWidth="2"
-            strokeLinejoin="round"
-            fill="none"
-          />
+    <div className={`relative min-h-screen flex items-center justify-center overflow-hidden transition-colors duration-500 font-[Poppins] ${darkMode ? 'dark bg-slate-900' : 'bg-gradient-to-br from-indigo-100 to-purple-200'}`}>
+      {/* Decorative blobs */}
+      <div className="absolute w-72 h-72 bg-indigo-300 opacity-30 rounded-full mix-blend-multiply filter blur-2xl animate-blob -top-20 -left-20 dark:bg-indigo-800"></div>
+      <div className="absolute w-72 h-72 bg-purple-300 opacity-30 rounded-full mix-blend-multiply filter blur-2xl animate-blob animation-delay-2000 -bottom-20 -right-10 dark:bg-purple-800"></div>
+
+      {/* Home Button */}
+      <Link to="/" className="absolute top-6 left-6 z-10 bg-white dark:bg-gray-800 rounded-full shadow-md h-10 w-10 flex items-center justify-center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-5h-6v5H4a1 1 0 0 1-1-1V10.5z" stroke="#7c3aed" strokeWidth="2" strokeLinejoin="round" />
         </svg>
       </Link>
 
-      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md transition hover:scale-105 duration-300 ease-in-out">
+      {/* Login Form */}
+      <div className="bg-white dark:bg-gray-900 p-10 rounded-3xl shadow-2xl w-full max-w-md transition hover:scale-105 duration-300 ease-in-out backdrop-blur-md border dark:border-gray-700">
         <div className="flex justify-center mb-6">
-          <div className="bg-indigo-500 text-white text-4xl rounded-full h-16 w-16 flex items-center justify-center shadow-lg transform hover:rotate-6 transition">
-            👤
-          </div>
+          <div className="bg-indigo-500 text-white text-4xl rounded-full h-16 w-16 flex items-center justify-center shadow-lg">👤</div>
         </div>
-        <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-6">Login</h2>
+        <h2 className="text-3xl font-extrabold text-center text-gray-800 dark:text-white mb-6">Login</h2>
 
         <form className="space-y-6" onSubmit={handleLogin}>
           <input
             type="email"
-            placeholder="Enter your email"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 transition"
+            className="input-field"
+            required
           />
-          {/* Password Field */}
-          <div className="relative w-full">
+
+          <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
-              placeholder="Enter your password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition pr-12"
+              className="input-field pr-12"
+              required
             />
-            <span
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 cursor-pointer"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
+            <span onClick={() => setShowPassword(!showPassword)} className="eye-icon">
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
 
-          <div
-            style={{
-              textAlign: 'right',
-              marginTop: '-0.75rem',
-              marginBottom: '1rem',
-            }}
-          >
+          <div className="text-right -mt-2 mb-4">
             <button
               type="button"
               onClick={() => navigate('/forgot-password')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#667eea',
-                textDecoration: 'underline',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                padding: 0,
-                margin: 0,
-              }}
+              className="text-indigo-600 dark:text-indigo-400 text-sm underline hover:text-indigo-800 dark:hover:text-indigo-300 transition"
             >
               Forgot password?
             </button>
@@ -162,46 +112,77 @@ export default function Login() {
 
           <button
             type="submit"
-            className={`w-full !bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition shadow-md transform hover:scale-105 ${
-              loading ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
             disabled={loading}
+            className={`w-full bg-indigo-500 text-white py-3 rounded-lg hover:bg-indigo-600 transition shadow-md transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
           Don’t have an account?{' '}
-          <Link to="/register" className="text-indigo-600 font-semibold hover:underline">
+          <Link to="/register" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
             Register here
           </Link>
         </p>
       </div>
 
-      {/* Settings Button */}
-      <div className="absolute bottom-6 right-6 z-20">
+      {/* Dark Mode Toggle Button */}
+      <div className="fixed bottom-6 right-6 z-20">
         <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="h-12 w-12 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-700"
+          onClick={toggleDarkMode}
+          className="h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{
+            backgroundColor: darkMode ? currentPalette['accent-purple'] : currentPalette['accent-lilac'],
+            color: 'white',
+            boxShadow: darkMode
+              ? `0 4px 15px ${currentPalette['accent-purple']}60`
+              : `0 4px 15px ${currentPalette['accent-lilac']}60`,
+            // @ts-ignore
+            ['--tw-ring-color' as any]: darkMode
+              ? currentPalette['accent-purple'] + '70'
+              : currentPalette['accent-lilac'] + '70',
+          }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.397-.164-.853-.142-1.203.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.142-.854-.108-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.806.272 1.203.107.397-.165.71-.505.781-.929l.149-.894zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          {darkMode ? <FiMoon className="w-6 h-6" /> : <FiSun className="w-6 h-6" />}
         </button>
-
-        {showSettings && (
-          <div className="mt-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-xl p-4 text-sm space-y-4 w-60">
-            <div className="flex items-center justify-between gap-6">
-              <span className="text-gray-800 dark:text-white">Dark Mode</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-600 rounded-full peer dark:bg-gray-600 peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-              </label>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Animations & Input Styles */}
+      <style>{`
+        .animate-blob {
+          animation: blob 7s infinite ease-in-out;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        @keyframes blob {
+          0%, 100% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+        .input-field {
+          width: 100%;
+          padding: 0.75rem 1.25rem;
+          border-radius: 0.5rem;
+          border: 1px solid #ccc;
+          background: white;
+          transition: 0.3s ease;
+        }
+        .dark .input-field {
+          background-color: #1f2937;
+          color: white;
+          border-color: #374151;
+        }
+        .eye-icon {
+          position: absolute;
+          top: 50%;
+          right: 1rem;
+          transform: translateY(-50%);
+          cursor: pointer;
+          color: #6b7280;
+        }
+      `}</style>
     </div>
   );
 }
