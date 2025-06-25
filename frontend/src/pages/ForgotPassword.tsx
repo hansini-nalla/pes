@@ -1,13 +1,23 @@
 // src/pages/ForgotPassword.tsx
-import { Link,useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState,type SetStateAction} from 'react';
+import axios from 'axios';
+import { FiMoon, FiSun } from 'react-icons/fi';
+
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 export default function ForgotPassword() {
-const navigate = useNavigate();
-const [darkMode, setDarkMode] = useState(false);
-const [showSettings, setShowSettings] = useState(false);
+  const navigate = useNavigate();
+  const [darkMode, setDarkMode] = useState(false);
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error'>('success');
+  const [showMsg, setShowMsg] = useState(false);
+  const [disabled, setDisabled] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [isSending, setIsSending] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -20,73 +30,198 @@ useEffect(() => {
     document.documentElement.classList.toggle('dark');
   };
 
+  useEffect(() => {
+    const lastSent = localStorage.getItem('reset-timestamp');
+    if (lastSent) {
+      const diff = 15 * 60 * 1000 - (Date.now() - parseInt(lastSent));
+      //const diff = 2; // For testing, set to 2 seconds
+      if (diff > 0) {
+        setDisabled(true);
+        setTimeLeft(Math.floor(diff / 1000));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (disabled && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            setDisabled(false);
+            localStorage.removeItem('reset-timestamp');
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [disabled, timeLeft]);
+
+  // DialogBox component
+type DialogBoxProps = {
+  show: boolean;
+  message: string;
+  type?: 'success' | 'error';
+  children?: React.ReactNode;
+  onClose: () => void;
+};
+
+const DialogBox = ({
+  show,
+  message,
+  type = 'success',
+  children,
+  onClose,
+}: DialogBoxProps) => {
+  if (!show) return null;
+
+  const icon =
+    type === 'success' ? (
+      <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="28" fill="#6ddf99" />
+        <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ) : (
+      <svg width={56} height={56} viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="12" fill="#f87171" />
+        <path d="M15 9l-6 6M9 9l6 6" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
+        <div className="mb-2">{icon}</div>
+        <div className={`text-lg font-semibold text-center mb-1 ${type === 'success' ? 'text-[#235d3a]' : 'text-red-600'}`}>{message}</div>
+        {children}
+        <button onClick={onClose} className="bg-purple-700 text-white px-4 py-2 rounded-3xl w-full mt-4">OK</button>
+      </div>
+    </div>
+  );
+};
+
+  const showMessage = (message: SetStateAction<string>, type: 'success' | 'error' = 'success') => {
+      setMessage(message);
+      setMessageType(type);
+      setShowMsg(true);
+    };
+
+  const handleResetRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return showMessage('Please enter your email', 'error');
+
+    try {
+      setIsSending(true); // show "Sending..."
+      await axios.post(`http://localhost:${PORT}/api/auth/forgot-password`, { email });
+
+      showMessage('Password reset link sent to your email.', 'success');
+
+      // Start 15-minute cooldown
+      localStorage.setItem('reset-timestamp', Date.now().toString());
+      setDisabled(true);
+      setTimeLeft(15 * 60);
+    } catch (err) {
+      showMessage('Failed to send reset link.', 'error');
+      console.error(err);
+    } finally {
+      setIsSending(false); // reset button state
+    }
+  };
+
+
+  /*const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage('');
+
+    try {
+      const res = await axios.post(`http://localhost:${PORT}/api/auth/forgot-password`, { email });
+
+      setMessage('Password reset link sent to your email.');
+      setMessageType('success');
+    } catch (err: any) {
+      setMessage(err.response?.data?.message || 'Failed to send reset link.');
+      setMessageType('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };*/
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-100 to-pink-200">
-        {/* Home icon to route back to homepage */}
-            <Link to="/" style={{
-                position: 'absolute',
-                top: 24,
-                left: 24,
-                zIndex: 2,
-                background: '#fff',
-                borderRadius: '50%',
-                boxShadow: '0 2px 8px rgba(60,60,120,0.10)',
-                width: 40,
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textDecoration: 'none'
-            }} aria-label="Go to homepage">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-5h-6v5H4a1 1 0 0 1-1-1V10.5z" stroke="#667eea" strokeWidth="2" strokeLinejoin="round" fill="none"/>
-                </svg>
-            </Link>
-      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md">
+      <DialogBox show={showMsg} message={message} type={messageType} onClose={() => setShowMsg(false)} />
+      {/* Home icon */}
+      <Link to="/" style={{
+        position: 'absolute',
+        top: 24,
+        left: 24,
+        zIndex: 2,
+        background: '#fff',
+        borderRadius: '50%',
+        boxShadow: '0 2px 8px rgba(60,60,120,0.10)',
+        width: 40,
+        height: 40,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textDecoration: 'none'
+      }} aria-label="Go to homepage">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M3 10.5L12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-5h-6v5H4a1 1 0 0 1-1-1V10.5z" stroke="#667eea" strokeWidth="2" strokeLinejoin="round" fill="none" />
+        </svg>
+      </Link>
+
+      <div className="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md transition hover:scale-105 duration-300 ease-in-out">
         <button
-        onClick={() => navigate('/login')}
-        className="mb-4 text-purple-600 hover:underline text-sm flex items-center"
+          onClick={() => navigate('/login')}
+          className="mb-4 text-purple-600 hover:underline text-sm flex items-center"
         >
-        ← Back to Login
+          ← Back to Login
         </button>
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Reset Your Password</h2>
-        <form className="space-y-6">
+
+        <form className="space-y-6" onSubmit={handleResetRequest}>
           <input
-            type="email"
-            placeholder="Enter your registered email"
-            className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-          />
-          <button
-            type="submit"
-            className="w-full bg-purple-500 text-white py-3 rounded-lg hover:bg-purple-600 transition"
-          >
-            Send Reset Link
-          </button>
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your registered email"
+              className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+            />
+            <button
+              type="submit"
+              disabled={disabled || isSending}
+              className={`w-full text-white py-3 rounded-lg transition ${
+                disabled || isSending ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600'
+              }`}
+            >
+              {isSending ? 'Sending...' : disabled ? `Try again in ${timeLeft}s` : 'Send Reset Link'}
+            </button>
         </form>
-      </div>
 
-      {/* Settings Button */}
-      <div className="absolute bottom-6 right-6 z-20">
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="h-12 w-12 bg-gray-800 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-700"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.397-.164-.853-.142-1.203.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.142-.854-.108-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.806.272 1.203.107.397-.165.71-.505.781-.929l.149-.894zM15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-        </button>
-
-        {showSettings && (
-          <div className="mt-2 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-xl p-4 text-sm space-y-4 w-60">
-            <div className="flex items-center justify-between gap-6">
-              <span className="text-gray-800 dark:text-white">Dark Mode</span>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-600 rounded-full peer dark:bg-gray-600 peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-              </label>
-            </div>
+        {message && (
+          <div className={`mt-4 text-center text-sm font-medium ${messageType === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+            {message}
           </div>
         )}
+      </div>
+
+      {/* Dark Mode Toggle Button */}
+      <div className="fixed bottom-6 right-6 z-20">
+        <button
+          onClick={toggleDarkMode}
+          className="h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{
+            backgroundColor: darkMode ? '#6D28D9' : '#C4B5FD',
+            color: 'white',
+            boxShadow: darkMode ? `0 4px 15px #6D28D960` : `0 4px 15px #C4B5FD60`,
+            ['--tw-ring-color' as any]: darkMode ? '#6D28D970' : '#C4B5FD70'
+          }}
+        >
+          {darkMode ? <FiMoon className="w-6 h-6" /> : <FiSun className="w-6 h-6" />}
+        </button>
       </div>
     </div>
   );

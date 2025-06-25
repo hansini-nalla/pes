@@ -8,6 +8,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import TeacherDashboard from './pages/TeacherDashboard'; 
 import TADashboard from './pages/TADashboard'; 
 import OtpScreen from './pages/OtpScreen';
+import ResetPassword from './pages/ResetPassword';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/dashboard" element={<StudentDashboard />} />
         <Route path="/teacher" element={<TeacherDashboard />} /> 
         <Route path="/ta" element={<TADashboard />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </Router>
   );
