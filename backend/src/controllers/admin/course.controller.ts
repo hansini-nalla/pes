@@ -9,6 +9,12 @@ export const addCourse = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, code, startDate, endDate } = req.body;
 
+    var sdate = new Date(startDate);
+    var edate = new Date(endDate);
+    if (edate<=sdate){
+      res.status(409).json({ message: "The start date is greater than end date" });
+      return;  
+      }    
     // ✅ Check for duplicate code
     const existing = await Course.findOne({ code });
     if (existing) {
