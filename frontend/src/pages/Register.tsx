@@ -5,6 +5,41 @@ import axios from 'axios';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
+// DialogBox component for showing messages (copied and adapted from AdminDashboard)
+const DialogBox = ({
+  show,
+  message,
+  children,
+  onClose,
+}: {
+  show: boolean;
+  message: string;
+  children?: React.ReactNode;
+  onClose?: () => void;
+}) => {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+      <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
+        <div className="mb-2">
+          <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="28" fill="#6ddf99" />
+            <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">{message}</div>
+        {children}
+        <button
+          onClick={onClose}
+          className="bg-purple-700 text-white px-4 py-2 rounded-3xl w-full mt-4"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function Register() {
   const [darkMode, setDarkMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -16,6 +51,9 @@ export default function Register() {
   const [matchStatus, setMatchStatus] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMsg, setShowMsg] = useState(false);
+  const [msgContent, setMsgContent] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,6 +91,12 @@ export default function Register() {
     }
   };
 
+  // Show message function for errors (uses DialogBox)
+  const showMessage = (message: string) => {
+    setMsgContent(message);
+    setShowMsg(true);
+  };
+
   // Handle registration
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,28 +107,25 @@ export default function Register() {
     }
 
     try {
-      const res = await axios.post(`http://localhost:${PORT}/api/auth/register`, {
-        name,
-        email,
-        password,
-        role,
-      }, {
-        withCredentials: true 
-      });
+      setIsSubmitting(true);
+      showMessage('Sending OTP...');
+      await axios.post(`http://localhost:${PORT}/api/auth/send`, { email });
 
-      const { token, role: userRole } = res.data;
+      /*const { token, role: userRole } = res.data;
 
       localStorage.setItem('token', token);
       localStorage.setItem('role', userRole);
 
-      console.log('Registration successful:', res.data);
+      //console.log('Registration successful:', res.data);
       console.log('Token:', token);
-      console.log('Role:', userRole);
+      console.log('Role:', userRole);*/
 
-      if (userRole === 'admin') navigate('/admin');
+      navigate('/otp', {state: { email, password, role, name }});
+
+      /*if (userRole === 'admin') navigate('/admin');
       else if (userRole === 'teacher') navigate('/teacher');
       else if (userRole === 'ta') navigate('/ta');
-      else navigate('/dashboard');
+      else navigate('/dashboard');*/
     } catch (err) {
       if (axios.isAxiosError(err)) {
         showMessage(err.response?.data?.message || 'Registration failed');
@@ -92,16 +133,20 @@ export default function Register() {
         showMessage('Registration failed');
       }
       console.error(err);
-    }
-  };
-
-  // Show message function for errors
-  const showMessage = (message: string) => {
-    alert(message); // You can use a toast or modal for better UX
+    } finally {
+        setIsSubmitting(false);
+      }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-100 to-purple-200">
+      {/* Success/Error Dialog */}
+      <DialogBox
+        show={showMsg}
+        message={msgContent}
+        onClose={() => setShowMsg(false)}
+      />
+
       {/* Home icon */}
       <Link
         to="/"
@@ -148,6 +193,7 @@ export default function Register() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition"
+            required
           />
           <input
             type="email"
@@ -155,6 +201,7 @@ export default function Register() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition"
+            required
           />
 
           {/* Password Field */}
@@ -165,6 +212,7 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition pr-12"
+              required
             />
             <span
               onClick={() => setShowPassword(!showPassword)}
@@ -198,6 +246,7 @@ export default function Register() {
               value={confirmPassword}
               onChange={(e) => checkMatch(e.target.value)}
               className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 transition pr-12"
+              required
             />
             <span
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -229,8 +278,9 @@ export default function Register() {
           <button
             type="submit"
             className="w-full !bg-purple-500 text-black py-3 rounded-lg hover:bg-purple-600 transition shadow-md transform hover:scale-105"
+            disabled={isSubmitting}
           >
-            Register
+            {isSubmitting ? 'Sending...' : 'Register'}
           </button>
         </form>
 

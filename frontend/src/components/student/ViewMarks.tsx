@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
 interface Batch {
   _id: string;
   name: string;
@@ -21,7 +23,7 @@ interface ExamResult {
     batchId?: string;
     batchName?: string;
   };
-  averageMarks: string;
+  averageMarks: string | null;
   marks: number[][];
   feedback: string[];
 }
@@ -39,13 +41,14 @@ const ViewMarks = () => {
 
   useEffect(() => {
     const fetchInitialData = async () => {
+      setLoading(true);
       try {
         const token = localStorage.getItem("token");
         const [coursesRes, resultsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/student/enrolled-courses-batches", {
+          axios.get(`http://localhost:${PORT}/api/student/enrolled-courses-batches`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get("http://localhost:5000/api/student/results", {
+          axios.get(`http://localhost:${PORT}/api/student/results`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -55,6 +58,8 @@ const ViewMarks = () => {
         setFilteredResults(resultsRes.data.results || []);
       } catch (err) {
         console.error("Failed to fetch data", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -92,7 +97,7 @@ const ViewMarks = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:5000/api/student/raise-ticket",
+        `http://localhost:${PORT}/api/student/raise-ticket`,
         {
           examId,
           message,
