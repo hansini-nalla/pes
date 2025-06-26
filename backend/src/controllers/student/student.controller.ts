@@ -21,6 +21,7 @@ export const getStudentProfile = async (req: AuthRequest, res: Response): Promis
       id: student._id,
       name: student.name,
       email: student.email,
+      role: "student",
     });
   } catch (err) {
     console.error(err);
