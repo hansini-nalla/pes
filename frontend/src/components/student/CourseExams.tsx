@@ -1,7 +1,7 @@
 // frontend/src/components/student/CourseExams.tsx
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
@@ -64,7 +64,13 @@ const CourseExams = ({ courseId, onBack }: Props) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [viewingQuestions, setViewingQuestions] = useState<Exam | null>(null);
+  const [now, setNow] = useState<Date>(new Date());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleButtonClick = (examId: string) => {
     setActiveExamId(examId);
@@ -144,8 +150,6 @@ const CourseExams = ({ courseId, onBack }: Props) => {
 
   if (isLoading) return <div className="text-center p-4 text-gray-700">Loading exams...</div>;
   if (error) return <div className="text-center p-4 text-red-600">Failed to load exams.</div>;
-
-  const now = new Date();
 
   return (
     <div className="grid grid-cols-fill-minmax-300 gap-8 relative z-10 sm:grid-cols-1 sm:gap-5">
