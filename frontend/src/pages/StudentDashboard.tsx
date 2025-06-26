@@ -8,6 +8,7 @@ import {
     FiBook,
     FiUsers,
     FiCheckCircle,
+    FiUploadCloud,
     FiUser,
     FiSun, // For light mode icon
     FiMoon, // For dark mode icon
