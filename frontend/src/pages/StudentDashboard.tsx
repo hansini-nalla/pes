@@ -8,6 +8,7 @@ import {
     FiBook,
     FiUsers,
     FiCheckCircle,
+    FiUploadCloud,
     FiUser,
     FiSun, // For light mode icon
     FiMoon, // For dark mode icon
@@ -24,6 +25,7 @@ import CourseExams from "../components/student/CourseExams";
 import ViewMarks from "../components/student/ViewMarks";
 import DashboardOverview from "../components/student/DashboardOverview";
 import PeerEvaluationsPending from "../components/student/PeerEvaluationsPending";
+import EnrollmentSection from "../components/student/EnrollmentSection";
 
 // Custom "Pinkish, Lilac, Purple & Yellow" Palette - Revised Mix (Light Mode)
 const lightPalette = {
@@ -142,7 +144,6 @@ const StudentDashboard = () => {
         fetchData(`http://localhost:${PORT}/api/dashboard/profile`, setProfileData, 'Failed to fetch profile');
       }, [token, navigate]);
 
-
     // Common Tailwind classes for cards and buttons based on the new palette
     const commonCardClasses = `
         rounded-xl p-6 space-y-4 border transition-all duration-300
@@ -190,11 +191,13 @@ const StudentDashboard = () => {
                                 ) : (
                                     <CourseList onSelectCourse={(id) => setSelectedCourseId(id)} />
                                 );
+                            case 'enrollment':
+                                return <EnrollmentSection />;
                             case 'peerEvaluation':
                                 return <PeerEvaluationsPending />;
                             case 'viewMarks':
                                 return <ViewMarks />;
-                            
+
                             case 'profile':
                                 return <ProfileSection />;
                             default:
@@ -246,6 +249,7 @@ const StudentDashboard = () => {
                         {[
                             { key: 'dashboard', icon: FiHome, label: 'Dashboard' },
                             { key: 'courses', icon: FiBook, label: 'Courses' },
+                            { key: 'enrollment', icon: FiUploadCloud, label: 'Enrollment' },
                             { key: 'peerEvaluation', icon: FiUsers, label: 'Peer Evaluation' },
                             { key: 'viewMarks', icon: FiCheckCircle, label: 'View Marks' },
                             { key: 'profile', icon: FiUser, label: 'Profile' }
@@ -418,7 +422,7 @@ const StudentDashboard = () => {
                 </button>
             </div>
 
-            
+
         </div>
     );
 };
