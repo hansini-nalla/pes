@@ -1,16 +1,32 @@
 console.log("✅ teacher.routes.ts loaded");
 
 import { Router } from "express";
-import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
+import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
 import { getExamsByCourse } from "../../controllers/teacher/getExamsByCourse.controller.ts";
-import { getTeacherDashboardStats } from '../../controllers/teacher/dashboardStats.controller.ts';
-
+import { getTeacherDashboardStats } from "../../controllers/teacher/dashboardStats.controller.ts";
+import {
+  createExam,
+  getSingleExam,
+  updateExam,
+  deleteExam,
+  getExamSubmissions,
+} from "../../controllers/teacher/exam.controller.ts";
 
 const router = Router();
+
+// Courses
 router.get("/courses", authMiddleware, getTeacherCourses);
 router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
-router.get('/dashboard-stats', authMiddleware, getTeacherDashboardStats);
 
+// Dashboard Stats
+router.get("/dashboard-stats", authMiddleware, getTeacherDashboardStats);
+
+// Exam CRUD + Submissions
+router.post("/exams", authMiddleware, createExam);
+router.get("/exams/:examId", authMiddleware, getSingleExam);
+router.put("/exams/:examId", authMiddleware, updateExam);
+router.delete("/exams/:examId", authMiddleware, deleteExam);
+router.get("/exams/:examId/submissions", authMiddleware, getExamSubmissions);
 
 export default router;
