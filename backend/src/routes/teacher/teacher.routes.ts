@@ -14,6 +14,7 @@ import {
 } from "../../controllers/teacher/exam.controller.ts";
 import { getBatchStudents } from "../../controllers/teacher/getBatchStudents.controller.ts";
 import { initiatePeerEvaluation } from "../../controllers/teacher/peerEvaluation.controller.ts";
+import { assignTaToBatch } from "../../controllers/teacher/assignTaToBatch.controller.ts";
 
 const router = Router();
 
@@ -34,7 +35,10 @@ router.get("/test", (req, res) => {
   console.log("/api/teacher/test HIT");
   res.send("Hello from teacher route");
 });
-//
+
+
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
 router.post("/initiate-evaluation", authMiddleware, initiatePeerEvaluation);
+
+router.post('/batch/:batchId/assign-ta',authMiddleware,assignTaToBatch);
 export default router;
