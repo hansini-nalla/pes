@@ -4,11 +4,63 @@ import {
   FiMenu, FiLogOut, FiHome,
   FiBook, FiUsers, FiEdit, FiShield,
   FiDownload, FiUserPlus, FiUserCheck,
-  FiSend, FiTrash2
+  FiSend, FiTrash2, FiSun, FiMoon
 } from 'react-icons/fi';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 
+// Assuming VITE_BACKEND_PORT is correctly configured in your .env file
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
+// Custom "Pinkish, Lilac, Purple & Yellow" Palette - Revised Mix (Light Mode)
+const lightPalette = {
+    'bg-primary': '#FFFBF6',         // Very Light Creamy Yellow (dominant background)
+    'bg-secondary': '#FFFAF2',       // Slightly darker creamy yellow (for card/section backgrounds)
+    'accent-bright-yellow': '#FFD700', // Bright Gold/Yellow (main energetic accent)
+    'accent-light-yellow': '#FFECB3', // Lighter Yellow (for subtle use)
+    'accent-pink': '#FF8DA1',        // Primary Pink Accent
+    'accent-lilac': '#C8A2C8',       // Soft Lilac (modern cool accent)
+    'accent-purple': '#800080',      // Deep Purple (primary purple accent)
+    'accent-light-purple': '#DDA0DD', // Medium Lilac/Purple (for subtle use)
+    'sidebar-bg': '#E6E6FA',         // Lavender Blush (sidebar background)
+    'text-dark': '#4B0082',          // Indigo (Very Dark Purple for primary text on light backgrounds)
+    'text-muted': '#A9A9A9',         // Dark Gray (Medium Gray for secondary text/borders)
+    'text-sidebar-dark': '#4B0082', // Dark text for sidebar for contrast on light lavender
+    'border-soft': '#F0E6EF',        // Very Light Pinkish-Purple for subtle borders
+    'shadow-light': 'rgba(128, 0, 128, 0.04)',  // Very light, subtle purple shadows
+    'shadow-medium': 'rgba(128, 0, 128, 0.08)', // Medium subtle purple shadows
+    'shadow-strong': 'rgba(128, 0, 128, 0.15)', // Stronger subtle purple shadows
+    'white': '#FFFFFF',               // Add white for button text
+    'success-green': '#6ddf99',       // Added for success messages/icons
+    'success-text': '#235d3a',        // Added for success text color
+};
+
+// **FINAL CORRECTION: UPDATED DARK PALETTE for distinct blue shades**
+const darkPalette = {
+    'bg-primary': '#212A3E',         // Deep Blue-Gray for main background (distinctly blue)
+    'bg-secondary': '#394867',       // Slightly lighter blue-gray for cards/sections
+    'accent-bright-yellow': '#FFEB3B', // Keep accents vibrant
+    'accent-light-yellow': '#FFEE58',
+    'accent-pink': '#EC407A',
+    'accent-lilac': '#BB86FC',       // More vibrant lilac for dark mode
+    'accent-purple': '#9C27B0',      // Deeper purple
+    'accent-light-purple': '#CE93D8',
+    'sidebar-bg': '#19202D',         // Even darker, slightly desaturated blue for sidebar
+    'text-dark': '#E0E0E0',          // Light grey for primary text
+    'text-muted': '#A0A0A0',         // Medium grey for secondary text/borders
+    'text-sidebar-dark': '#FFFFFF',  // White text for dark sidebar for contrast
+    'border-soft': '#4A5568',        // Darker subtle borders
+    'shadow-light': 'rgba(0, 0, 0, 0.3)',
+    'shadow-medium': 'rgba(0, 0, 0, 0.5)',
+    'shadow-strong': 'rgba(0, 0, 0, 0.7)',
+    'white': '#FFFFFF',               // Keep white for button text
+    'success-green': '#4CAF50',
+    'success-text': '#C8E6C9',       // Lighter green for success text on dark background
+};
+
+type Palette = typeof lightPalette;
+
+const getColors = (isDarkMode: boolean): Palette => isDarkMode ? darkPalette : lightPalette;
 
 interface ExamRecord {
   title: string;
@@ -32,7 +84,7 @@ type CourseBatchItem = {
 };
 
 const AnimatedCount = ({ value }: { value: number }) => {
-  const [display, setDisplay] = React.useState(0);
+  const [display, setDisplay] = useState(0); // Changed to useState for display
   useEffect(() => {
     let start = 0;
     const end = value;
@@ -51,6 +103,9 @@ const AnimatedCount = ({ value }: { value: number }) => {
 
 const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const token = localStorage.getItem('token');
+
+  const [darkMode, setDarkMode] = useState(false); // Dark mode state
+  const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
 
   const [counts, setCounts] = useState({ courses: 0, batches: 0, exams: 0 });
   const [courseBatchList, setCourseBatchList] = useState<CourseBatchItem[]>([]);
@@ -91,22 +146,93 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const [enrollSuccess, setEnrollSuccess] = useState(false);
   const [csvFileName, setCsvFileName] = useState('');
   const [csvStudents, setCsvStudents] = useState<{ name: string, email: string }[]>([]);
-  //const [darkMode, setDarkMode] = useState(false);
-  //const [showSettings, setShowSettings] = useState(false);
   const [enrollError, setEnrollError] = useState('');
 
-  /*useEffect(() => {
+  // Apply or remove 'dark' class from the document HTML element
+  useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [darkMode]);*/
+  }, [darkMode]);
 
-  /*const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
-  };*/
+  const toggleDarkMode = () => {
+    setDarkMode(prevMode => !prevMode);
+  };
+
+  const ProfileSVG = () => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ color: currentPalette['text-dark'] }}
+    >
+      <path d="M18 20a6 6 0 0 0-12 0" />
+      <circle cx="12" cy="10" r="4" />
+      <circle cx="12" cy="12" r="10" />
+    </svg>
+  );
+
+  // Common Tailwind classes for cards and buttons based on the new palette
+  const commonCardClasses = `
+    rounded-xl p-6 space-y-4 border transition-all duration-300
+    hover:shadow-xl transform hover:translate-y-[-4px]
+  `;
+
+  const commonButtonClasses = `
+    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
+    focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2
+  `;
+  const getButtonStyles = (colorKey: keyof Palette, textColorKey: keyof Palette = 'text-dark'): React.CSSProperties & { '--tw-ring-color'?: string } => ({
+    backgroundColor: currentPalette[colorKey],
+    color: currentPalette[textColorKey], // This is the primary text color control
+    boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
+    '--tw-ring-color': currentPalette[colorKey] + '50', // For focus ring
+  });
+
+  const DialogBox = ({
+    show,
+    message,
+    children
+  }: { show: boolean, message: string, children?: React.ReactNode }) => {
+    return (
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="rounded-lg p-6 w-80 text-center shadow-2xl"
+              style={{ backgroundColor: currentPalette['bg-primary'], boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}` }}
+            >
+              <div className="mb-2 flex justify-center"> {/* Centered SVG */}
+                <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
+                  <circle cx="28" cy="28" r="28" fill={currentPalette['success-green']} />
+                  <path d="M18 30l7 7 13-13" stroke={currentPalette['white']} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div className="text-lg font-semibold text-center mb-1 mt-2" style={{ color: currentPalette['success-text'] }}>{message}</div>
+              {children}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  };
 
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/dashboard/counts`)
@@ -317,43 +443,19 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       });
   };
 
-  const ProfileSVG = () => (
-    <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
-      <circle cx="19" cy="19" r="19" fill="#57418d" />
-      <circle cx="19" cy="14" r="7" fill="#fff" />
-      <ellipse cx="19" cy="29.5" rx="11" ry="7.5" fill="#fff" />
-    </svg>
-  );
-
-  const DialogBox = ({
-    show,
-    message,
-    children
-  }: { show: boolean, message: string, children?: React.ReactNode }) => {
-    if (!show) return null;
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-        <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px] relative animate-fadein">
-          <div className="mb-2">
-            <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-              <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-              <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">{message}</div>
-          {children}
-        </div>
-      </div>
-    );
-  };
-
   const pages: Record<string, JSX.Element> = {
     home: (
-      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4 animate-fadein">
-        <h1 className="text-4xl font-extrabold mb-4 text-[#38365e] text-center drop-shadow">
+      <motion.div
+        className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h1 className="text-4xl font-extrabold mb-4 text-center drop-shadow" style={{ color: currentPalette['text-dark'] }}>
           Welcome, Teacher!
         </h1>
-        <p className="text-gray-700 text-base whitespace-nowrap">
+        <p className="text-base whitespace-nowrap" style={{ color: currentPalette['text-muted'] }}>
           Make teaching easier – manage your courses, batches, and exams from one place.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-6 mt-10 w-full max-w-5xl">
@@ -362,33 +464,32 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
               icon: FiBook,
               label: 'Courses',
               count: counts.courses,
-              gradient: 'from-blue-400 via-blue-600 to-cyan-500',
-              shadow: 'shadow-blue-300/50'
+              bgColor: currentPalette['sidebar-bg'],
             },
             {
               icon: FiUsers,
               label: 'Batches',
               count: counts.batches,
-              gradient: 'from-green-400 via-green-600 to-emerald-400',
-              shadow: 'shadow-green-300/50'
+              bgColor: currentPalette['sidebar-bg'],
             },
             {
               icon: FiEdit,
               label: 'Exams',
               count: counts.exams,
-              gradient: 'from-pink-500 via-red-500 to-orange-500',
-              shadow: 'shadow-red-300/50'
+              bgColor: currentPalette['sidebar-bg'],
             },
           ].map((c) => (
             <div
               key={c.label}
-              className={`
-                bg-gradient-to-br ${c.gradient} ${c.shadow}
-                p-8 rounded-3xl text-white flex flex-col justify-center items-center h-48
-                relative
-              `}
+              className={`${commonCardClasses} p-8 rounded-3xl text-white flex flex-col justify-center items-center h-48 relative`}
+              style={{
+                backgroundColor: c.bgColor,
+                boxShadow: `0 8px 20px ${currentPalette['shadow-medium']}`,
+                borderColor: currentPalette['border-soft'],
+                color: currentPalette['text-sidebar-dark']
+              }}
             >
-              <span className="absolute top-4 right-4 bg-white/20 rounded-full p-1">
+              <span className="absolute top-4 right-4 rounded-full p-1" style={{ backgroundColor: currentPalette['white'] + '20' }}>
                 <c.icon className="text-4xl drop-shadow-lg" />
               </span>
               <h3 className="text-xl font-bold mt-6 mb-1">{c.label}</h3>
@@ -399,32 +500,41 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
           ))}
         </div>
         <div className="mt-12 flex flex-col md:flex-row justify-center gap-8 w-full max-w-2xl">
-          <button
+          <motion.button
             onClick={() => setActivePage('roleManager')}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#6a5aa3] to-[#3a3456] text-white px-12 py-4 text-lg rounded-full font-semibold shadow-lg hover:scale-105 transition"
-            style={{ minWidth: 200 }}
+            className={`${commonButtonClasses} text-lg font-semibold tracking-wide`}
+            style={getButtonStyles('sidebar-bg', 'text-sidebar-dark')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2 }}
           >
             <FiShield className="text-2xl" />
             Manage Roles
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => setActivePage('courses')}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#57418d] to-[#7b2ff2] text-white px-12 py-4 text-lg rounded-full font-semibold shadow-lg hover:scale-105 transition"
-            style={{ minWidth: 200 }}
+            className={`${commonButtonClasses} text-lg font-semibold tracking-wide`}
+            style={getButtonStyles('sidebar-bg', 'text-sidebar-dark')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2 }}
           >
             <FiBook className="text-2xl" />
             Manage Courses
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => setActivePage('exams')}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#ff512f] to-[#dd2476] text-white px-12 py-4 text-lg rounded-full font-semibold shadow-lg hover:scale-105 transition"
-            style={{ minWidth: 200 }}
+            className={`${commonButtonClasses} text-lg font-semibold tracking-wide`}
+            style={getButtonStyles('sidebar-bg', 'text-sidebar-dark')}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2 }}
           >
             <FiEdit className="text-2xl" />
             Schedule Exams
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
     ),
     roleManager: (
       <motion.div
@@ -434,20 +544,26 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
         transition={{ duration: 0.6, ease: "easeOut" }}
       >
         <motion.div
-          className="bg-gradient-to-br from-[#e0c3fc] via-[#8ec5fc] to-[#a9c9ff] shadow-2xl rounded-3xl border border-white/60 px-10 py-12 max-w-lg w-full flex flex-col items-center relative"
+          className={`shadow-2xl rounded-3xl border px-10 py-12 max-w-lg w-full flex flex-col items-center relative`}
+          style={{
+            backgroundColor: currentPalette['bg-secondary'],
+            borderColor: currentPalette['border-soft'],
+            boxShadow: `0 8px 25px ${currentPalette['shadow-medium']}`
+          }}
           initial={{ scale: 0.97 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex justify-center">
-            <div className="bg-gradient-to-br from-[#57418d] to-[#7b2ff2] p-4 rounded-full shadow-lg">
-              <FiUserCheck className="text-white text-4xl" />
+            <div className="p-4 rounded-full shadow-lg" style={{ backgroundColor: currentPalette['sidebar-bg'] }}>
+              {/* Corrected: Use text-sidebar-dark for the icon color, which will be white in dark mode and dark in light mode */}
+              <FiUserCheck className="text-4xl" style={{ color: currentPalette['text-sidebar-dark'] }} />
             </div>
           </div>
-          <h2 className="text-3xl font-extrabold mb-2 text-[#38365e] text-center drop-shadow mt-6">
+          <h2 className="text-3xl font-extrabold mb-2 text-center drop-shadow mt-6" style={{ color: currentPalette['text-dark'] }}>
             Role Manager
           </h2>
-          <p className="mb-8 text-[#57418d] text-center text-base font-medium">
+          <p className="mb-8 text-center text-base font-medium" style={{ color: currentPalette['text-muted'] }}>
             Assign and update user roles efficiently.
           </p>
           <form
@@ -460,17 +576,23 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             }}
           >
             <div className="flex flex-col gap-2 w-full">
-              <label className="text-[#57418d] font-semibold">Select User</label>
+              <label className="font-semibold" style={{ color: currentPalette['text-dark'] }}>Select User</label>
               <select
                 name="selectUser"
                 id="selectUser"
                 value={roleEmail}
                 onChange={(e) => setRoleEmail(e.target.value)}
-                className="border-2 border-purple-200 focus:border-purple-400 px-4 py-3 rounded-xl w-full shadow-md transition bg-white"
+                className="border-2 px-4 py-3 rounded-xl w-full shadow-md transition"
+                style={{
+                  borderColor: currentPalette['border-soft'],
+                  backgroundColor: currentPalette['white'],
+                  color: currentPalette['text-dark'],
+                  outlineColor: currentPalette['sidebar-bg']
+                }}
                 required
               >
                 <option value="">Select User</option>
-                <optgroup label="Teaching Assistants (TAs)">
+                <optgroup label="Teaching Assistants (TAs)" style={{ color: currentPalette['text-dark'] }}>
                   {allUsers
                     .filter(user => user.role === 'ta')
                     .map(user => (
@@ -479,7 +601,7 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                       </option>
                     ))}
                 </optgroup>
-                <optgroup label="Students">
+                <optgroup label="Students" style={{ color: currentPalette['text-dark'] }}>
                   {allUsers
                     .filter(user => user.role === 'student')
                     .map(user => (
@@ -491,26 +613,33 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
               </select>
             </div>
             <div className="flex flex-col gap-2 w-full">
-              <label className="text-[#57418d] font-semibold">Select Role</label>
-              <select 
-              name="selectRole" 
-              id="selectRole" 
-              value={roleType} 
-              onChange={(e) => setRoleType(e.target.value)} 
-              className="border-2 border-purple-200 focus:border-purple-400 px-4 py-3 rounded-xl w-full shadow-md transition bg-white"
-              required
-            >
+              <label className="font-semibold" style={{ color: currentPalette['text-dark'] }}>Select Role</label>
+              <select
+                name="selectRole"
+                id="selectRole"
+                value={roleType}
+                onChange={(e) => setRoleType(e.target.value)}
+                className="border-2 px-4 py-3 rounded-xl w-full shadow-md transition"
+                style={{
+                  borderColor: currentPalette['border-soft'],
+                  backgroundColor: currentPalette['white'],
+                  color: currentPalette['text-dark'],
+                  outlineColor: currentPalette['sidebar-bg']
+                }}
+                required
+              >
                 <option value="">Select Role</option>
                 <option value="student">Student</option>
                 <option value="ta">Teaching Assistant (TA)</option>
-            </select>
+              </select>
             </div>
             <motion.button
               type="submit"
-              className="mt-2 bg-gradient-to-r from-[#57418d] to-[#7b2ff2] hover:from-[#7b2ff2] hover:to-[#57418d] text-white px-8 py-3 rounded-full font-semibold shadow-xl hover:scale-105 transition text-lg tracking-wide"
+              className={`${commonButtonClasses} text-lg tracking-wide`}
+              style={getButtonStyles('sidebar-bg', 'text-sidebar-dark')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
-              style={{ minWidth: 160 }}
+              transition={{ duration: 0.2 }}
             >
               Update Role
             </motion.button>
@@ -519,21 +648,36 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
       </motion.div>
     ),
     courses: (
-      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-        <h2 className="text-3xl font-extrabold mb-10 text-[#38365e] text-center drop-shadow">
+      <motion.div
+        className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h2 className="text-3xl font-extrabold mb-10 text-center drop-shadow" style={{ color: currentPalette['text-dark'] }}>
           Courses and Batches
         </h2>
         <div className="w-full max-w-5xl">
-          <table className="w-full border-separate border-spacing-y-4">
+          <table className="w-full border-separate" style={{ borderSpacing: '0 16px' }}>
             <thead>
               <tr>
-                <th className="bg-[#57418d] text-white py-4 px-6 rounded-l-2xl text-lg font-semibold text-center tracking-wide">
+                <th
+                  className="py-4 px-6 rounded-l-2xl text-lg font-semibold text-center tracking-wide"
+                  style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}
+                >
                   Course Name
                 </th>
-                <th className="bg-[#57418d] text-white py-4 px-6 text-lg font-semibold text-center tracking-wide">
+                <th
+                  className="py-4 px-6 text-lg font-semibold text-center tracking-wide"
+                  style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}
+                >
                   Batch Name
                 </th>
-                <th className="bg-[#57418d] text-white py-4 px-6 rounded-r-2xl text-lg font-semibold text-center tracking-wide">
+                <th
+                  className="py-4 px-6 rounded-r-2xl text-lg font-semibold text-center tracking-wide"
+                  style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}
+                >
                   Actions
                 </th>
               </tr>
@@ -541,28 +685,46 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             <tbody>
               {courseBatchList.length > 0 ? (
                 courseBatchList.map((row, idx) => (
-                  <tr key={idx} className="hover:bg-purple-50 transition">
-                    <td className="px-6 py-4 text-center text-base font-medium">{row.courseName}</td>
+                  <tr
+                    key={idx}
+                    className="transition"
+                    style={{
+                      backgroundColor: currentPalette['bg-secondary'],
+                      boxShadow: `0 2px 10px ${currentPalette['shadow-light']}`,
+                      color: currentPalette['text-dark']
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = currentPalette['accent-light-purple'] + '20'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = currentPalette['bg-secondary']}
+                  >
+                    <td className="px-6 py-4 text-center text-base font-medium rounded-l-xl">{row.courseName}</td>
                     <td className="px-6 py-4 text-center text-base font-medium">{row.batchName}</td>
-                    <td className="px-6 py-4 text-center text-base flex gap-2 justify-center">
-                      <button
+                    <td className="px-6 py-4 text-center text-base flex gap-2 justify-center rounded-r-xl">
+                      <motion.button
                         onClick={() => handleEnrollStudent(row.courseName, row.batchName)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-400 via-green-500 to-emerald-400 text-white font-semibold rounded-2xl shadow-md hover:from-green-500 hover:to-emerald-500 hover:scale-105 transition-all duration-150"
+                        className={`${commonButtonClasses} px-4 py-2 font-semibold`}
+                        style={getButtonStyles('accent-bright-yellow', 'text-dark')}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
                       >
                         <FiUserPlus className="text-lg" /> Enroll Student
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
                         onClick={() => downloadCSV(row.courseName, row.batchName)}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-400 via-blue-500 to-cyan-400 text-white font-semibold rounded-2xl shadow-md hover:from-blue-500 hover:to-cyan-500 hover:scale-105 transition-all duration-150"
+                        className={`${commonButtonClasses} px-4 py-2 font-semibold`}
+                        style={getButtonStyles('accent-lilac', 'white')}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.97 }}
+                        transition={{ duration: 0.15 }}
                       >
                         <FiDownload className="text-lg" /> Download CSV
-                      </button>
+                      </motion.button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={3} className="text-center text-gray-400 py-12 text-lg font-semibold">
+                  <td colSpan={3} className="text-center py-12 text-lg font-semibold" style={{ color: currentPalette['text-muted'] }}>
                     No courses and batches added yet
                   </td>
                 </tr>
@@ -570,28 +732,46 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
             </tbody>
           </table>
         </div>
-      </div>
+      </motion.div>
     ),
     exams: (
-      <div className="flex flex-col items-center w-full h-full pt-10 pb-4">
-        <h2 className="text-3xl font-bold mb-8 text-[#38365e] text-center">Exam Management</h2>
+      <motion.div
+        className="flex flex-col items-center w-full h-full pt-10 pb-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h2 className="text-3xl font-bold mb-8 text-center" style={{ color: currentPalette['text-dark'] }}>Exam Management</h2>
         <div className="flex flex-wrap gap-8 items-center mb-8 justify-center">
-          <label className="font-semibold text-[#38365e]">Course</label>
+          <label className="font-semibold" style={{ color: currentPalette['text-dark'] }}>Course</label>
           <select
             value={selectedCourse}
             onChange={e => { setSelectedCourse(e.target.value); setSelectedBatch(''); }}
             className="border rounded px-4 py-2 min-w-[180px]"
+            style={{
+              borderColor: currentPalette['border-soft'],
+              backgroundColor: currentPalette['bg-secondary'],
+              color: currentPalette['text-dark'],
+              outlineColor: currentPalette['sidebar-bg']
+            }}
           >
             <option value="">Select Course</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-          <label className="font-semibold text-[#38365e]">Batch</label>
+          <label className="font-semibold" style={{ color: currentPalette['text-dark'] }}>Batch</label>
           <select
             value={selectedBatch}
             onChange={e => setSelectedBatch(e.target.value)}
             className="border rounded px-4 py-2 min-w-[120px]"
+            style={{
+              borderColor: currentPalette['border-soft'],
+              backgroundColor: currentPalette['bg-secondary'],
+              color: currentPalette['text-dark'],
+              outlineColor: currentPalette['sidebar-bg']
+            }}
             disabled={!selectedCourse}
           >
             <option value="">Select Batch</option>
@@ -599,29 +779,33 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
-          <button
-            className={`ml-4 px-8 py-2 rounded-2xl font-semibold text-white text-lg shadow ${selectedCourse && selectedBatch ? "bg-[#57418d] hover:bg-[#402b6c]" : "bg-gray-400 cursor-not-allowed"}`}
+          <motion.button
+            className={`${commonButtonClasses} text-lg font-semibold`}
+            style={getButtonStyles('sidebar-bg', 'text-sidebar-dark')}
             disabled={!selectedCourse || !selectedBatch}
             onClick={() => setShowExamModal(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2 }}
           >
             Schedule Exam
-          </button>
+          </motion.button>
         </div>
         <div className="w-full max-w-5xl">
-          <table className="w-full border-separate border-spacing-y-2">
+          <table className="w-full border-separate" style={{ borderSpacing: '0 8px' }}>
             <thead>
               <tr>
-                <th className="bg-[#57418d] text-white py-3 px-3 rounded-l-2xl text-base">Exam Name</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Batch</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Date</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Time</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">No. of Questions</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Duration</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Total Marks</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">K</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Total Students</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 text-base">Solutions</th>
-                <th className="bg-[#57418d] text-white py-3 px-3 rounded-r-2xl text-base">Actions</th>
+                <th className="py-3 px-3 rounded-l-2xl text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Exam Name</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Batch</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Date</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Time</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>No. of Questions</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Duration</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Total Marks</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>K</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Total Students</th>
+                <th className="py-3 px-3 text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Solutions</th>
+                <th className="py-3 px-3 rounded-r-2xl text-base" style={{ backgroundColor: currentPalette['sidebar-bg'], color: currentPalette['text-sidebar-dark'] }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -630,8 +814,18 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                 const date = dateObj.toLocaleDateString('en-GB');
                 const time = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                 return (
-                  <tr key={i} className="hover:bg-purple-50 transition">
-                    <td className="px-3 py-2 text-center">{ex.title}</td>
+                  <tr
+                    key={i}
+                    className="transition"
+                    style={{
+                      backgroundColor: currentPalette['bg-secondary'],
+                      boxShadow: `0 2px 10px ${currentPalette['shadow-light']}`,
+                      color: currentPalette['text-dark']
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = currentPalette['accent-light-purple'] + '20'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = currentPalette['bg-secondary']}
+                  >
+                    <td className="px-3 py-2 text-center rounded-l-xl">{ex.title}</td>
                     <td className="px-3 py-2 text-center">{ex.batch}</td>
                     <td className="px-3 py-2 text-center">{date}</td>
                     <td className="px-3 py-2 text-center">{time}</td>
@@ -642,27 +836,29 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                     <td className="px-3 py-2 text-center">{ex.totalStudents}</td>
                     <td className="px-3 py-2 text-center">
                       <button
-                        className="text-blue-700 underline hover:text-blue-900"
+                        className="underline"
+                        style={{ color: currentPalette['sidebar-bg'], outlineColor: currentPalette['sidebar-bg'] }}
                         onClick={() => { setSolutionModalFile(ex.solutions || "No file chosen"); setShowSolutionModal(true); }}
                       >
                         View Solutions
                       </button>
                     </td>
-                    <td className="px-3 py-2 flex gap-4 justify-center">
+                    <td className="px-3 py-2 flex gap-4 justify-center rounded-r-xl">
                       <button
                         title="Send for Evaluation"
-                        className="text-purple-600 hover:text-purple-800 text-2xl"
+                        className="text-2xl"
+                        style={{ color: currentPalette['sidebar-bg'] }}
                         onClick={() => { setShowSendDialog(true); setTimeout(() => setShowSendDialog(false), 1200); }}
                       >
                         <FiSend />
                       </button>
-                      <button title="Edit" className="text-green-600 hover:text-green-800 text-2xl">
+                      <button title="Edit" className="text-2xl" style={{ color: currentPalette['accent-bright-yellow'] }}>
                         <FiEdit />
                       </button>
-                      <button title="Download" className="text-blue-700 hover:text-blue-900 text-2xl">
+                      <button title="Download" className="text-2xl" style={{ color: currentPalette['accent-lilac'] }}>
                         <FiDownload />
                       </button>
-                      <button title="Delete" className="text-red-600 hover:text-red-800 text-2xl">
+                      <button title="Delete" className="text-2xl" style={{ color: currentPalette['accent-pink'] }}>
                         <FiTrash2 />
                       </button>
                     </td>
@@ -670,367 +866,516 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
                 )
               }) : (
                 <tr>
-                  <td colSpan={11} className="text-center text-gray-400 py-8">No exams scheduled yet</td>
+                  <td colSpan={11} className="text-center py-8" style={{ color: currentPalette['text-muted'] }}>No exams scheduled yet</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        {showExamModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <form
-              className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-4 w-[400px] max-w-full"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!examTitle || !selectedCourse || !selectedBatch || !startTime || !endTime || !numQuestions || !k) {
-                  alert("Please fill all fields.");
-                  return;
-                }
-                await handleExamSchedule();
-                setShowExamModal(false);
-              }}
+        <AnimatePresence>
+          {showExamModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
             >
-              <h2 className="text-xl font-bold mb-2">Schedule Exam</h2>
-              <div>
-                <label className="font-semibold">Name:</label>
-                <input type="text" className="border rounded px-3 py-2 w-full mt-1"
-                  value={examTitle} onChange={e => setExamTitle(e.target.value)}
-                  placeholder="Exam Name" required
-                />
-              </div>
-              <div>
-                <label className="font-semibold">Course:</label>
-                <select className="border rounded px-3 py-2 w-full mt-1" value={selectedCourse} disabled>
-                  <option>{courses.find(c => c.id === selectedCourse)?.name || ""}</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-semibold">Batch:</label>
-                <select className="border rounded px-3 py-2 w-full mt-1" value={selectedBatch} disabled>
-                  <option>{batches.find(b => b.id === selectedBatch)?.name || ""}</option>
-                </select>
-              </div>
-              <div>
-                <label className="font-semibold">Start Time:</label>
-                <input type="datetime-local" className="border rounded px-3 py-2 w-full mt-1"
-                  value={startTime} onChange={e => setStartTime(e.target.value)} required
-                />
-              </div>
-              <div>
-                <label className="font-semibold">End Time:</label>
-                <input type="datetime-local" className="border rounded px-3 py-2 w-full mt-1"
-                  value={endTime} onChange={e => setEndTime(e.target.value)} required
-                />
-              </div>
-              <div>
-                <label className="font-semibold">Number of Questions:</label>
-                <input type="number" className="border rounded px-3 py-2 w-full mt-1"
-                  value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} min={1} required
-                />
-              </div>
-              <div>
-                <label className="font-semibold">No. of Peers (K):</label>
-                <input type="number" className="border rounded px-3 py-2 w-full mt-1"
-                  value={k} onChange={e => setK(Number(e.target.value))} min={1} required
-                />
-              </div>
-              <div>
-                <label className="font-semibold">Solutions:</label>
-                <div className="flex items-center gap-4 mt-1">
-                  <input
-                    type="file"
-                    id="solutions-upload"
-                    className="hidden"
-                    onChange={e => setSolutions(e.target.files?.[0] || null)}
+              <motion.form
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-4 w-[400px] max-w-full"
+                style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-dark'] }}
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!examTitle || !selectedCourse || !selectedBatch || !startTime || !endTime || !numQuestions || !k) {
+                    alert("Please fill all fields.");
+                    return;
+                  }
+                  await handleExamSchedule();
+                  setShowExamModal(false);
+                }}
+              >
+                <h2 className="text-xl font-bold mb-2">Schedule Exam</h2>
+                <div>
+                  <label className="font-semibold">Name:</label>
+                  <input type="text" className="border rounded px-3 py-2 w-full mt-1"
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'], outlineColor: currentPalette['sidebar-bg'] }}
+                    value={examTitle} onChange={e => setExamTitle(e.target.value)}
+                    placeholder="Exam Name" required
                   />
-                  <label
-                    htmlFor="solutions-upload"
-                    className="inline-block px-4 py-2 bg-black text-white rounded cursor-pointer font-semibold"
-                    style={{ fontWeight: 500 }}
+                </div>
+                <div>
+                  <label className="font-semibold">Course:</label>
+                  <select className="border rounded px-3 py-2 w-full mt-1" value={selectedCourse} disabled
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'] }}
                   >
-                    Choose File
-                  </label>
-                  <span className="ml-2 text-sm text-gray-700">
-                    {solutions ? solutions.name : "No file chosen"}
+                    <option>{courses.find(c => c.id === selectedCourse)?.name || ""}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold">Batch:</label>
+                  <select className="border rounded px-3 py-2 w-full mt-1" value={selectedBatch} disabled
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'] }}
+                  >
+                    <option>{batches.find(b => b.id === selectedBatch)?.name || ""}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold">Start Time:</label>
+                  <input type="datetime-local" className="border rounded px-3 py-2 w-full mt-1"
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'], outlineColor: currentPalette['sidebar-bg'] }}
+                    value={startTime} onChange={e => setStartTime(e.target.value)} required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">End Time:</label>
+                  <input type="datetime-local" className="border rounded px-3 py-2 w-full mt-1"
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'], outlineColor: currentPalette['sidebar-bg'] }}
+                    value={endTime} onChange={e => setEndTime(e.target.value)} required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">Number of Questions:</label>
+                  <input type="number" className="border rounded px-3 py-2 w-full mt-1"
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'], outlineColor: currentPalette['sidebar-bg'] }}
+                    value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))} min={1} required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">No. of Peers (K):</label>
+                  <input type="number" className="border rounded px-3 py-2 w-full mt-1"
+                    style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'], outlineColor: currentPalette['sidebar-bg'] }}
+                    value={k} onChange={e => setK(Number(e.target.value))} min={1} required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold">Solutions:</label>
+                  <div className="flex items-center gap-4 mt-1">
+                    <input
+                      type="file"
+                      id="solutions-upload"
+                      className="hidden"
+                      onChange={e => setSolutions(e.target.files?.[0] || null)}
+                    />
+                    <label
+                      htmlFor="solutions-upload"
+                      className={`${commonButtonClasses} px-4 py-2 font-semibold`}
+                      style={getButtonStyles('sidebar-bg', 'white')}
+                    >
+                      Choose File
+                    </label>
+                    <span className="ml-2 text-sm" style={{ color: currentPalette['text-muted'] }}>
+                      {solutions ? solutions.name : "No file chosen"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-4">
+                  <motion.button
+                    type="submit"
+                    className={`${commonButtonClasses} px-8 py-2 font-semibold`}
+                    style={getButtonStyles('sidebar-bg', 'white')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Submit
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    className={`${commonButtonClasses} px-8 py-2 font-semibold`}
+                    style={getButtonStyles('text-muted', 'text-dark')}
+                    onClick={() => setShowExamModal(false)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {showSolutionModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="rounded-2xl shadow-xl px-12 py-8 flex flex-col items-center min-w-[320px] max-w-full"
+                style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-dark'] }}
+              >
+                <h2 className="text-xl font-bold mb-4">Uploaded Solution</h2>
+                <div className="mb-6">
+                  <span className="text-lg">
+                    {solutionModalFile}
                   </span>
                 </div>
-              </div>
-              <div className="flex gap-4 mt-4">
-                <button
-                  type="submit"
-                  className="bg-[#57418d] hover:bg-[#402b6c] text-white rounded-xl px-8 py-2 font-semibold"
+                <motion.button
+                  className={`${commonButtonClasses} px-8 py-2 font-semibold`}
+                  style={getButtonStyles('sidebar-bg', 'white')}
+                  onClick={() => setShowSolutionModal(false)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ duration: 0.2 }}
                 >
-                  Submit
-                </button>
-                <button
-                  type="button"
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl px-8 py-2 font-semibold"
-                  onClick={() => setShowExamModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-        {showSolutionModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-xl px-12 py-8 flex flex-col items-center min-w-[320px] max-w-full">
-              <h2 className="text-xl font-bold mb-4">Uploaded Solution</h2>
-              <div className="mb-6">
-                <span className="text-lg text-gray-900">
-                  {solutionModalFile}
-                </span>
-              </div>
-              <button
-                className="bg-[#57418d] text-white px-8 py-2 rounded-2xl font-semibold shadow hover:bg-[#402b6c]"
-                onClick={() => setShowSolutionModal(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-        {showSendDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px]">
-              <svg width={56} height={56} fill="none" viewBox="0 0 56 56">
-                <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-                <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <div className="text-lg text-[#235d3a] font-semibold text-center mb-1 mt-2">
-                Solutions sent to students for evaluation!
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+                  Close
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <DialogBox show={showSendDialog} message="Solutions sent to students for evaluation!" />
+      </motion.div>
     ),
   };
 
   return (
-    <div
-      className="flex h-screen overflow-hidden backdrop-blur-xl"
-      style={{
-        background: "linear-gradient(135deg, rgb(168, 184, 208) 0%, rgb(183, 64, 173) 100%)"
-      }}
-    >
-      <div className={`${showSidebar ? 'w-64' : 'w-20'} bg-gradient-to-b from-[#2b2e4a] via-[#5636b8] to-[#231942] text-white flex flex-col justify-between py-6 px-4 rounded-r-3xl shadow-2xl transition-all duration-300`}>
+    <div className="flex h-screen overflow-hidden relative" style={{
+      background: currentPalette['bg-primary']
+    }}>
+      {/* Subtle background pattern for visual interest, blending with primary background */}
+      <div className="absolute inset-0 z-0 opacity-[0.03]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='${encodeURIComponent(currentPalette['text-muted'])}' fill-opacity='0.1' fill-rule='evenodd'%3E%3Cpath d='M3 0L0 3l3 3 3-3z'/%3E%3C/g%3E%3C/svg%3E")`,
+        backgroundSize: '80px 80px',
+        background: `linear-gradient(135deg, ${currentPalette['bg-primary']} 0%, ${currentPalette['bg-primary']} 50%, ${currentPalette['bg-primary']} 100%)`
+      }}></div>
+
+      {/* Sidebar */}
+      <motion.div
+        className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300 shadow-xl z-20 overflow-hidden ${showSidebar ? 'w-64' : 'w-20'}`}
+        style={{
+          backgroundColor: currentPalette['sidebar-bg'],
+          backgroundImage: `linear-gradient(180deg, ${currentPalette['sidebar-bg']}, ${currentPalette['sidebar-bg']}E0)`,
+          boxShadow: `8px 0 30px ${currentPalette['shadow-medium']}`
+        }}
+      >
         <button
           onClick={() => setShowSidebar(!showSidebar)}
-          className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition
-            hover:bg-white/10 hover:border-blue-300 hover:shadow-lg"
+          className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition-transform duration-200 focus:outline-none focus:ring-2"
+          // Corrected the style application for sidebar toggle button
+          style={{
+            borderColor: currentPalette['accent-lilac'],
+            '--tw-ring-color': currentPalette['accent-lilac'] + '70'
+          } as React.CSSProperties}
         >
-          <FiMenu className="text-2xl" />
+          <FiMenu className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }} />
         </button>
         <div className="flex-1 flex flex-col items-center">
-          <h2 className={`font-bold mb-10 mt-4 transition-all ${showSidebar ? 'text-2xl' : 'text-lg'}`}>
-            {showSidebar ? 'Teacher Panel' : 'TP'}
+          <h2 className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? 'text-2xl' : 'text-lg'}`} style={{ color: currentPalette['text-sidebar-dark'] }}>
+            {showSidebar ? 'Teacher Panel' : 'Tea'}
           </h2>
           <ul className="space-y-3 w-full">
             {['home', 'roleManager', 'courses', 'exams'].map((key) => {
               const icons: Record<string, any> = { home: FiHome, roleManager: FiShield, courses: FiBook, exams: FiEdit };
               const Icon = icons[key];
               return (
-                <li
+                <motion.li
                   key={key}
                   onClick={() => setActivePage(key)}
-                  className={`cursor-pointer 
-                    ${activePage === key
-                      ? 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white font-bold shadow-lg scale-105'
-                      : 'hover:bg-white/10 hover:scale-105'}
-                    flex items-center px-4 py-2 rounded-xl transition-all duration-200`}
+                  className={`cursor-pointer flex items-center px-4 py-2 rounded-lg transition-all duration-200 transform
+                    ${activePage === key ? 'scale-100 relative' : 'hover:scale-[1.02]'}
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                  `}
+                  style={{
+                    color: currentPalette['text-sidebar-dark'],
+                  }}
+                  whileHover={{ scale: 1.03, x: 5, boxShadow: `0 0 10px ${currentPalette['shadow-light']}` }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <Icon className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'} ${!showSidebar ? 'text-3xl md:text-4xl' : ''}`} />
-                  {showSidebar && (key === 'roleManager' ? 'Manage Roles' : key.charAt(0).toUpperCase() + key.slice(1))}
-                </li>
+                  {activePage === key && (
+                    <motion.div
+                      layoutId="activePillTeacher" // Unique layoutId for teacher dashboard
+                      className="absolute inset-0 rounded-lg -z-10"
+                      style={{
+                        backgroundColor: currentPalette['sidebar-bg'],
+                        boxShadow: `0 0 15px ${currentPalette['sidebar-bg']}40`
+                      }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                  <Icon className={`transition-all duration-300 ${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`} />
+                  {showSidebar && <span className="font-medium whitespace-nowrap">
+                    {key === 'roleManager' ? 'Manage Roles' : key.charAt(0).toUpperCase() + key.slice(1)}
+                  </span>}
+                </motion.li>
               );
             })}
           </ul>
         </div>
-        <button
+        <motion.button
           onClick={() => setLogoutDialog(true)}
-          className="flex items-center justify-center gap-2 hover:bg-white/10 hover:text-red-400 px-4 py-2 rounded transition-all duration-200">
-          <FiLogOut className={`${showSidebar ? 'mr-2 text-xl' : 'text-3xl'} ${!showSidebar ? 'text-3xl md:text-4xl' : ''}`} />
-          {showSidebar && 'Logout'}
-        </button>
-      </div>
-      <div className="flex-1 relative overflow-y-auto flex justify-center items-start">
+          className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto"
+          style={{ color: currentPalette['text-sidebar-dark'] }}
+          whileHover={{ scale: 1.03, x: 5 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <FiLogOut className={`${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`} />
+          {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
+        </motion.button>
+      </motion.div>
+
+      {/* Main Content */}
+      <div className="flex-1 relative overflow-y-auto flex justify-center items-start p-4 z-10">
         <div className="absolute top-4 right-6 z-20">
           <button onClick={() => setShowProfilePopup(!showProfilePopup)}
-            className="p-2 flex items-center justify-center rounded-full border-2 border-transparent bg-white shadow
-            hover:bg-blue-100 hover:border-blue-300 hover:shadow-xl active:scale-95 transition"
+            className="p-2 flex items-center justify-center rounded-full border-2 border-transparent shadow active:scale-95 transition"
+            style={{
+              backgroundColor: currentPalette['white'],
+              borderColor: currentPalette['border-soft'],
+              boxShadow: `0 2px 14px 0 ${currentPalette['shadow-medium']}`
+            }}
             title="Profile"
-            style={{ boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)' }}
           >
             <ProfileSVG />
           </button>
-          {showProfilePopup && (
-            <div
-              className="absolute right-0 mt-3 w-80 bg-white p-4 rounded-b-3xl shadow-lg z-10"
-              style={{
-                borderTopLeftRadius: 0,
-                borderTopRightRadius: 0,
-                borderBottomLeftRadius: 24,
-                borderBottomRightRadius: 24,
-                boxShadow: '0 2px 14px 0 rgba(87,65,141,0.16)'
-              }}
-            >
-              <h2 className="text-xl font-bold mb-4">Profile Info</h2>
-              <div className="space-y-2 mb-4">
-                <p><strong>Name:</strong> {profileData.name}</p>
-                <p><strong>Email:</strong> {profileData.email}</p>
-                <p><strong>Role:</strong> {profileData.role}</p>
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {showProfilePopup && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute right-0 mt-3 w-80 p-4 rounded-b-3xl shadow-lg z-10"
+                style={{
+                  backgroundColor: currentPalette['bg-secondary'],
+                  borderTopLeftRadius: 0,
+                  borderTopRightRadius: 0,
+                  borderBottomLeftRadius: 24,
+                  borderBottomRightRadius: 24,
+                  boxShadow: `0 4px 14px ${currentPalette['shadow-medium']}`,
+                  color: currentPalette['text-dark']
+                }}
+              >
+                <h2 className="text-xl font-bold mb-4">Profile Info</h2>
+                <div className="space-y-2 mb-4">
+                  <p><strong>Name:</strong> {profileData.name}</p>
+                  <p><strong>Email:</strong> {profileData.email}</p>
+                  <p><strong>Role:</strong> {profileData.role}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <div
-          className="bg-white/90 rounded-3xl shadow-2xl w-full max-w-6xl h-auto mt-20 mb-10 mx-6 px-8 py-6 flex flex-col items-start justify-start overflow-auto backdrop-blur-sm"
+          className="rounded-3xl shadow-2xl w-full max-w-6xl h-auto mt-20 mb-10 mx-6 px-8 py-6 flex flex-col items-start justify-start overflow-auto"
           style={{
             minHeight: "calc(100vh - 120px)",
-            boxShadow: '0 2px 24px 0 rgba(87,65,141,0.10)'
+            backgroundColor: currentPalette['bg-primary'],
+            boxShadow: `0 10px 40px ${currentPalette['shadow-medium']}`
           }}
         >
           <div className="w-full">
             {pages[activePage]}
           </div>
         </div>
+
         <DialogBox show={showExamMsg} message="Exam Scheduled Successfully!" />
         <DialogBox show={showRoleMsg} message="Role Updated Successfully!" />
-        {showEnrollModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-fade-in">
-            <form
-              onSubmit={handleEnrollSubmit}
-              className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center w-[350px] max-w-full"
+
+        <AnimatePresence>
+          {showEnrollModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
             >
-              <h2 className="text-2xl font-bold mb-6 text-center">Enroll Student</h2>
-              <div className="flex flex-col gap-3 w-full">
-                <div>
-                  <label className="font-semibold">Course:</label>
-                  <input
-                    value={enrollCourse}
-                    disabled
-                    className="border px-3 py-2 rounded w-full mt-1 bg-gray-100"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold">Batch:</label>
-                  <input
-                    value={enrollBatch}
-                    disabled
-                    className="border px-3 py-2 rounded w-full mt-1 bg-gray-100"
-                  />
-                </div>
-                <div className="flex flex-col items-center w-full my-2">
-                  <label className="font-semibold mb-2 text-center w-full">Bulk Enroll via CSV</label>
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    id="csv-upload"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (!file.name.endsWith('.csv')) {
-                        setEnrollError('Please upload a valid CSV file.');
-                        setCsvStudents([]);
-                        return;
-                      }
-                      setCsvFileName(file.name);
-                      const text = await file.text();
-                      const rows = text.split("\n").map(r => r.trim()).filter(Boolean);
-                      let dataRows = rows;
-                      if (rows[0].toLowerCase().includes('name') && rows[0].toLowerCase().includes('email')) {
-                        dataRows = rows.slice(1);
-                      }
-                      const unique: Record<string, boolean> = {};
-                      const students: { name: string, email: string }[] = [];
-                      for (const row of dataRows) {
-                        const [name, email] = row.split(",").map(s => s?.trim());
-                        if (name && email) {
-                          const key = (name + email).toLowerCase();
-                          if (!unique[key]) {
-                            unique[key] = true;
-                            students.push({ name, email });
+              <motion.form
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                onSubmit={handleEnrollSubmit}
+                className="rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center w-[350px] max-w-full"
+                style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-dark'] }}
+              >
+                <h2 className="text-2xl font-bold mb-6 text-center">Enroll Student</h2>
+                <div className="flex flex-col gap-3 w-full">
+                  <div>
+                    <label className="font-semibold">Course:</label>
+                    <input
+                      value={enrollCourse}
+                      disabled
+                      className="border px-3 py-2 rounded w-full mt-1"
+                      style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'] }}
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold">Batch:</label>
+                    <input
+                      value={enrollBatch}
+                      disabled
+                      className="border px-3 py-2 rounded w-full mt-1"
+                      style={{ borderColor: currentPalette['border-soft'], backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-dark'] }}
+                    />
+                  </div>
+                  <div className="flex flex-col items-center w-full my-2">
+                    <label className="font-semibold mb-2 text-center w-full">Bulk Enroll via CSV</label>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      className="hidden"
+                      id="csv-upload"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (!file.name.endsWith('.csv')) {
+                          setEnrollError('Please upload a valid CSV file.');
+                          setCsvStudents([]);
+                          return;
+                        }
+                        setCsvFileName(file.name);
+                        const text = await file.text();
+                        const rows = text.split("\n").map(r => r.trim()).filter(Boolean);
+                        let dataRows = rows;
+                        if (rows[0].toLowerCase().includes('name') && rows[0].toLowerCase().includes('email')) {
+                          dataRows = rows.slice(1);
+                        }
+                        const unique: Record<string, boolean> = {};
+                        const students: { name: string, email: string }[] = [];
+                        for (const row of dataRows) {
+                          const [name, email] = row.split(",").map(s => s?.trim());
+                          if (name && email) {
+                            const key = (name + email).toLowerCase();
+                            if (!unique[key]) {
+                              unique[key] = true;
+                              students.push({ name, email });
+                            }
                           }
                         }
-                      }
-                      setCsvStudents(students);
-                      setEnrollError('');
-                    }}
-                  />
-                  <label
-                    htmlFor="csv-upload"
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-green-400 via-green-500 to-emerald-400 text-white font-semibold rounded-2xl shadow hover:from-green-500 hover:to-emerald-500 hover:scale-105 transition-all cursor-pointer"
-                    style={{ minWidth: 0 }}
+                        setCsvStudents(students);
+                        setEnrollError('');
+                      }}
+                    />
+                    <label
+                      htmlFor="csv-upload"
+                      className={`${commonButtonClasses} w-full flex items-center justify-center gap-2 px-4 py-2 font-semibold`}
+                      style={getButtonStyles('accent-bright-yellow', 'text-dark')}
+                    >
+                      <FiDownload className="text-lg" /> Choose CSV File
+                    </label>
+                    <span className="text-xs mt-1" style={{ color: currentPalette['text-muted'] }}>{csvFileName ? csvFileName : "No file chosen"}</span>
+                    <span className="text-xs mt-1" style={{ color: currentPalette['text-muted'] }}>Upload a CSV file with columns: Name, Email</span>
+                    {enrollError && (
+                      <div className="mt-2 font-semibold text-center w-full" style={{ color: currentPalette['accent-pink'] }}>{enrollError}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-6">
+                  <motion.button
+                    type="submit"
+                    className={`${commonButtonClasses} px-8 py-2 font-semibold`}
+                    style={getButtonStyles('sidebar-bg', 'white')}
+                    disabled={csvStudents.length === 0}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <FiDownload className="text-lg" /> Choose CSV File
-                  </label>
-                  <span className="text-xs text-gray-500 mt-1">{csvFileName ? csvFileName : "No file chosen"}</span>
-                  <span className="text-xs text-gray-500 mt-1">Upload a CSV file with columns: Name, Email</span>
-                  {enrollError && (
-                    <div className="mt-2 text-red-600 font-semibold text-center w-full">{enrollError}</div>
-                  )}
+                    Enroll
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      setShowEnrollModal(false);
+                      setCsvFileName('');
+                      setEnrollError('');
+                      setCsvStudents([]);
+                    }}
+                    className={`${commonButtonClasses} px-8 py-2 font-semibold`}
+                    style={getButtonStyles('text-muted', 'white')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Cancel
+                  </motion.button>
                 </div>
-              </div>
-              <div className="flex gap-4 mt-6">
-                <button
-                  type="submit"
-                  className={`bg-gradient-to-r from-[#141e30] via-[#243b55] to-[#283e51] text-white px-8 py-2 rounded-2xl font-semibold shadow transition-all duration-200
-                    hover:scale-105 hover:from-[#283e51] hover:to-[#141e30] active:scale-95
-                    ${csvStudents.length === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  disabled={csvStudents.length === 0}
-                >
-                  Enroll
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEnrollModal(false);
-                    setCsvFileName('');
-                    setEnrollError('');
-                    setCsvStudents([]);
-                  }}
-                  className="bg-gradient-to-r from-[#474b4f] via-[#232526] to-[#232526] text-white rounded-2xl px-8 py-2 font-semibold shadow transition-all duration-200
-                    hover:scale-105 hover:from-[#232526] hover:to-[#474b4f] active:scale-95"
-                >
-                  Cancel
-                </button>
-              </div>
-              {enrollSuccess && (
-                <div className="mt-4 text-green-600 font-semibold text-center">
-                  Student enrolled successfully!
+                {enrollSuccess && (
+                  <div className="mt-4 font-semibold text-center" style={{ color: currentPalette['success-text'] }}>
+                    Student enrolled successfully!
+                  </div>
+                )}
+              </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {logoutDialog && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="rounded-lg p-6 w-80 text-center shadow-2xl"
+                style={{ backgroundColor: currentPalette['bg-primary'], boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}` }}
+              >
+                <div className="mb-4 text-xl font-bold" style={{ color: currentPalette['text-dark'] }}>Confirm Logout</div>
+                <p className="mb-6" style={{ color: currentPalette['text-muted'] }}>Are you sure you want to log out?</p>
+                <div className="flex justify-center gap-4">
+                  <motion.button
+                    className={`${commonButtonClasses} px-6 py-2`}
+                    style={getButtonStyles('accent-pink', 'white')}
+                    onClick={() => {
+                      setLogoutDialog(false);
+                      onLogout?.();
+                    }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Logout
+                  </motion.button>
+                  <motion.button
+                    className={`${commonButtonClasses} px-6 py-2`}
+                    style={getButtonStyles('text-muted', 'text-dark')}
+                    onClick={() => setLogoutDialog(false)}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Cancel
+                  </motion.button>
                 </div>
-              )}
-            </form>
-          </div>
-        )}
-        <DialogBox show={logoutDialog} message="Are you sure you want to logout?">
-          <div className="flex gap-8 mt-4">
-            <button
-              onClick={() => setLogoutDialog(false)}
-              className="bg-gray-200 text-gray-700 roundeFd-xl px-8 py-2 font-semibold hover:bg-gray-300 transition"
-            >
-              No
-            </button>
-            <button
-              onClick={() => {
-                setLogoutDialog(false);
-                if (onLogout) {
-                  onLogout();
-                } else {
-                  window.location.href = "/login";
-                }
-              }}
-              className="bg-red-500 text-white rounded-xl px-8 py-2 font-semibold hover:bg-red-600 transition"
-            >
-              Yes
-            </button>
-          </div>
-        </DialogBox>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Dark Mode Toggle Button */}
+        <motion.button
+          onClick={toggleDarkMode}
+          className="fixed bottom-6 right-6 p-3 rounded-full shadow-lg z-50 transition-all duration-300 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{
+            backgroundColor: currentPalette['sidebar-bg'],
+            color: currentPalette['white'],
+            boxShadow: `0 4px 15px ${currentPalette['sidebar-bg']}40`,
+            '--tw-ring-color': currentPalette['sidebar-bg'] + '70'
+          } as React.CSSProperties}
+          title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ duration: 0.2 }}
+        >
+          {darkMode ? <FiSun className="text-2xl" /> : <FiMoon className="text-2xl" />}
+        </motion.button>
       </div>
-      
     </div>
   );
 };
