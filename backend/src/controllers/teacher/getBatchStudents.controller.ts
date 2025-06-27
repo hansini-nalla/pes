@@ -14,7 +14,7 @@ export const getBatchStudents = async (
     const batch = await Batch.findById(batchId);
     if (!batch) {
       res.status(404).json({ message: "Batch not found" });
-      return;
+      return;   
     }
 
     if (batch.instructor.toString() !== teacherId.toString()) {
