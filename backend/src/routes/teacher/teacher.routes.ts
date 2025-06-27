@@ -4,11 +4,13 @@ import { Router } from "express";
 import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
 import { getExamsByCourse } from "../../controllers/teacher/getExamsByCourse.controller.ts";
+import { getTeacherDashboardStats } from '../../controllers/teacher/dashboardStats.controller.ts';
+
 
 const router = Router();
 router.get("/courses", authMiddleware, getTeacherCourses);
 router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
-
+router.get('/dashboard-stats', authMiddleware, getTeacherDashboardStats);
 
 
 export default router;
