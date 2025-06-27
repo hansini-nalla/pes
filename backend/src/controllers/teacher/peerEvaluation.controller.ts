@@ -14,26 +14,35 @@ export const initiatePeerEvaluation = async (
     const { examId } = req.body;
 
     if (!teacherId || req.user.role !== "teacher") {
-      return res
+      res
         .status(403)
         .json({ message: "Only teachers can initiate evaluation." });
+      return;
     }
 
     const exam = await Exam.findById(examId);
-    if (!exam) return res.status(404).json({ message: "Exam not found." });
+    if (!exam) {
+      res.status(404).json({ message: "Exam not found." });
+      return;
+    }
     if (exam.createdBy.toString() !== teacherId.toString()) {
-      return res
+      res
         .status(403)
         .json({ message: "You are not the creator of this exam." });
+      return;
     }
 
     const batch = await Batch.findById(exam.batch);
-    if (!batch) return res.status(404).json({ message: "Batch not found." });
+    if (!batch) {
+      res.status(404).json({ message: "Batch not found." });
+      return;
+    }
     const students = batch.students.map((id: any) => id.toString());
     if (students.length < 2) {
-      return res
+      res
         .status(400)
         .json({ message: "Not enough students for peer evaluation." });
+      return;
     }
 
     const submissions = await Submission.find({ exam: examId });
@@ -44,9 +53,10 @@ export const initiatePeerEvaluation = async (
 
     const k = exam.k;
     if (typeof k !== "number" || k < 1 || k >= students.length) {
-      return res.status(400).json({
+      res.status(400).json({
         message: "k must be a positive integer less than number of students.",
       });
+      return;
     }
 
     await Evaluation.deleteMany({ exam: examId });

@@ -1,18 +1,40 @@
 console.log("✅ teacher.routes.ts loaded");
 
 import { Router } from "express";
-import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
-import { getTeacherDashboardStats } from '../../controllers/teacher/dashboardStats.controller.ts';
+import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
+import { getExamsByCourse } from "../../controllers/teacher/getExamsByCourse.controller.ts";
+import { getTeacherDashboardStats } from "../../controllers/teacher/dashboardStats.controller.ts";
+import {
+  createExam,
+  getSingleExam,
+  updateExam,
+  deleteExam,
+  getExamSubmissions,
+} from "../../controllers/teacher/exam.controller.ts";
 import { getBatchStudents } from "../../controllers/teacher/getBatchStudents.controller.ts";
+import { initiatePeerEvaluation } from "../../controllers/teacher/peerEvaluation.controller.ts";
 
 const router = Router();
+
+// Courses
 router.get("/courses", authMiddleware, getTeacherCourses);
+router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
+
+// Dashboard Stats
+router.get("/dashboard-stats", authMiddleware, getTeacherDashboardStats);
+
+// Exam CRUD + Submissions
+router.post("/exams", authMiddleware, createExam);
+router.get("/exams/:examId", authMiddleware, getSingleExam);
+router.put("/exams/:examId", authMiddleware, updateExam);
+router.delete("/exams/:examId", authMiddleware, deleteExam);
+router.get("/exams/:examId/submissions", authMiddleware, getExamSubmissions);
 router.get("/test", (req, res) => {
   console.log("/api/teacher/test HIT");
   res.send("Hello from teacher route");
 });
-router.get('/dashboard-stats', authMiddleware, getTeacherDashboardStats);
+//
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
-
+router.post("/initiate-evaluation", authMiddleware, initiatePeerEvaluation);
 export default router;
