@@ -94,26 +94,6 @@ const StudentDashboard = () => {
         navigate("/login");
     }
 
-    // Checks if the user is student or not.
-    useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/");
-      return;
-    }
-    axios.get("http://localhost:5000/api/student/profile", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then(res => {
-      if (res.data.role !== "student") {
-        navigate("/");
-      }
-    })
-    .catch(() => {
-      navigate("/");
-    });
-  }, [navigate]);
-
     useEffect(() => {
         // Apply or remove 'dark' class from the document HTML element
         if (darkMode) {
