@@ -1,25 +1,30 @@
-import { Request, Response } from "express";
-import { User } from "../../models/User.ts";
+import { Response } from "express";
 import { Batch } from "../../models/Batch.ts";
 import { Exam } from "../../models/Exam.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
-// Returns count of courses, batches, and exams for the teacher dashboard
 export const getTeacherDashboardStats = async (
   req: AuthenticatedRequest,
   res: Response
-) => {
+): Promise<void> => {
   try {
     const user = req.user;
     if (!user || user.role !== "teacher") {
       res.status(403).json({ message: "Access denied: Teacher only." });
+      return;
     }
 
-    const teacher = await User.findById(user._id).select("enrolledCourses");
-    const courseIds = teacher?.enrolledCourses || [];
-    const coursesCount = Array.isArray(courseIds) ? courseIds.length : 0;
+    // 🔍 Find all batches where the user is instructor
+    const batches = await Batch.find({ instructor: user._id }).select("course");
 
-    const batchesCount = await Batch.countDocuments({ instructor: user._id });
+    // 🧠 Create a set of unique course IDs
+    const courseSet = new Set<string>();
+    batches.forEach((batch) => {
+      if (batch.course) courseSet.add(batch.course.toString());
+    });
+
+    const coursesCount = courseSet.size;
+    const batchesCount = batches.length;
     const examsCount = await Exam.countDocuments({ createdBy: user._id });
 
     res.json({
@@ -29,6 +34,7 @@ export const getTeacherDashboardStats = async (
       examsCount,
     });
   } catch (err) {
+    console.error("Dashboard stats error:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
