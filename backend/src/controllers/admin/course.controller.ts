@@ -155,9 +155,13 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
 };
 
 
+
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const batches = await Batch.find().populate('course', 'code name').populate('instructor', 'name email');
+    const batches = await Batch.find()
+      .populate('course', 'code name')
+      .populate('instructor', 'name email')
+      .populate('ta', 'name email');
     console.log("All batches:", batches.map(b => ({ id: b._id, name: b.name })));
     res.json(batches);
   } catch (err) {
@@ -210,6 +214,7 @@ export const getAllBatches = async (_req: Request, res: Response): Promise<void>
 //     res.status(500).json({ message: "Failed to create batch", error: err });
 //   }
 // };
+
 // Update a batch
 /*export const updateBatch = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -272,11 +277,10 @@ export const deleteBatchAndRelated = async (req: Request, res: Response) => {
   }
 };
 
-//Create batch with instructor
-
+// Create batch with instructor and optional TA
 export const createBatchWithNames = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { batchName, courseId, instructorId, students } = req.body;
+    const { batchName, courseId, instructorId, taId, students } = req.body;
 
     if (!batchName || !courseId || !instructorId) {
       res.status(400).json({ message: "Batch name, course ID, and instructor ID are required." });
@@ -296,6 +300,16 @@ export const createBatchWithNames = async (req: Request, res: Response): Promise
       return;
     }
 
+    // If taId is provided, verify user
+    let ta = null;
+    if (taId) {
+      ta = await User.findById(taId);
+      if (!ta) {
+        res.status(404).json({ message: "TA not found." });
+        return;
+      }
+    }
+
     // Check for duplicate batch
     const existing = await Batch.findOne({ name: batchName, course: courseId });
     if (existing) {
@@ -303,13 +317,15 @@ export const createBatchWithNames = async (req: Request, res: Response): Promise
       return;
     }
 
-    // Create batch with optional students array
+    // Create batch
     const batch = await Batch.create({
       name: batchName,
       course: courseId,
       instructor: instructorId,
+      ta: taId ?? null, // <-- always set ta explicitly to null if not provided
       students: students || [],
     });
+
 
     res.status(201).json({ message: "Batch created successfully", batch });
   } catch (err) {
