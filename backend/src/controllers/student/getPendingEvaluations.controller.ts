@@ -4,6 +4,8 @@ import { Evaluation } from "../../models/Evaluation.ts";
 import { Submission } from "../../models/Submission.ts";
 import { generatePdfToken } from "../../utils/pdfToken.ts"; // ✅ Import token generator
 
+const PORT = process.env.PORT || 5000;
+
 export const getPendingEvaluations = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -61,7 +63,7 @@ export const getPendingEvaluations = async (
           },
           submissionId: submission ? submission._id : null,
           pdfUrl: submission
-            ? `http://localhost:5000/api/student/submission-pdf/${submission._id}`
+            ? `http://localhost:${PORT}/api/student/submission-pdf/${submission._id}`
             : null,
         };
       })
