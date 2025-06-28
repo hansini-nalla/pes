@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { FiDownload, FiUserPlus } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import Papa from "papaparse";
 
 interface Batch {
   _id: string;
@@ -29,11 +28,13 @@ const palette = {
 
 const TeacherCourses = () => {
   const [courses, setCourses] = useState<Course[] | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
-  const [csvData, setCsvData] = useState<{ name: string; email: string }[]>([]);
-  const [message, setMessage] = useState<string | null>(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollCourse, setEnrollCourse] = useState("");
+  const [enrollBatch, setEnrollBatch] = useState("");
+  const [csvStudents, setCsvStudents] = useState<{ name: string; email: string }[]>([]);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [enrollError, setEnrollError] = useState("");
+  const [enrollSuccess, setEnrollSuccess] = useState(false);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -51,48 +52,120 @@ const TeacherCourses = () => {
     fetchCourses();
   }, []);
 
-  const handleDownloadCSV = (course: Course, batch: Batch) => {
-    const csv = `Name,Email,Course,Batch\nJohn Doe,john@example.com,${course.name},${batch.name}`;
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${course.name}_${batch.name}_students.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDownloadCSV = async (course: Course, batch: Batch) => {
+    const token = localStorage.getItem("token");
+    const PORT = 5000;
+    try {
+      const response = await fetch(`http://localhost:${PORT}/api/teacher/batch/${batch._id}/students`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      const students = Array.isArray(data) ? data : data.students;
+
+      if (!Array.isArray(students)) {
+        alert("Unexpected response from server.");
+        return;
+      }
+
+      let csv = "Name,Email,Course,Batch\n";
+      students.forEach((s: { name: string; email: string }) => {
+        csv += `"${s.name}","${s.email}","${course.name}","${batch.name}"\n`;
+      });
+
+      if (students.length === 0) {
+        csv += "No students enrolled,,,\n";
+      }
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${course.name}_${batch.name}_students.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Could not download student list.");
+    }
   };
 
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        setCsvData(results.data as { name: string; email: string }[]);
-      },
-    });
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split("\n").filter(line => line.trim() !== "");
+      const data = lines.slice(1).map(line => {
+        const [name, email] = line.split(",").map(s => s.trim().replace(/^"|"$/g, ""));
+        return { name, email };
+      });
+      setCsvStudents(data);
+      setCsvFileName(file.name);
+      setEnrollError("");
+    };
+    reader.readAsText(file);
   };
 
-  const handleEnroll = async () => {
-    if (!selectedCourse || !selectedBatch || csvData.length === 0) return;
+  const handleEnrollStudent = (course: string, batch: string) => {
+    setEnrollCourse(course);
+    setEnrollBatch(batch);
+    setCsvFileName('');
+    setEnrollError('');
+    setCsvStudents([]);
+    setShowEnrollModal(true);
+  };
+
+  const handleEnrollSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (csvStudents.length === 0) {
+      setEnrollError("Please upload a CSV file.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(
-        "http://localhost:5000/api/teacher/enroll",
-        {
-          courseId: selectedCourse._id,
-          batchId: selectedBatch._id,
-          students: csvData,
+      const courseObj = courses?.find(c => c.name === enrollCourse);
+      const batchObj = courseObj?.batches.find(b => b.name === enrollBatch);
+
+      if (!courseObj || !batchObj) {
+        setEnrollError("Course or batch not found.");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/api/teacher/enroll`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
         },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setMessage(res.data.message || "Enrolled successfully!");
-      setTimeout(() => setShowModal(false), 1500);
-    } catch (err: any) {
-      setMessage(err.response?.data?.error || "Error enrolling students");
+        body: JSON.stringify({
+          courseId: courseObj._id,
+          batchId: batchObj._id,
+          students: csvStudents
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enroll students');
+      }
+
+      setEnrollSuccess(true);
+      setTimeout(() => {
+        setShowEnrollModal(false);
+        setCsvStudents([]);
+        setCsvFileName('');
+        setEnrollError('');
+        setEnrollSuccess(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      setEnrollError("Something went wrong. Please try again.");
     }
   };
 
@@ -137,13 +210,7 @@ const TeacherCourses = () => {
                       <motion.button
                         className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
                         style={{ backgroundColor: palette['accent-bright-yellow'], color: palette['text-dark'], boxShadow: `0 4px 15px ${palette['accent-bright-yellow']}40` }}
-                        onClick={() => {
-                          setSelectedCourse(course);
-                          setSelectedBatch(batch);
-                          setShowModal(true);
-                          setMessage(null);
-                          setCsvData([]);
-                        }}
+                        onClick={() => handleEnrollStudent(course.name, batch.name)}
                       >
                         <FiUserPlus className="text-lg" />
                         Enroll Student
@@ -165,9 +232,9 @@ const TeacherCourses = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Enroll Modal */}
       <AnimatePresence>
-        {showModal && (
+        {showEnrollModal && (
           <motion.div
             className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm z-50"
             initial={{ opacity: 0 }}
@@ -182,35 +249,42 @@ const TeacherCourses = () => {
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
             >
               <h3 className="text-xl font-bold mb-4" style={{ color: palette['text-dark'] }}>
-                Upload CSV for {selectedCourse?.name} - {selectedBatch?.name}
+                Upload CSV for {enrollCourse} - {enrollBatch}
               </h3>
-              <input
-                type="file"
-                accept=".csv"
-                onChange={handleCSVUpload}
-                className="mb-4 w-full border border-gray-300 p-2 rounded"
-              />
-              {csvData.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm mb-2 font-semibold" style={{ color: palette['text-muted'] }}>
-                    Preview ({csvData.length} students):
-                  </p>
-                  <ul className="text-sm max-h-40 overflow-y-auto list-disc pl-5 text-gray-700">
-                    {csvData.map((s, idx) => (
-                      <li key={idx}>{s.name} ({s.email})</li>
-                    ))}
-                  </ul>
+              <form onSubmit={handleEnrollSubmit}>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleCSVUpload}
+                  className="mb-4 w-full border border-gray-300 p-2 rounded"
+                />
+                {csvStudents.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm mb-2 font-semibold" style={{ color: palette['text-muted'] }}>
+                      Preview ({csvStudents.length} students):
+                    </p>
+                    <ul className="text-sm max-h-40 overflow-y-auto list-disc pl-5 text-gray-700">
+                      {csvStudents.map((s, idx) => (
+                        <li key={idx}>{s.name} ({s.email})</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {enrollError && (
+                  <p className="text-sm text-red-600 font-semibold mb-2">{enrollError}</p>
+                )}
+                {enrollSuccess && (
+                  <p className="text-sm text-green-600 font-semibold mb-2">Enrolled successfully!</p>
+                )}
+                <div className="flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowEnrollModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border" style={{ color: palette['text-muted'] }}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: palette['sidebar-bg'], color: palette['text-dark'] }}>
+                    Confirm Upload
+                  </button>
                 </div>
-              )}
-              {message && <p className="text-sm font-semibold mb-2" style={{ color: palette['text-muted'] }}>{message}</p>}
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setShowModal(false)} className="px-4 py-2 rounded-lg text-sm font-medium border" style={{ color: palette['text-muted'] }}>
-                  Cancel
-                </button>
-                <button onClick={handleEnroll} className="px-4 py-2 rounded-lg text-sm font-semibold" style={{ backgroundColor: palette['sidebar-bg'], color: palette['text-dark'] }}>
-                  Confirm Upload
-                </button>
-              </div>
+              </form>
             </motion.div>
           </motion.div>
         )}
