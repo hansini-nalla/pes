@@ -5,7 +5,7 @@ export interface IBatch extends Document {
   course: Types.ObjectId;
   instructor: Types.ObjectId;
   students: Types.ObjectId[];
-  ta?: Types.ObjectId;
+  ta: Types.ObjectId;
 }
 
 const batchSchema = new Schema<IBatch>({
