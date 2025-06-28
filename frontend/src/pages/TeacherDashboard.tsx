@@ -141,7 +141,7 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollCourse, setEnrollCourse] = useState("");
   const [enrollBatch, setEnrollBatch] = useState("");
-  const [enrolledStudents, setEnrolledStudents] = useState<Record<string, { name: string, email: string }[]>>({});
+  //const [enrolledStudents] = useState<Record<string, { name: string, email: string }[]>>({});
   const [enrollSuccess, setEnrollSuccess] = useState(false);
   const [csvFileName, setCsvFileName] = useState('');
   const [csvStudents, setCsvStudents] = useState<{ name: string, email: string }[]>([]);
@@ -410,60 +410,107 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
     setShowEnrollModal(true);
   };
 
-  const handleEnrollSubmit = (e: React.FormEvent) => {
+  const handleEnrollSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const key = `${enrollCourse}_${enrollBatch}`;
 
     if (csvStudents.length === 0) {
       setEnrollError("Please upload a CSV file.");
       return;
     }
 
-    setEnrolledStudents(prev => ({
-      ...prev,
-      [key]: [
-        ...(prev[key] || []),
-        ...csvStudents.filter(
-          s => !(prev[key] || []).some(
-            ex => ex.email.toLowerCase() === s.email.toLowerCase() && ex.name.toLowerCase() === s.name.toLowerCase()
-          )
-        )
-      ]
-    }));
+    try {
+      const courseObj = courses.find(c => c.name === enrollCourse);
+      const batchObj = batches.find(b => b.name === enrollBatch && b.courseId === courseObj?.id);
 
-    setEnrollSuccess(true);
-    setTimeout(() => {
-      setShowEnrollModal(false);
-      setEnrollSuccess(false);
-      setCsvStudents([]);
-      setCsvFileName('');
-      setEnrollError('');
-    }, 1000);
-  };
+      if (!courseObj || !batchObj) {
+        setEnrollError("Course or batch not found.");
+        return;
+      }
 
-  const downloadCSV = (course: string, batch: string) => {
-    const key = `${course}_${batch}`;
-    const students = enrolledStudents[key] || [];
-    let csv = "Name,Email,Course,Batch\n";
-    students.forEach(s => {
-      csv += `"${s.name}","${s.email}","${course}","${batch}"\n`;
-    });
-    if (students.length === 0) {
-      csv += "No students enrolled,,,\n";
+      const response = await fetch(`http://localhost:${PORT}/api/teacher/enroll`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          courseId: courseObj.id,
+          batchId: batchObj.id,
+          students: csvStudents
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to enroll students');
+      }
+
+      setEnrollSuccess(true);
+      setTimeout(() => {
+        setShowEnrollModal(false);
+        setCsvStudents([]);
+        setCsvFileName('');
+        setEnrollError('');
+        setEnrollSuccess(false);
+      }, 1000);
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      setEnrollError("Something went wrong. Please try again.");
     }
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${course}_${batch}_students.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
+
+
+  const downloadCSV = async (courseName: string, batchName: string) => {
+    const courseId = courses.find(c => c.name === courseName)?.id;
+    const batchId = batches.find(b => b.name === batchName && b.courseId === courseId)?.id;
+
+    if (!courseId || !batchId) {
+      alert("Course or batch not found");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:${PORT}/api/teacher/batch/${batchId}/students`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      console.log("Fetched students for CSV:", data);
+
+      // Handle wrong shape
+      const students = Array.isArray(data) ? data : data.students;
+      if (!Array.isArray(students)) {
+        alert("Unexpected response from server.");
+        return;
+      }
+
+      let csv = "Name,Email,Course,Batch\n";
+      students.forEach((s: { name: string, email: string }) => {
+        csv += `"${s.name}","${s.email}","${courseName}","${batchName}"\n`;
+      });
+
+      if (students.length === 0) {
+        csv += "No students enrolled,,,\n";
+      }
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${courseName}_${batchName}_students.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Download failed:", error);
+      alert("Could not download student list.");
+    }
+};
+
+
 
   const fetchAllUsers = () => {
-    fetch(`http://localhost:${PORT}/api/teacher/users`)
+    fetch(`http://localhost:${PORT}/api/admin/users`)
       .then(res => res.json())
       .then(data => {
         setAllUsers(data);
@@ -476,7 +523,7 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   }, []);
 
   const handleRoleUpdate = () => {
-    fetch(`http://localhost:${PORT}/api/teacher/update-role`, {
+    fetch(`http://localhost:${PORT}/api/admin/update-role`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
