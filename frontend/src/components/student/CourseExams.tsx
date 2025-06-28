@@ -1,7 +1,7 @@
 // frontend/src/components/student/CourseExams.tsx
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
@@ -32,6 +32,28 @@ const fetchExams = async (courseId: string): Promise<Exam[]> => {
   return data.exams;
 };
 
+const formatIST = (utcDate: string) =>
+  new Date(utcDate).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+const getCountdown = (target: string) => {
+  const now = new Date();
+  const diff = new Date(target).getTime() - now.getTime();
+  if (diff <= 0) return null;
+
+  const totalSecs = Math.floor(diff / 1000);
+  const hrs = Math.floor(totalSecs / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+};
+
 const CourseExams = ({ courseId, onBack }: Props) => {
   const { data: exams, isLoading, error } = useQuery({
     queryKey: ['courseExams', courseId],
@@ -42,7 +64,13 @@ const CourseExams = ({ courseId, onBack }: Props) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
   const [viewingQuestions, setViewingQuestions] = useState<Exam | null>(null);
+  const [now, setNow] = useState<Date>(new Date());
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleButtonClick = (examId: string) => {
     setActiveExamId(examId);
@@ -89,16 +117,12 @@ const CourseExams = ({ courseId, onBack }: Props) => {
     }
   };
 
-  // Reusable Tailwind gradients and shadows
   const cardShadow = `0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 25px rgba(0, 0, 0, 0.08)`;
   const cardHoverShadow = `0 10px 20px rgba(0, 0, 0, 0.1), 0 20px 40px rgba(0, 0, 0, 0.12)`;
   const cardBeforeGradient = 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)';
   const buttonBg = 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)';
-  //const buttonHoverBg = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
   const buttonShadow = '0 4px 12px rgba(45, 55, 72, 0.3)';
   const buttonHoverShadow = '0 8px 20px rgba(102, 126, 234, 0.4)';
-
-  // Common Tailwind classes for a card
   const commonCardClasses = `
     bg-white rounded-2xl p-8 border border-black/10 shadow-[${cardShadow}]
     transition-all duration-300 ease-in-out relative overflow-hidden
@@ -124,16 +148,13 @@ const CourseExams = ({ courseId, onBack }: Props) => {
   const modalOverlayBg = 'rgba(0,0,0,0.5)';
   const modalContentBg = 'white';
 
-
   if (isLoading) return <div className="text-center p-4 text-gray-700">Loading exams...</div>;
   if (error) return <div className="text-center p-4 text-red-600">Failed to load exams.</div>;
-
-  const now = new Date();
 
   return (
     <div className="grid grid-cols-fill-minmax-300 gap-8 relative z-10 sm:grid-cols-1 sm:gap-5">
       <button
-        className={`${commonButtonClasses} mb-4 w-fit`} // Added w-fit to prevent full width
+        className={`${commonButtonClasses} mb-4 w-fit`}
         onClick={onBack}
         style={{ background: buttonBg }}
       >
@@ -146,16 +167,28 @@ const CourseExams = ({ courseId, onBack }: Props) => {
         const isEnded = new Date(exam.endTime) < now;
         const canSubmit = isStarted && !isEnded;
 
+        const countdownText = !isStarted
+          ? `Starts in ${getCountdown(exam.startTime)}`
+          : !isEnded
+          ? `Ends in ${getCountdown(exam.endTime)}`
+          : null;
+
         return (
           <div key={exam._id} className={commonCardClasses}>
             <div className={commonCardBeforeClasses} style={{ background: cardBeforeGradient }}></div>
             <h3 className="mb-4 text-xl font-bold tracking-tight text-gray-900">{exam.title}</h3>
             <p className="text-gray-700 text-base leading-relaxed mb-1">Batch: {exam.batch?.name}</p>
-            <p className="text-gray-700 text-base leading-relaxed mb-4">
-              {new Date(exam.startTime).toLocaleString()} →{' '}
-              {new Date(exam.endTime).toLocaleString()}
+            <p
+              className="text-gray-700 text-sm leading-relaxed mb-1"
+              title="Times shown in IST (Asia/Kolkata)"
+            >
+              <span className="font-semibold">⏰</span> {formatIST(exam.startTime)} → {formatIST(exam.endTime)}
             </p>
-
+            {countdownText && (
+              <p className="text-xs font-medium text-indigo-600 mt-[-0.2rem] mb-3 italic">
+                {countdownText}
+              </p>
+            )}
             <button
               className={`${commonButtonClasses} mt-2`}
               onClick={() => setViewingQuestions(exam)}
@@ -165,7 +198,6 @@ const CourseExams = ({ courseId, onBack }: Props) => {
               <span className={commonButtonBeforeClasses}></span>
               {isStarted ? 'View Questions' : 'Locked'}
             </button>
-
 
             <button
               className={`${commonButtonClasses} mt-2`}
@@ -206,7 +238,6 @@ const CourseExams = ({ courseId, onBack }: Props) => {
         );
       })}
 
-      {/* 🧠 Question Modal */}
       {viewingQuestions && (
         <div
           className="fixed inset-0 w-screen h-screen flex justify-center items-center z-[1000]"
