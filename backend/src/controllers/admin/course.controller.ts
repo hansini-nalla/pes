@@ -252,30 +252,30 @@ export const deleteBatch = async (req: Request, res: Response): Promise<void> =>
 };
 
 // Delete a batch and remove references
-export const deleteBatchAndRelated = async (req: Request, res: Response) => {
-  try {
-    const { batchId } = req.params;
+// export const deleteBatchAndRelated = async (req: Request, res: Response) => {
+//   try {
+//     const { batchId } = req.params;
 
-    await Batch.findByIdAndDelete(batchId);
+//     await Batch.findByIdAndDelete(batchId);
 
-    await Course.updateMany(
-      { batches: batchId },
-      { $pull: { batches: batchId } }
-    );
+//     await Course.updateMany(
+//       { batches: batchId },
+//       { $pull: { batches: batchId } }
+//     );
 
-    await User.updateMany(
-      { role: "teacher", batches: batchId },
-      { $pull: { batches: batchId } }
-    );
+//     await User.updateMany(
+//       { role: "teacher", batches: batchId },
+//       { $pull: { batches: batchId } }
+//     );
 
-    // Optional cleanup: await Exam.deleteMany({ batch: batchId });
-    // Optional cleanup: await Flag.deleteMany({ batch: batchId });
+//     // Optional cleanup: await Exam.deleteMany({ batch: batchId });
+//     // Optional cleanup: await Flag.deleteMany({ batch: batchId });
 
-    res.status(200).json({ message: "Batch and related data deleted." });
-  } catch (error) {
-    res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
-  }
-};
+//     res.status(200).json({ message: "Batch and related data deleted." });
+//   } catch (error) {
+//     res.status(500).json({ error: error instanceof Error ? error.message : String(error) });
+//   }
+// };
 
 // Create batch with instructor and optional TA
 export const createBatchWithNames = async (req: Request, res: Response): Promise<void> => {
