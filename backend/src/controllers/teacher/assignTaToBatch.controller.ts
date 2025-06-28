@@ -10,33 +10,34 @@ export const assignTaToBatch = async (
 ): Promise<void> => {
   try {
     const { batchId } = req.params;
-    const { taEmail } = req.body;
+    const { studentId } = req.body;
 
-    // Find the TA by email and role
-    const ta = await User.findOne({ email: taEmail, role: "ta" });
-    if (!ta) {
-      res.status(404).json({ message: "TA not found" });
-      return;
-    }
-
-    // Find the batch
     const batch = await Batch.findById(batchId);
     if (!batch) {
       res.status(404).json({ message: "Batch not found" });
       return;
     }
 
-    // Ensure the requesting user is the instructor for this batch
     if (batch.instructor.toString() !== req.user._id.toString()) {
       res.status(403).json({ message: "Not authorized to modify this batch" });
       return;
     }
 
-    // Assign the TA to the batch (cast to ObjectId)
-    batch.ta = ta._id as Types.ObjectId;
+    const student = await User.findOne({ _id: studentId, role: "student" });
+    if (!student) {
+      res.status(404).json({ message: "Student not found" });
+      return;
+    }
+
+    // ✅ Promote student to TA
+    student.role = "ta";
+    await student.save();
+
+    // ✅ Assign TA to batch
+    batch.ta = student._id as Types.ObjectId;
     await batch.save();
 
-    res.json({ message: "TA assigned successfully", batch });
+    res.json({ message: "Student promoted to TA and assigned to batch", batch });
   } catch (err) {
     console.error("Assign TA Error:", err);
     res.status(500).json({ message: "Failed to assign TA" });
