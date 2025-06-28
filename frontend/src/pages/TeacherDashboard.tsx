@@ -7,55 +7,54 @@ import {
   FiSend, FiTrash2, FiSun, FiMoon
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 
 // Assuming VITE_BACKEND_PORT is correctly configured in your .env file
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 // Custom "Pinkish, Lilac, Purple & Yellow" Palette - Revised Mix (Light Mode)
 const lightPalette = {
-    'bg-primary': '#FFFBF6',         // Very Light Creamy Yellow (dominant background)
-    'bg-secondary': '#FFFAF2',       // Slightly darker creamy yellow (for card/section backgrounds)
-    'accent-bright-yellow': '#FFD700', // Bright Gold/Yellow (main energetic accent)
-    'accent-light-yellow': '#FFECB3', // Lighter Yellow (for subtle use)
-    'accent-pink': '#FF8DA1',        // Primary Pink Accent
-    'accent-lilac': '#C8A2C8',       // Soft Lilac (modern cool accent)
-    'accent-purple': '#800080',      // Deep Purple (primary purple accent)
-    'accent-light-purple': '#DDA0DD', // Medium Lilac/Purple (for subtle use)
-    'sidebar-bg': '#E6E6FA',         // Lavender Blush (sidebar background)
-    'text-dark': '#4B0082',          // Indigo (Very Dark Purple for primary text on light backgrounds)
-    'text-muted': '#A9A9A9',         // Dark Gray (Medium Gray for secondary text/borders)
-    'text-sidebar-dark': '#4B0082', // Dark text for sidebar for contrast on light lavender
-    'border-soft': '#F0E6EF',        // Very Light Pinkish-Purple for subtle borders
-    'shadow-light': 'rgba(128, 0, 128, 0.04)',  // Very light, subtle purple shadows
-    'shadow-medium': 'rgba(128, 0, 128, 0.08)', // Medium subtle purple shadows
-    'shadow-strong': 'rgba(128, 0, 128, 0.15)', // Stronger subtle purple shadows
-    'white': '#FFFFFF',               // Add white for button text
-    'success-green': '#6ddf99',       // Added for success messages/icons
-    'success-text': '#235d3a',        // Added for success text color
+  'bg-primary': '#FFFBF6',         // Very Light Creamy Yellow (dominant background)
+  'bg-secondary': '#FFFAF2',       // Slightly darker creamy yellow (for card/section backgrounds)
+  'accent-bright-yellow': '#FFD700', // Bright Gold/Yellow (main energetic accent)
+  'accent-light-yellow': '#FFECB3', // Lighter Yellow (for subtle use)
+  'accent-pink': '#FF8DA1',        // Primary Pink Accent
+  'accent-lilac': '#C8A2C8',       // Soft Lilac (modern cool accent)
+  'accent-purple': '#800080',      // Deep Purple (primary purple accent)
+  'accent-light-purple': '#DDA0DD', // Medium Lilac/Purple (for subtle use)
+  'sidebar-bg': '#E6E6FA',         // Lavender Blush (sidebar background)
+  'text-dark': '#4B0082',          // Indigo (Very Dark Purple for primary text on light backgrounds)
+  'text-muted': '#A9A9A9',         // Dark Gray (Medium Gray for secondary text/borders)
+  'text-sidebar-dark': '#4B0082', // Dark text for sidebar for contrast on light lavender
+  'border-soft': '#F0E6EF',        // Very Light Pinkish-Purple for subtle borders
+  'shadow-light': 'rgba(128, 0, 128, 0.04)',  // Very light, subtle purple shadows
+  'shadow-medium': 'rgba(128, 0, 128, 0.08)', // Medium subtle purple shadows
+  'shadow-strong': 'rgba(128, 0, 128, 0.15)', // Stronger subtle purple shadows
+  'white': '#FFFFFF',               // Add white for button text
+  'success-green': '#6ddf99',       // Added for success messages/icons
+  'success-text': '#235d3a',        // Added for success text color
 };
 
 // **FINAL CORRECTION: UPDATED DARK PALETTE for distinct blue shades**
 const darkPalette = {
-    'bg-primary': '#212A3E',         // Deep Blue-Gray for main background (distinctly blue)
-    'bg-secondary': '#394867',       // Slightly lighter blue-gray for cards/sections
-    'accent-bright-yellow': '#FFEB3B', // Keep accents vibrant
-    'accent-light-yellow': '#FFEE58',
-    'accent-pink': '#EC407A',
-    'accent-lilac': '#BB86FC',       // More vibrant lilac for dark mode
-    'accent-purple': '#9C27B0',      // Deeper purple
-    'accent-light-purple': '#CE93D8',
-    'sidebar-bg': '#19202D',         // Even darker, slightly desaturated blue for sidebar
-    'text-dark': '#E0E0E0',          // Light grey for primary text
-    'text-muted': '#A0A0A0',         // Medium grey for secondary text/borders
-    'text-sidebar-dark': '#FFFFFF',  // White text for dark sidebar for contrast
-    'border-soft': '#4A5568',        // Darker subtle borders
-    'shadow-light': 'rgba(0, 0, 0, 0.3)',
-    'shadow-medium': 'rgba(0, 0, 0, 0.5)',
-    'shadow-strong': 'rgba(0, 0, 0, 0.7)',
-    'white': '#FFFFFF',               // Keep white for button text
-    'success-green': '#4CAF50',
-    'success-text': '#C8E6C9',       // Lighter green for success text on dark background
+  'bg-primary': '#212A3E',         // Deep Blue-Gray for main background (distinctly blue)
+  'bg-secondary': '#394867',       // Slightly lighter blue-gray for cards/sections
+  'accent-bright-yellow': '#FFEB3B', // Keep accents vibrant
+  'accent-light-yellow': '#FFEE58',
+  'accent-pink': '#EC407A',
+  'accent-lilac': '#BB86FC',       // More vibrant lilac for dark mode
+  'accent-purple': '#9C27B0',      // Deeper purple
+  'accent-light-purple': '#CE93D8',
+  'sidebar-bg': '#19202D',         // Even darker, slightly desaturated blue for sidebar
+  'text-dark': '#E0E0E0',          // Light grey for primary text
+  'text-muted': '#A0A0A0',         // Medium grey for secondary text/borders
+  'text-sidebar-dark': '#FFFFFF',  // White text for dark sidebar for contrast
+  'border-soft': '#4A5568',        // Darker subtle borders
+  'shadow-light': 'rgba(0, 0, 0, 0.3)',
+  'shadow-medium': 'rgba(0, 0, 0, 0.5)',
+  'shadow-strong': 'rgba(0, 0, 0, 0.7)',
+  'white': '#FFFFFF',               // Keep white for button text
+  'success-green': '#4CAF50',
+  'success-text': '#C8E6C9',       // Lighter green for success text on dark background
 };
 
 type Palette = typeof lightPalette;
@@ -103,7 +102,7 @@ const AnimatedCount = ({ value }: { value: number }) => {
 
 const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   const token = localStorage.getItem('token');
-
+  console.log(token);
   const [darkMode, setDarkMode] = useState(false); // Dark mode state
   const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
 
@@ -235,17 +234,33 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   };
 
   useEffect(() => {
-    fetch(`http://localhost:${PORT}/api/dashboard/counts`)
-      .then(res => res.json())
-      .then(data => {
-        setCounts({
-          courses: data.courses,
-          batches: data.batches,
-          exams: data.exams,
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await fetch(`http://localhost:${PORT}/api/teacher/dashboard-stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
-      })
-      .catch(err => console.error('Failed to fetch dashboard counts:', err));
-  }, []);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard stats');
+        }
+
+        const data = await response.json();
+
+        setCounts({
+          courses: data.coursesCount,
+          batches: data.batchesCount,
+          exams: data.activeExamsCount
+        });
+
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    fetchDashboardStats();
+  }, [token]);  // Added token as dependency
 
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
@@ -266,19 +281,54 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   }, []);
 
   useEffect(() => {
-    fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setCourseBatchList(data);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch teacher courses:', err);
-      });
-  }, []);
+    const fetchTeacherCourses = async () => {
+      try {
+        const response = await fetch(`http://localhost:${PORT}/api/teacher/courses`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch teacher courses');
+        }
+
+        const { courses } = await response.json();
+        console.log(courses);
+        // Transform the data to match your CourseBatchItem interface
+        const formattedData = courses.flatMap((course: any) =>
+          course.batches.map((batch: any) => ({
+            courseId: course._id,
+            courseName: course.name,
+            batchId: batch._id,
+            batchName: batch.name
+          }))
+        );
+
+        setCourseBatchList(formattedData);
+
+        // Extract unique courses and batches for dropdowns
+        setCourses(courses.map((course: any) => ({
+          id: course._id,
+          name: course.name
+        })));
+
+        setBatches(courses.flatMap((course: any) =>
+          course.batches.map((batch: any) => ({
+            id: batch._id,
+            name: batch.name,
+            courseId: course._id  // Added courseId reference for filtering
+          }))
+        ));
+
+      } catch (error) {
+        console.error('Error fetching teacher courses:', error);
+        // Optionally set error state here
+      }
+    };
+
+    fetchTeacherCourses();
+  }, [token]);
 
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/teacher/teacher-courses`, {
@@ -315,7 +365,7 @@ const TeacherDashboard = ({ onLogout }: { onLogout?: () => void }) => {
   };
 
   const handleExamSchedule = () => {
-    fetch(`http://localhost:${PORT}/api/teacher/schedule-exam`, {
+    fetch(`http://localhost:${PORT}/api/teacher/exams`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
