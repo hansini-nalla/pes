@@ -24,7 +24,6 @@ function assignBalancedEvaluations(
 
   return assignments;
 }
-
 export const initiatePeerEvaluation = async (
   req: AuthenticatedRequest,
   res: Response
@@ -34,36 +33,41 @@ export const initiatePeerEvaluation = async (
     const { examId } = req.body;
 
     if (!teacherId || req.user.role !== "teacher") {
-      res.status(403).json({ message: "Only teachers can initiate evaluation." });
+      res
+        .status(403)
+        .json({ message: "Only teachers can initiate evaluation." });
       return;
     }
 
-    const exam = await Exam.findById(examId);
+    const exam = await Exam.findById(examId).select("batch k");
     if (!exam) {
       res.status(404).json({ message: "Exam not found." });
       return;
     }
 
-    if (exam.createdBy.toString() !== teacherId.toString()) {
-      res.status(403).json({ message: "You are not the creator of this exam." });
-      return;
-    }
-
-    const batch = await Batch.findById(exam.batch);
+    const batch = await Batch.findById(exam.batch).select("instructor");
     if (!batch) {
       res.status(404).json({ message: "Batch not found." });
       return;
     }
 
+    if (batch.instructor.toString() !== teacherId.toString()) {
+      res
+        .status(403)
+        .json({ message: "You are not the instructor for this batch." });
+      return;
+    }
+
     const submissions = await Submission.find({ exam: examId });
-    const submittedStudents = submissions.map(sub => sub.student.toString());
+    const submittedStudents = submissions.map((sub) => sub.student.toString());
 
     const k = exam.k;
     const n = submittedStudents.length;
 
     if (typeof k !== "number" || k < 1 || k >= n) {
       res.status(400).json({
-        message: "k must be a positive integer less than number of submitted students.",
+        message:
+          "k must be a positive integer less than number of submitted students.",
       });
       return;
     }
@@ -91,7 +95,8 @@ export const initiatePeerEvaluation = async (
     await Evaluation.insertMany(evalsToInsert);
 
     res.status(200).json({
-      message: "Peer evaluation initiated with balanced randomized assignments.",
+      message:
+        "Peer evaluation initiated with balanced randomized assignments.",
       totalEvaluations: evalsToInsert.length,
     });
   } catch (err) {
