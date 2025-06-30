@@ -7,6 +7,7 @@ export interface ITicket extends Document {
   exam: Types.ObjectId;
   message: string;
   status: "open" | "closed";
+  escalatedToTeacher: boolean; //escalted tickets :false
   createdAt: Date;
 }
 
@@ -17,6 +18,7 @@ const ticketSchema = new Schema<ITicket>({
   exam: { type: Schema.Types.ObjectId, ref: "Exam", required: true },
   message: { type: String, required: true },
   status: { type: String, enum: ["open", "closed"], default: "open" },
+  escalatedToTeacher: { type: Boolean, default: false },// escalated tickets
   createdAt: { type: Date, default: Date.now },
 });
 

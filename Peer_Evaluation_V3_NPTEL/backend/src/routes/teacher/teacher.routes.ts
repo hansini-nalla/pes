@@ -1,6 +1,8 @@
 console.log("✅ teacher.routes.ts loaded");
 
 import { Router } from "express";
+import { getAllEscalatedTickets, resolveTicket } from "../../controllers/teacher/teacherEscalatedTicket.controller.ts";
+
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
 import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
 import { getExamsByCourse } from "../../controllers/teacher/getExamsByCourse.controller.ts";
@@ -47,4 +49,8 @@ router.post('/batch/:batchId/assign-ta',authMiddleware,assignTaToBatch);
 router.get("/students", authMiddleware, getAllStudents);
 router.post('/enroll', authMiddleware, enrollStudents);
 router.get('/batch/:batchId/students', authMiddleware, getBatchStudents2);
+
+//Escalated Tickets
+router.get("/escalated-tickets", authMiddleware, getAllEscalatedTickets);
+router.put("/resolve-ticket/:ticketId", authMiddleware, resolveTicket);
 export default router;
