@@ -60,7 +60,7 @@ app.use('/api/ta', taRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use("/api/admin/courses", admincourseroutes);
-app.use('/api/teacher', teacherEnrollRoutes);
+//app.use('/api/teacher', teacherEnrollRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
