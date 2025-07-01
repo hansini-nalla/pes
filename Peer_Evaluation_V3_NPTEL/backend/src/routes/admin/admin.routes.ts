@@ -39,7 +39,7 @@ router.get('/users', async (_req: Request, res: Response) => {
   }
 });
 
-router.post('/update-role', async (req: Request, res: Response) => {
+router.put('/update-role', async (req: Request, res: Response) => {
   const { email, role } = req.body;
 
   if (!email || !role) {
@@ -75,7 +75,7 @@ router.get('/courses/',authMiddleware,authorizeRoles("admin"), getAllCourses);
 router.delete("/batches/:id",authMiddleware,authorizeRoles("admin"),deleteBatch);
 router.get('/batches/',authMiddleware,authorizeRoles("admin"), getAllBatches);
 //router.get('/batches/:id',authMiddleware,authorizeRoles("admin"), getBatchById);
-router.put('/update-student-ta-role', updateStudentTaRole);
+router.put("/update-role", updateStudentTaRole);
 router.post('/create-batch-with-names', createBatchWithNames);
 router.delete("/:courseId", deleteCourseAndBatches);
 export default router;
