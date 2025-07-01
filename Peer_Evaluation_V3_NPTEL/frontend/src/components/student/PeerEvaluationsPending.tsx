@@ -20,6 +20,7 @@ interface Evaluation {
   };
   submissionId: string | null;
   pdfUrl: string | null;
+  answerKeyUrl?: string | null;
 }
 
 const pastelColors = [
@@ -40,7 +41,8 @@ const PeerEvaluationsPending = () => {
   const [feedback, setFeedback] = useState("");
   const [submitStatus, setSubmitStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [markErrors, setMarkErrors] = useState<string[]>([]);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null); // Student submission
+  const [answerKeyUrl, setAnswerKeyUrl] = useState<string | null>(null); // Answer key
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -72,25 +74,35 @@ const PeerEvaluationsPending = () => {
     setSubmitStatus("idle");
     setMarkErrors(Array(ev.exam.questions.length).fill(""));
     setPdfUrl(null);
+    setAnswerKeyUrl(null);
 
     const collapseBtn = document.querySelector('button:has(svg.text-2xl)') as HTMLButtonElement;
     if (collapseBtn) collapseBtn.click();
 
+    const token = localStorage.getItem("token");
+
     if (ev.submissionId) {
       try {
-        const token = localStorage.getItem("token");
-        const url = `http://localhost:${PORT}/api/student/submission-pdf/${ev.submissionId}`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` }
+        const res = await fetch(`http://localhost:${PORT}/api/student/submission-pdf/${ev.submissionId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const blob = await res.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-          setPdfUrl(blobUrl);
+          setPdfUrl(URL.createObjectURL(blob));
         }
-      } catch {
-        setPdfUrl(null);
-      }
+      } catch {}
+    }
+
+    if (ev.answerKeyUrl) {
+      try {
+        const res = await fetch(ev.answerKeyUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const blob = await res.blob();
+          setAnswerKeyUrl(URL.createObjectURL(blob));
+        }
+      } catch {}
     }
   };
 
@@ -128,10 +140,10 @@ const PeerEvaluationsPending = () => {
     setFeedback("");
     setSubmitStatus("idle");
     setMarkErrors([]);
-    if (pdfUrl) {
-      window.URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
-    }
+    if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    if (answerKeyUrl) URL.revokeObjectURL(answerKeyUrl);
+    setPdfUrl(null);
+    setAnswerKeyUrl(null);
   };
 
   const handleSubmit = async () => {
@@ -221,26 +233,23 @@ const PeerEvaluationsPending = () => {
       {openEval && (
         <div className="fixed inset-0 z-50 backdrop-blur-md bg-white/30 flex items-center justify-center">
           <div className="bg-white rounded-2xl shadow-xl w-[90vw] max-h-[90vh] overflow-auto p-6 flex gap-6">
-            <div className="w-3/5 h-[650px] border rounded-xl overflow-hidden relative">
-              {pdfUrl ? (
-                <>
-                  <iframe
-                    src={pdfUrl}
-                    title="PDF Preview"
-                    className="w-full h-full"
-                  />
-                  <a
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-2 right-2 text-blue-600 underline text-sm bg-white px-2 py-1 rounded shadow"
-                  >
-                    View Larger
-                  </a>
-                </>
-              ) : (
-                <div className="text-gray-500 p-4">No PDF available</div>
-              )}
+            <div className="w-3/5 h-[650px] grid grid-cols-2 gap-2">
+              <div className="border rounded-xl overflow-hidden relative">
+                <div className="text-xs text-center bg-gray-100 py-1 font-semibold">Student Submission</div>
+                {pdfUrl ? (
+                  <iframe src={pdfUrl} title="Student PDF" className="w-full h-full" />
+                ) : (
+                  <div className="text-gray-500 p-4">No submission available</div>
+                )}
+              </div>
+              <div className="border rounded-xl overflow-hidden relative">
+                <div className="text-xs text-center bg-gray-100 py-1 font-semibold">Answer Key</div>
+                {answerKeyUrl ? (
+                  <iframe src={answerKeyUrl} title="Answer Key" className="w-full h-full" />
+                ) : (
+                  <div className="text-gray-500 p-4">No answer key available</div>
+                )}
+              </div>
             </div>
 
             <div className="w-2/5 space-y-4">
