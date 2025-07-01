@@ -122,7 +122,6 @@ export const getExamSubmissions = async (
 };
 
 // Add answer key to an exam
-
 export const uploadAnswerKey = async (
   req: AuthenticatedRequest,
   res: Response
