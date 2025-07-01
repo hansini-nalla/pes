@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type JSX } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiMenu, FiHome, FiShield, FiBook, FiEdit, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
@@ -182,7 +182,8 @@ const TeacherDashboard = () => {
           whileTap={{ scale: 0.98 }}
         >
           <FiLogOut className={`${showSidebar ? "mr-3 text-xl" : "text-3xl"}`} />
-          {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
+          {showSidebar && <span className="font-medium whitespace-nowrap" onClick={() => setShowLogoutConfirm(true)}
+          >Logout</span>}
         </motion.button>
       </motion.div>
 

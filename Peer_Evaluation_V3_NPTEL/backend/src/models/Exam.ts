@@ -13,6 +13,8 @@ export interface IExam extends Document {
   }[];
   createdBy: { type: Schema.Types.ObjectId; ref: "User"; required: true };
   k: number; // Number of peer evaluations per student
+  answerKeyPdf?: Buffer;
+  answerKeyMimeType?: string;
 }
 
 const examSchema = new Schema<IExam>({
@@ -30,6 +32,8 @@ const examSchema = new Schema<IExam>({
   ],
   createdBy: Types.ObjectId,
   k: { type: Number, required: true }, // Add k field
+  answerKeyPdf: { type: Buffer },
+  answerKeyMimeType: { type: String },
 });
 
 export const Exam = model<IExam>("Exam", examSchema);

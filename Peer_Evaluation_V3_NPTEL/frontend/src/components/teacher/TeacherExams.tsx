@@ -143,6 +143,33 @@ export default function TeacherExams() {
     refreshExams();
   };
 
+  const handleUploadAnswerKey = async (examId: string) => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "application/pdf";
+    fileInput.click();
+
+    fileInput.onchange = async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("answerKeyPdf", file);
+
+      try {
+        await axios.post(`http://localhost:${PORT}/api/teacher/${examId}/answer-key`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        setToast({ message: "Answer key uploaded successfully", type: "success" });
+      } catch (error: any) {
+        setToast({ message: error.response?.data?.message || "Upload failed", type: "error" });
+      }
+    };
+  };
+
   return (
     <div className="flex flex-col items-center w-full pt-10 px-6 pb-20">
       <h2 className="text-3xl font-extrabold mb-8 text-center text-purple-800">Manage Exams</h2>
@@ -184,41 +211,47 @@ export default function TeacherExams() {
                 <td className="px-4 py-2">{exam.numQuestions}</td>
                 <td className="px-4 py-2">{exam.k}</td>
                 <td className="px-4 py-2 flex gap-3 items-center">
-  <button
-    onClick={() => openEditForm(exam)}
-    className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 shadow"
-    title="Edit Exam"
-  >
-    <FiEdit className="text-yellow-700" />
-  </button>
+                  <button
+                    onClick={() => openEditForm(exam)}
+                    className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 shadow"
+                    title="Edit Exam"
+                  >
+                    <FiEdit className="text-yellow-700" />
+                  </button>
 
-  <button
-    onClick={() => deleteExam(exam._id)}
-    className="p-2 bg-red-100 rounded-full hover:bg-red-200 shadow"
-    title="Delete Exam"
-  >
-    <FiTrash2 className="text-red-600" />
-  </button>
+                  <button
+                    onClick={() => deleteExam(exam._id)}
+                    className="p-2 bg-red-100 rounded-full hover:bg-red-200 shadow"
+                    title="Delete Exam"
+                  >
+                    <FiTrash2 className="text-red-600" />
+                  </button>
 
-  <button title="Initiate Peer Evaluation"
-  onClick={async () => {
-    try {
-      const res = await axios.post(
-        `http://localhost:${PORT}/api/teacher/initiate-evaluation`,
-        { examId: exam._id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setToast({ message: res.data.message || "Evaluation initiated", type: "success" });
-    } catch (err: any) {
-      setToast({ message: err.response?.data?.message || "Error initiating evaluation", type: "error" });
-    }
-  }}
-  className="group relative p-2 bg-green-100 rounded-full hover:bg-green-200 shadow"
->
-  <FiSend className="text-green-700" />
-</button>
-
-</td>
+                  <button title="Initiate Peer Evaluation"
+                    onClick={async () => {
+                      try {
+                        const res = await axios.post(
+                          `http://localhost:${PORT}/api/teacher/initiate-evaluation`,
+                          { examId: exam._id },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        setToast({ message: res.data.message || "Evaluation initiated", type: "success" });
+                      } catch (err: any) {
+                        setToast({ message: err.response?.data?.message || "Error initiating evaluation", type: "error" });
+                      }
+                    }}
+                    className="group relative p-2 bg-green-100 rounded-full hover:bg-green-200 shadow"
+                  >
+                    <FiSend className="text-green-700" />
+                  </button>
+                  <button
+                    onClick={() => handleUploadAnswerKey(exam._id)}
+                    className="p-2 bg-blue-100 rounded-full hover:bg-blue-200 shadow"
+                    title="Upload Answer Key PDF"
+                  >
+                    📄
+                  </button>
+                </td>
 
               </tr>
             ))}

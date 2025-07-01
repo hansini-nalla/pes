@@ -18,6 +18,8 @@ import { getAllCourses, getStudentCourses, getStudentCoursesWithBatches, getBatc
 import { changePassword } from "../../controllers/student/changePassword.controller.ts";
 import { raiseTicket } from "../../controllers/student/raiseTIcket.controller.ts";
 import {createEnrollment, getStudentEnrollments } from "../../controllers/student/enrollment.controller.ts";
+import { Exam } from "../../models/Exam.ts";
+import { getAnswerKeyPdf } from "../../controllers/student/answerKeyPdf.controller.ts";
 const router = Router();
 const upload = multer();
 
@@ -53,5 +55,6 @@ router.post("/enrollment", authMiddleware, upload.none(), createEnrollment);
 router.get("/enrollment",authMiddleware,getStudentEnrollments);
 router.get("/all-courses",authMiddleware,getAllCourses);
 router.get("/batches-by-course",authMiddleware,getBatchesByCourse);
+router.get("/answer-key/:examId", authMiddleware, getAnswerKeyPdf);
 
 export default router;
