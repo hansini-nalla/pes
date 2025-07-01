@@ -39,7 +39,7 @@ interface Exam {
 }
 
 export default function TeacherExams() {
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [,setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const token = localStorage.getItem("token");
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");

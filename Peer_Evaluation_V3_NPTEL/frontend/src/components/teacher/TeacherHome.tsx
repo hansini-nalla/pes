@@ -1,8 +1,7 @@
 // frontend/src/components/teacher/TeacherHome.tsx
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { FiBook, FiEdit, FiUsers, FiShield } from "react-icons/fi";
-import { motion } from "framer-motion";
+import { FiBook, FiEdit, FiUsers } from "react-icons/fi";
 import { useState } from "react";
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
