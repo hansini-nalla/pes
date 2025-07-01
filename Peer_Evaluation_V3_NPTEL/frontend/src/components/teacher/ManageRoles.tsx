@@ -22,7 +22,8 @@ const ManageRoles = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [message, setMessage] = useState<string | null>(null);
-  const [currentTA, setCurrentTA] = useState<any | null>(null);
+  const [tas, setTAs] = useState<any[]>([]);
+  const [showTAs, setShowTAs] = useState<boolean>(false);
 
   useEffect(() => {
     axios
@@ -38,7 +39,7 @@ const ManageRoles = () => {
     setBatches(course?.batches || []);
     setSelectedBatch("");
     setStudents([]);
-    setCurrentTA(null);
+    setTAs([]);
   }, [selectedCourse]);
 
   useEffect(() => {
@@ -54,8 +55,8 @@ const ManageRoles = () => {
       .get(`http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/ta`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
-      .then((res) => setCurrentTA(res.data.ta))
-      .catch(() => setCurrentTA(null));
+      .then((res) => setTAs(res.data.ta || []))
+      .catch(() => setTAs([]));
   }, [selectedBatch]);
 
   const handleAssignTA = async () => {
@@ -69,16 +70,13 @@ const ManageRoles = () => {
       );
       setMessage(res.data.message || "TA assigned successfully!");
 
-      // 🔄 Refresh current TA
       const taRes = await axios.get(
         `http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/ta`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         }
       );
-      setCurrentTA(taRes.data.ta);
-
-      // ✅ Clear message after 3s
+      setTAs(taRes.data.ta || []);
       setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
       setMessage(err.response?.data?.message || "Error assigning TA");
@@ -119,7 +117,6 @@ const ManageRoles = () => {
           e.preventDefault();
           handleAssignTA();
         }}>
-          {/* Course Selector */}
           <div className="flex flex-col gap-2 w-full">
             <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Course</label>
             <select
@@ -143,7 +140,6 @@ const ManageRoles = () => {
             </select>
           </div>
 
-          {/* Batch Selector */}
           {batches.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Batch</label>
@@ -169,25 +165,40 @@ const ManageRoles = () => {
             </div>
           )}
 
-          {/* Current TA Display */}
-          {currentTA && (
+          {/* Expandable TA List */}
+          {tas.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>
-                Current TA
+                Assigned TA{tas.length > 1 ? "s" : ""}
               </label>
-              <div
-                className="px-4 py-3 rounded-xl border-2 shadow-md bg-white"
-                style={{
-                  borderColor: palette['border-soft'],
-                  color: palette['text-muted'],
-                }}
+              <button
+                type="button"
+                onClick={() => setShowTAs(!showTAs)}
+                className="text-sm underline text-purple-700 hover:text-purple-900 text-left"
               >
-                {currentTA.name} ({currentTA.email})
-              </div>
+                {showTAs ? "Hide TA list" : `View ${tas.length} TA${tas.length > 1 ? "s" : ""}`}
+              </button>
+              <AnimatePresence>
+                {showTAs && (
+                  <motion.ul
+                    className="bg-white border-2 rounded-xl p-4 shadow-inner mt-2 space-y-2"
+                    style={{ borderColor: palette["border-soft"] }}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {tas.map((ta, index) => (
+                      <li key={index} className="text-sm text-purple-800">
+                        {ta.name} ({ta.email})
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
-          {/* Student Selector */}
           {students.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Student</label>
@@ -213,7 +224,6 @@ const ManageRoles = () => {
             </div>
           )}
 
-          {/* Submit Button */}
           <motion.button
             type="submit"
             disabled={!selectedStudent}
@@ -230,7 +240,6 @@ const ManageRoles = () => {
             Assign TA Role
           </motion.button>
 
-          {/* Toast Notification */}
           <AnimatePresence>
             {message && (
               <motion.div

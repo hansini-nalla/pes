@@ -5,7 +5,7 @@ export interface IBatch extends Document {
   course: Types.ObjectId;
   instructor: Types.ObjectId;
   students: Types.ObjectId[];
-  ta: Types.ObjectId;
+  ta: Types.ObjectId[];
 }
 
 const batchSchema = new Schema<IBatch>({
@@ -13,7 +13,7 @@ const batchSchema = new Schema<IBatch>({
   course: { type: Schema.Types.ObjectId, ref: 'Course', required: true },
   instructor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   students: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-  ta: { type: Schema.Types.ObjectId, ref: 'User', required: false },
+  ta: [{ type: Schema.Types.ObjectId, ref: 'User' }]
 });
 
 export const Batch = model<IBatch>('Batch', batchSchema);

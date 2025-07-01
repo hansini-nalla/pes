@@ -38,10 +38,7 @@ router.get("/exams/:examId", authMiddleware, getSingleExam);
 router.put("/exams/:examId", authMiddleware, updateExam);
 router.delete("/exams/:examId", authMiddleware, deleteExam);
 router.get("/exams/:examId/submissions", authMiddleware, getExamSubmissions);
-router.get("/test", (req, res) => {
-  console.log("/api/teacher/test HIT");
-  res.send("Hello from teacher route");
-});
+
 router.post("/:examId/answer-key", authMiddleware, upload.single("answerKeyPdf"), uploadAnswerKey);
 
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);

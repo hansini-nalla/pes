@@ -28,12 +28,20 @@ export const assignTaToBatch = async (
       res.status(404).json({ message: "Student not found" });
       return;
     }
-
-    // ✅ Assign TA to batch
-    batch.ta = student._id as Types.ObjectId;
+    if (batch.ta.includes(studentId)) {
+      res
+        .status(400)
+        .json({ message: "Student is already a TA for this batch" });
+      return;
+    }
+    
+    batch.ta.push(student._id as Types.ObjectId);
     await batch.save();
 
-    res.json({ message: "Student promoted to TA and assigned to batch", batch });
+    res.json({
+      message: "Student promoted to TA and assigned to batch",
+      batch,
+    });
   } catch (err) {
     console.error("Assign TA Error:", err);
     res.status(500).json({ message: "Failed to assign TA" });
