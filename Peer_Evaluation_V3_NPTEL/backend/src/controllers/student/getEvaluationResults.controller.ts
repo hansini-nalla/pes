@@ -81,12 +81,16 @@ export const getEvaluationResults = async (
     });
 
     const results = Object.values(resultsMap).map((group: any) => {
-      const allMarks = group.marksList.flat();
+      // Compute total per evaluator
+      const totalPerEvaluator = group.marksList.map(
+        (marks: number[]) => marks.reduce((sum, mark) => sum + mark, 0)
+      );
+
       const avg =
-        allMarks.length > 0
+        totalPerEvaluator.length > 0
           ? (
-              allMarks.reduce((sum: number, m: number) => sum + m, 0) /
-              allMarks.length
+              totalPerEvaluator.reduce((sum: number, total: number) => sum + total, 0) /
+              totalPerEvaluator.length
             ).toFixed(2)
           : null;
 
