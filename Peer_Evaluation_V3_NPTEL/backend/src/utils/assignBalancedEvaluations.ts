@@ -1,4 +1,3 @@
-import { Types } from 'mongoose';
 
 interface EvaluationAssignment {
   exam: string;

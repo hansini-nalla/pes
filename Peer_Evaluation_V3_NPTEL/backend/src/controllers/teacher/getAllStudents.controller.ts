@@ -1,10 +1,10 @@
 // controllers/teacher/getAllStudents.controller.ts
-import { Request, Response } from "express";
+import { Response } from "express";
 import { User } from "../../models/User.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
 export const getAllStudents = async (
-  req: AuthenticatedRequest,
+  _req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {

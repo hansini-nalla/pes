@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 interface Course {
     _id: string;
@@ -37,7 +37,7 @@ const EnrollmentSection = () => {
         const fetchCourses = async () => {
             try {
                 const token = localStorage.getItem("token");
-                const res = await axios.get(`${URL}/student/all-courses`, {
+                const res = await axios.get(`http://localhost:${PORT}/api/student/all-courses`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setCourses(res.data.courses || []);
@@ -58,7 +58,7 @@ const EnrollmentSection = () => {
             try {
                 const token = localStorage.getItem("token");
                 const res = await axios.get(
-                    `${URL}/student/batches-by-course?courseId=${selectedCourse}`,
+                    `http://localhost:${PORT}/student/batches-by-course?courseId=${selectedCourse}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 setBatches(res.data.batches || []);
@@ -74,7 +74,7 @@ const EnrollmentSection = () => {
         setError(null);
         try {
             const token = localStorage.getItem("token");
-            const res = await axios.get(`${URL}/student/enrollment`, {
+            const res = await axios.get(`http://localhost:${PORT}/api/student/enrollment`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setEnrollments(res.data || []);
@@ -96,7 +96,7 @@ const EnrollmentSection = () => {
         try {
             const token = localStorage.getItem("token");
             await axios.post(
-                `${URL}/student/enrollment`,
+                `http://localhost:${PORT}/api/student/enrollment`,
                 { courseId: selectedCourse, batchId: selectedBatch, notes },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

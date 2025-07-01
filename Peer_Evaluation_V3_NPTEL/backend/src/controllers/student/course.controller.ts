@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { User, IUser } from "../../models/User.ts";
+import { User } from "../../models/User.ts";
 import { Course } from "../../models/Course.ts";
 import { Batch } from "../../models/Batch.ts";
 

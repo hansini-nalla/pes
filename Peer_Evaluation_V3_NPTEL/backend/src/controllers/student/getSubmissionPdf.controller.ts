@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import { Submission } from "../../models/Submission.ts";
 import dotenv from "dotenv";
 dotenv.config();

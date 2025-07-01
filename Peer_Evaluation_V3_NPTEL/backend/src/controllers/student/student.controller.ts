@@ -1,7 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
 
-import { RequestHandler } from 'express';
-import { User } from '../../models/User.ts';
 
 
 interface AuthRequest extends Request {

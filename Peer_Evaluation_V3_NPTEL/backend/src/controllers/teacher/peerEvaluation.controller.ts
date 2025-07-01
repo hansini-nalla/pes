@@ -1,7 +1,6 @@
 import { Response } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts";
 import { Submission } from "../../models/Submission.ts";
 import { Evaluation } from "../../models/Evaluation.ts";
 import { sendBatchReminderEmails } from "../../utils/sendEmailReminder.ts";
