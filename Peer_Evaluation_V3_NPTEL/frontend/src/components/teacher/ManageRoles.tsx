@@ -1,8 +1,7 @@
-// frontend/src/pages/teacher/ManageRoles.tsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FiUserCheck } from "react-icons/fi";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
@@ -23,6 +22,7 @@ const ManageRoles = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>("");
   const [message, setMessage] = useState<string | null>(null);
+  const [currentTA, setCurrentTA] = useState<any | null>(null);
 
   useEffect(() => {
     axios
@@ -38,15 +38,24 @@ const ManageRoles = () => {
     setBatches(course?.batches || []);
     setSelectedBatch("");
     setStudents([]);
+    setCurrentTA(null);
   }, [selectedCourse]);
 
   useEffect(() => {
     if (!selectedBatch) return;
+
     axios
       .get(`http://localhost:${PORT}/api/teacher/students`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => setStudents(res.data.students));
+
+    axios
+      .get(`http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/ta`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      .then((res) => setCurrentTA(res.data.ta))
+      .catch(() => setCurrentTA(null));
   }, [selectedBatch]);
 
   const handleAssignTA = async () => {
@@ -54,9 +63,23 @@ const ManageRoles = () => {
       const res = await axios.post(
         `http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/assign-ta`,
         { studentId: selectedStudent },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
       );
       setMessage(res.data.message || "TA assigned successfully!");
+
+      // 🔄 Refresh current TA
+      const taRes = await axios.get(
+        `http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/ta`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      setCurrentTA(taRes.data.ta);
+
+      // ✅ Clear message after 3s
+      setTimeout(() => setMessage(null), 3000);
     } catch (err: any) {
       setMessage(err.response?.data?.message || "Error assigning TA");
     }
@@ -91,10 +114,12 @@ const ManageRoles = () => {
         <p className="mb-8 text-center text-base font-medium" style={{ color: palette['text-muted'] }}>
           Assign a student the role of Teaching Assistant for a batch.
         </p>
+
         <form className="flex flex-col gap-8 w-full" onSubmit={e => {
           e.preventDefault();
           handleAssignTA();
         }}>
+          {/* Course Selector */}
           <div className="flex flex-col gap-2 w-full">
             <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Course</label>
             <select
@@ -118,6 +143,7 @@ const ManageRoles = () => {
             </select>
           </div>
 
+          {/* Batch Selector */}
           {batches.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Batch</label>
@@ -143,6 +169,25 @@ const ManageRoles = () => {
             </div>
           )}
 
+          {/* Current TA Display */}
+          {currentTA && (
+            <div className="flex flex-col gap-2 w-full">
+              <label className="font-semibold" style={{ color: palette['text-dark'] }}>
+                Current TA
+              </label>
+              <div
+                className="px-4 py-3 rounded-xl border-2 shadow-md bg-white"
+                style={{
+                  borderColor: palette['border-soft'],
+                  color: palette['text-muted'],
+                }}
+              >
+                {currentTA.name} ({currentTA.email})
+              </div>
+            </div>
+          )}
+
+          {/* Student Selector */}
           {students.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Student</label>
@@ -168,6 +213,7 @@ const ManageRoles = () => {
             </div>
           )}
 
+          {/* Submit Button */}
           <motion.button
             type="submit"
             disabled={!selectedStudent}
@@ -184,11 +230,21 @@ const ManageRoles = () => {
             Assign TA Role
           </motion.button>
 
-          {message && (
-            <div className="text-center font-medium" style={{ color: palette['text-muted'] }}>
-              {message}
-            </div>
-          )}
+          {/* Toast Notification */}
+          <AnimatePresence>
+            {message && (
+              <motion.div
+                className="text-center font-medium mt-2"
+                style={{ color: palette['text-muted'] }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {message}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </form>
       </motion.div>
     </motion.div>
