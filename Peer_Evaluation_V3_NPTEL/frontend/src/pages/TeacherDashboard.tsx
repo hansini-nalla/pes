@@ -49,6 +49,7 @@ const TeacherDashboard = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [profile, setProfile] = useState({ name: "", email: "", role: "" });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
@@ -150,7 +151,8 @@ const TeacherDashboard = () => {
           whileTap={{ scale: 0.98 }}
         >
           <FiLogOut className={`${showSidebar ? "mr-3 text-xl" : "text-3xl"}`} />
-          {showSidebar && <span className="font-medium whitespace-nowrap" onClick={handleLogout}>Logout</span>}
+          {showSidebar && <span className="font-medium whitespace-nowrap" onClick={() => setShowLogoutConfirm(true)}
+          >Logout</span>}
         </motion.button>
       </motion.div>
 
@@ -234,7 +236,46 @@ const TeacherDashboard = () => {
       {showPasswordModal && (
         <ChangePassword onClose={() => setShowPasswordModal(false)} />
       )}
-
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            className="fixed inset-0 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{ backgroundColor: palette["bg-secondary"] + "DD" }} // semi-transparent overlay
+          >
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.8 }}
+              className="bg-white rounded-3xl shadow-2xl p-6 w-80"
+              style={{
+                backgroundColor: palette["bg-primary"],
+                color: palette["text-dark"],
+                boxShadow: `0 0 20px ${palette["shadow-medium"]}`,
+              }}
+            >
+              <h3 className="text-xl font-bold mb-4">Confirm Logout</h3>
+              <p className="mb-6 text-sm">Are you sure you want to log out?</p>
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="px-4 py-2 rounded-full bg-gray-300 hover:bg-gray-400 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 text-sm"
+                >
+                  Logout
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
