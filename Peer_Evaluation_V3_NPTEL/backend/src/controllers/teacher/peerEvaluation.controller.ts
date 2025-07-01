@@ -1,8 +1,10 @@
 import { Response } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Batch } from "../../models/Batch.ts";
+import { User } from "../../models/User.ts";
 import { Submission } from "../../models/Submission.ts";
 import { Evaluation } from "../../models/Evaluation.ts";
+import { sendBatchReminderEmails } from "../../utils/sendEmailReminder.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
 function assignBalancedEvaluations(
@@ -31,7 +33,7 @@ export const initiatePeerEvaluation = async (
   try {
     const teacherId = req.user?._id;
     const { examId } = req.body;
-
+    console.log("Hello");
     if (!teacherId || req.user.role !== "teacher") {
       res
         .status(403)
@@ -93,6 +95,22 @@ export const initiatePeerEvaluation = async (
     }));
 
     await Evaluation.insertMany(evalsToInsert);
+
+    const emailSubject = "📢 Peer Evaluation Round Started";
+    const emailBody = `Hi {{name}},
+
+You have been assigned peer evaluations for your recent exam.
+
+Please visit the PES portal and complete your assigned evaluations at the earliest.
+
+Thank you,
+PES Team`;
+
+    await sendBatchReminderEmails(
+      exam.batch.toString(),
+      emailSubject,
+      emailBody
+    );
 
     res.status(200).json({
       message:

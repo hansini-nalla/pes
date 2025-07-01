@@ -29,10 +29,6 @@ export const assignTaToBatch = async (
       return;
     }
 
-    // ✅ Promote student to TA
-    student.role = "ta";
-    await student.save();
-
     // ✅ Assign TA to batch
     batch.ta = student._id as Types.ObjectId;
     await batch.save();
