@@ -56,7 +56,6 @@ const TeacherCourses = () => {
 
   const handleDownloadCSV = async (course: Course, batch: Batch) => {
     const token = localStorage.getItem("token");
-    const PORT = 5000;
     try {
       const response = await fetch(`http://localhost:${PORT}/api/teacher/batch/${batch._id}/students`, {
         headers: { Authorization: `Bearer ${token}` }
