@@ -1,554 +1,360 @@
-import React, { useEffect, useState, type JSX } from 'react';
-import { FiMenu, FiLogOut, FiHome, FiShield, FiDownload, FiEdit, FiSend } from 'react-icons/fi';
-
-interface FlaggedEvaluation {
-  _id: string;
-  evaluation: {
-    _id: string;
-    evaluatee: {
-      name: string;
-      email: string;
-    };
-    evaluator: {
-      name: string;
-      email: string;
-    };
-    marks: number[];
-    feedback?: string;
-    exam: {
-      title: string;
-      startTime?: string;
-      endTime?: string;
-      numQuestions?: number;
-      course?: {
-        name: string;
-        code: string;
-        startDate?: string;
-        endDate?: string;
-      }
-    }
-  };
-  flaggedBy: {
-    name: string;
-    email: string;
-  };
-  reason?: string;
-  resolutionStatus: 'pending' | 'resolved' | 'escalated';
-}
-
-const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+import React, { useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+// Removed specific react-icons/fi imports as they will be replaced by FeatherIcon
+// import { FiHome, FiShield, FiLogOut, FiSun, FiMoon, FiUser, FiMenu, FiKey } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
 
 const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
-  const [activePage, setActivePage] = useState("home");
+  const [activeTab, setActiveTab] = useState<'home' | 'flagged' | 'enrollments' | 'password'>('home');
+  const [flaggedCount, setFlaggedCount] = useState<number>(3);
   const [showSidebar, setShowSidebar] = useState(true);
-  const [logoutDialog, setLogoutDialog] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [commentDialog, setCommentDialog] = useState<{ show: boolean; id: string | null }>({ show: false, id: null });
-  const [comment, setComment] = useState('');
-  const [updateMarksDialog, setUpdateMarksDialog] = useState<{
-    show: boolean;
-    id: string | null;
-    evaluation?: any;
-  }>({ show: false, id: null });
-  const [newMarks, setNewMarks] = useState<number[]>([]);
-  const [flaggedEvaluations, setFlaggedEvaluations] = useState<FlaggedEvaluation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true'); // Using darkMode boolean state
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const navigate = useNavigate();
 
-  const token = localStorage.getItem('token');
+  const course = "CS101 - Data Structures";
+  const batch = "Batch A";
 
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
+  const enrollmentRequests = [
+    { name: 'Alice Johnson', email: 'alice@example.com' },
+    { name: 'Bob Smith', email: 'bob@example.com' }
+  ];
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
+  // --- Color Palettes for Theming ---
+  const lightPalette = {
+      'bg-primary': '#fef9f4',
+      'bg-secondary': '#ffffff',
+      'accent-purple-light': '#ebe4ff',
+      'accent-purple-dark': '#e5e9f8',
+      'text-primary': '#2c1552',
+      'text-secondary': '#4b3b77',
+      'text-muted': '#555',
+      'sidebar-active-bg': '#efe2ff',
+      'sidebar-active-text': '#6226c9',
+      'sidebar-hover-bg': '#f4f0ff',
+      'sidebar-icon-color': '#8a75d1',
+      'card-blue-bg': '#dbe8fd',
+      'card-pink-bg': '#f6d4fa',
+      'card-orange-bg': '#ffe3ec',
+      'card-text-light-mode': '#2c1552', // Added for clarity, though same as text-primary
+      'logout-button-text': '#6a32a8',
+      'logout-button-hover': '#ef4444', // red-400
+      'profile-button-bg': '#eceaff',
+      'profile-button-hover': '#dedaff',
+      'logout-dialog-bg': '#ffffff',
+      'logout-dialog-text': '#2c1552',
+      'logout-cancel-bg': '#e5e7eb', // gray-200
+      'logout-cancel-hover': '#d1d5db', // gray-300
+      'logout-cancel-text': '#2c1552',
+      'logout-confirm-bg': '#ef4444', // red-500
+      'logout-confirm-hover': '#dc2626', // red-600
+      'flagged-badge-bg': '#ffecf0',
+      'flagged-badge-text': '#ff3366',
+      'form-input-border': '#e5e7eb', // gray-200
+      'form-input-focus-border': '#a78bfa', // purple-400
+      'form-input-bg': '#ffffff',
+      'form-input-text': '#2c1552',
+      'form-button-bg': '#6a32a8',
+      'form-button-hover': '#5a2694',
   };
 
-  // Fetch flagged evaluations from backend
-  const fetchFlaggedEvaluations = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`http://localhost:${PORT}/api/ta/flagged-evaluations`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch flagged evaluations');
-      }
-
-      const data = await response.json();
-      setFlaggedEvaluations(data.flaggedEvaluations || []);
-    } catch (err) {
-      console.error('Error fetching flagged evaluations:', err);
-      setError('Failed to load flagged evaluations. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const darkPalette = {
+      'bg-primary': '#1A1A2E',
+      'bg-secondary': '#16213E',
+      'accent-purple-light': '#0F3460',
+      'accent-purple-dark': '#0F3460',
+      'text-primary': '#E0E0E0',
+      'text-secondary': '#B0BEC5',
+      'text-muted': '#90A4AE',
+      'sidebar-active-bg': '#4A148C', // Lighter purple for highlight
+      'sidebar-active-text': '#FFFFFF', // White text on lighter purple
+      'sidebar-hover-bg': '#34495E',
+      'sidebar-icon-color': '#B0BEC5',
+      'card-blue-bg': '#BBDEFB', // Light blue
+      'card-pink-bg': '#E1BEE7', // Light purple/pink
+      'card-orange-bg': '#FFCCBC', // Light orange
+      'card-text-dark-mode': '#333333', // Dark text for contrast on light cards
+      'logout-button-text': '#E0E0E0',
+      'logout-button-hover': '#EF5350',
+      'profile-button-bg': '#3F51B5',
+      'profile-button-hover': '#5C6BC0',
+      'logout-dialog-bg': '#16213E',
+      'logout-dialog-text': '#E0E0E0',
+      'logout-cancel-bg': '#424242',
+      'logout-cancel-hover': '#616161',
+      'logout-cancel-text': '#E0E0E0',
+      'logout-confirm-bg': '#EF5350',
+      'logout-confirm-hover': '#D32F2F',
+      'flagged-badge-bg': '#FFCDD2',
+      'flagged-badge-text': '#C62828',
+      'form-input-border': '#3F51B5',
+      'form-input-focus-border': '#8E24AA',
+      'form-input-bg': '#1A1A2E',
+      'form-input-text': '#E0E0E0',
+      'form-button-bg': '#6A1B9A',
+      'form-button-hover': '#8E24AA',
   };
 
-  useEffect(() => {
-    fetchFlaggedEvaluations();
-  }, [activePage]);
+  type Palette = typeof lightPalette;
+  const currentPalette = useMemo(() => darkMode ? darkPalette : lightPalette, [darkMode]);
 
-  const handleDownloadTranscript = async (evaluationId: string) => {
-    try {
-      // Create a download link for the PDF
-      const response = await fetch(`http://localhost:${PORT}/api/ta/submission/${evaluationId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+  // Helper component for Feather Icons (SVGs)
+  const FeatherIcon = ({ name, size = 24, strokeWidth = 2, className = '', color = 'currentColor' }: { name: string, size?: number, strokeWidth?: number, className?: string, color?: string }) => {
+    const iconPaths: { [key: string]: JSX.Element } = {
+      'home': <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></>,
+      'shield': <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></>,
+      'log-out': <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></>,
+      'sun': <><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></>,
+      'moon': <><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></>,
+      'user': <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></>,
+      'menu': <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>,
+      'key': <><path d="M21 2l-2 2m-7 7l-4 4L3 18l3-3m2-2l4-4m-3 3l-6 6a2 2 0 01-3 3L3 21l-3-3 2-2a2 2 0 013-3l6-6z"></path></>,
+    };
 
-      if (!response.ok) {
-        throw new Error('Failed to download submission');
-      }
-
-      // Convert response to blob
-      const blob = await response.blob();
-
-      // Create a temporary URL for the blob
-      const url = window.URL.createObjectURL(blob);
-
-      // Create a temporary link element
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `submission_${evaluationId}.pdf`;
-
-      // Append to the document, click it, and remove it
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Release the object URL
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Error downloading transcript:', err);
-      setError('Failed to download submission. Please try again.');
-    }
-  };
-
-  const handleUpdateMarks = async (flagId: string) => {
-    try {
-      const flag = flaggedEvaluations.find(ev => ev._id === flagId);
-      if (!flag) return;
-
-      // Initialize with current marks
-      setNewMarks([...flag.evaluation.marks]);
-      setUpdateMarksDialog({
-        show: true,
-        id: flagId,
-        evaluation: flag.evaluation
-      });
-    } catch (err) {
-      console.error('Error preparing marks update:', err);
-      setError('Failed to prepare marks update. Please try again.');
-    }
-  };
-
-  const handleMarkChange = (index: number, value: string) => {
-    const updatedMarks = [...newMarks];
-    updatedMarks[index] = Number(value);
-    setNewMarks(updatedMarks);
-  };
-
-  // In the confirmUpdateMarks function, replace the validation logic:
-
-  const confirmUpdateMarks = async () => {
-    if (!updateMarksDialog.id) return;
-
-    try {
-      setLoading(true);
-
-      // Validate all marks
-      const invalidMarks = newMarks.some(mark =>
-      isNaN(mark) || mark < 0 || mark > 20
-      );
-
-      if (invalidMarks) {
-        alert("Please enter valid marks between 0 and 20 for all questions");
-        return;
-      }
-
-      // Updated calculation using numQuestions from exam model
-      const totalMarks = newMarks.reduce((sum, mark) => sum + mark, 0);
-      const maxMarks = (updateMarksDialog.evaluation?.exam?.numQuestions || newMarks.length) * 20;
-
-      const response = await fetch(`http://localhost:${PORT}/api/ta/resolve-flag/${updateMarksDialog.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          resolution: 'Marks updated by TA',
-          newMarks: newMarks,
-          feedback: `Marks updated by TA on ${new Date().toLocaleDateString()}`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update marks');
-      }
-
-      setSuccessMessage('Marks updated successfully');
-      setTimeout(() => setSuccessMessage(null), 3000);
-
-      // Refresh the data
-      fetchFlaggedEvaluations();
-    } catch (err) {
-      console.error('Error updating marks:', err);
-      setError('Failed to update marks. Please try again.');
-    } finally {
-      setLoading(false);
-      setUpdateMarksDialog({ show: false, id: null });
-      setNewMarks([]);
-    }
-  };
-  const handleSendToTeacher = (flagId: string) => {
-    setCommentDialog({ show: true, id: flagId });
-  };
-
-  const confirmSendToTeacher = async () => {
-    if (!commentDialog.id) return;
-
-    try {
-      setLoading(true);
-
-      const response = await fetch(`http://localhost:${PORT}/api/ta/escalate/${commentDialog.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ reason: comment })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to escalate to teacher');
-      }
-
-      setSuccessMessage('Flag escalated to teacher successfully');
-      setTimeout(() => setSuccessMessage(null), 3000);
-
-      // Refresh the data
-      fetchFlaggedEvaluations();
-    } catch (err) {
-      console.error('Error escalating to teacher:', err);
-      setError('Failed to escalate to teacher. Please try again.');
-    } finally {
-      setLoading(false);
-      setCommentDialog({ show: false, id: null });
-      setComment('');
-    }
-  };
-
-  const DialogBox = ({ show, message, children }: { show: boolean, message: string, children?: React.ReactNode }) => {
-    if (!show) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col items-center min-w-[320px]">
-      <div className="mb-2">
-      <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-      <circle cx="28" cy="28" r="28" fill="#6ddf99" />
-      <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+      >
+        {iconPaths[name]}
       </svg>
-      </div>
-      <div className="text-lg text-[#235d3a] font-semibold text-center mb-1">{message}</div>
-      {children}
-      </div>
-      </div>
     );
   };
 
-  const pages: Record<string, JSX.Element> = {
+  // Modal Component (adapted for dynamic colors)
+  const Modal = ({ show, onClose, onConfirm, title, children, currentPalette }: { show: boolean, onClose: () => void, onConfirm: () => void, title: string, children: React.ReactNode, currentPalette: Palette }) => {
+    if (!show) return null;
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+                className="rounded-2xl p-8 shadow-xl text-center"
+                style={{ backgroundColor: currentPalette['logout-dialog-bg'], color: currentPalette['logout-dialog-text'] }}>
+                <h2 className="text-xl font-bold mb-4">{title}</h2>
+                <div className="mb-6">{children}</div>
+                <div className="flex justify-center gap-6">
+                    <button onClick={onClose} className="px-6 py-2 rounded-lg font-medium" style={{ backgroundColor: currentPalette['logout-cancel-bg'], color: currentPalette['logout-cancel-text'] }}>Cancel</button>
+                    <button onClick={onConfirm} className="px-6 py-2 rounded-lg text-white font-semibold" style={{ backgroundColor: currentPalette['logout-confirm-bg'] }}>Logout</button>
+                </div>
+            </motion.div>
+        </motion.div>
+    );
+  };
+
+  useEffect(() => {
+    // Apply theme class to documentElement
+    document.documentElement.classList.toggle('dark', darkMode);
+    // Store theme preference
+    localStorage.setItem('darkMode', darkMode.toString());
+  }, [darkMode]);
+
+  const toggleTheme = () => {
+    setDarkMode(prev => !prev);
+  };
+
+  const pages = {
     home: (
-      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-      <h1 className="text-4xl font-bold text-[#38365e] text-center mb-6">
-      Welcome to TA Dashboard
-      </h1>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="p-8 w-full"
+      >
+        <h1 className="text-3xl font-extrabold mb-2" style={{ color: currentPalette['text-primary'] }}>
+          Hello, TA 👋
+        </h1>
+        <h2 className="text-xl font-semibold mb-6" style={{ color: currentPalette['text-primary'] }}>
+          Welcome to TA Dashboard
+        </h2>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 w-full max-w-2xl">
-        {error}
+        <div className="mb-6">
+          <p className="text-md font-medium" style={{ color: currentPalette['text-secondary'] }}>Course: <span className="font-bold">{course}</span></p>
+          <p className="text-md font-medium" style={{ color: currentPalette['text-secondary'] }}>Batch: <span className="font-bold">{batch}</span></p>
         </div>
-      )}
 
-      {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4 w-full max-w-2xl">
-        {successMessage}
-        </div>
-      )}
-
-      <div className="mt-10 flex flex-col items-center w-full max-w-2xl">
-      <div className="bg-red-100 border border-red-300 rounded-3xl p-8 w-full shadow flex flex-col items-center">
-      <h2 className="text-2xl font-bold text-red-700 mb-2">Flagged Evaluations</h2>
-      {loading ? (
-        <div className="flex justify-center py-6">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-700"></div>
-        </div>
-      ) : flaggedEvaluations.length === 0 ? (
-        <p className="text-red-800 text-center mb-2">
-        No flagged evaluations at the moment.
-        </p>
-      ) : (
-        <ul className="w-full">
-        {flaggedEvaluations.slice(0, 3).map(flag => (
-          <li key={flag._id} className="mb-2 bg-white rounded-xl p-3 shadow text-left">
-          <div className="flex justify-between">
-          <span className="font-semibold">{flag.evaluation.evaluatee.name}</span>
-          <span className="text-red-600 text-sm">{flag.evaluation.exam.title}</span>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="shadow rounded-2xl p-6 text-center" style={{ backgroundColor: currentPalette['card-blue-bg'], color: darkMode ? currentPalette['card-text-dark-mode'] : currentPalette['card-text-light-mode'] }}>
+            <p className="font-medium mb-2">Flagged Evaluations</p>
+            <p className="text-3xl font-bold">{flaggedCount}</p>
           </div>
-          <p className="text-sm text-gray-600 mt-1">{flag.reason || "No reason provided"}</p>
-          <div className="mt-2 flex justify-end space-x-2">
-          <button
-          onClick={() => handleUpdateMarks(flag._id)}
-          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-          >
-          <FiEdit size={14} /> Update
-          </button>
-          <button
-          onClick={() => handleSendToTeacher(flag._id)}
-          className="text-sm text-red-600 hover:underline flex items-center gap-1"
-          >
-          <FiSend size={14} /> Escalate
-          </button>
+          <div className="shadow rounded-2xl p-6 text-center" style={{ backgroundColor: currentPalette['card-pink-bg'], color: darkMode ? currentPalette['card-text-dark-mode'] : currentPalette['card-text-light-mode'] }}>
+            <p className="font-medium mb-2">Resolved</p>
+            <p className="text-3xl font-bold">--</p>
           </div>
-          </li>
-        ))}
-        </ul>
-      )}
-      {flaggedEvaluations.length > 3 && (
-        <button
-        onClick={() => setActivePage("flagged")}
-        className="mt-4 text-red-700 hover:underline"
-        >
-        View all ({flaggedEvaluations.length})
-        </button>
-      )}
-      </div>
-      </div>
-      </div>
+          <div className="shadow rounded-2xl p-6 text-center" style={{ backgroundColor: currentPalette['card-orange-bg'], color: darkMode ? currentPalette['card-text-dark-mode'] : currentPalette['card-text-light-mode'] }}>
+            <p className="font-medium mb-2">Escalated</p>
+            <p className="text-3xl font-bold">--</p>
+          </div>
+        </div>
+      </motion.div>
     ),
     flagged: (
-      <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-      <h2 className="text-3xl font-bold text-red-700 text-center mb-8">Flagged Evaluations</h2>
-
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 w-full max-w-4xl">
-        {error}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="p-8 w-full"
+      >
+        <h2 className="text-3xl font-bold mb-6" style={{ color: currentPalette['text-primary'] }}>
+          Flagged Evaluations
+        </h2>
+        <div className="border rounded-xl p-6 shadow-sm" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
+          <p>List of evaluations flagged by students or peers will appear here.</p>
         </div>
-      )}
-
-      {successMessage && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-4 w-full max-w-4xl">
-        {successMessage}
-        </div>
-      )}
-
-      <div className="w-full max-w-4xl">
-      {loading ? (
-        <div className="flex justify-center py-6">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-red-700"></div>
-        </div>
-      ) : flaggedEvaluations.length === 0 ? (
-        <p className="text-gray-600 text-center">No flagged evaluations at the moment.</p>
-      ) : (
-        <ul className="space-y-4">
-        {flaggedEvaluations.map(flag => (
-          <li key={flag._id} className="bg-white rounded-xl p-6 shadow-md">
-          <div className="grid grid-cols-2 gap-4">
-          <div>
-          <p className="text-gray-600">Student:</p>
-          <p className="font-semibold">{flag.evaluation.evaluatee.name}</p>
-          <p className="text-sm text-gray-500">{flag.evaluation.evaluatee.email}</p>
-          </div>
-          <div>
-          <p className="text-gray-600">Evaluator:</p>
-          <p className="font-semibold">{flag.evaluation.evaluator.name}</p>
-          <p className="text-sm text-gray-500">{flag.evaluation.evaluator.email}</p>
-          </div>
-          <div>
-          <p className="text-gray-600">Course:</p>
-          <p className="font-semibold">{flag.evaluation.exam.course?.name || 'N/A'}</p>
-          <p className="text-sm text-gray-500">
-          Code: {flag.evaluation.exam.course?.code || 'N/A'}
-          </p>
-          </div>
-          <div>
-          <p className="text-gray-600">Exam:</p>
-          <p className="font-semibold">{flag.evaluation.exam.title}</p>
-          <p className="text-sm text-gray-500">
-          Questions: {flag.evaluation.exam.numQuestions || 'N/A'}
-          </p>
-          {flag.evaluation.exam.startTime && (
-            <p className="text-sm text-gray-500">
-            Start: {new Date(flag.evaluation.exam.startTime).toLocaleDateString()}
-            </p>
-          )}
-          </div>
-          <div>
-          <p className="text-gray-600">Current Marks:</p>
-          <div className="mt-1 grid grid-cols-5 gap-1">
-          {flag.evaluation.marks.map((mark: number, idx: number) => (
-            <div key={idx} className="bg-gray-100 rounded-lg p-2 text-center">
-            <div className="text-xs text-gray-500">Q{idx+1}</div>
-            <div className="font-semibold">{mark}</div>
+      </motion.div>
+    ),
+    enrollments: (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="p-8 w-full"
+      >
+        <h2 className="text-3xl font-bold mb-6" style={{ color: currentPalette['text-primary'] }}>
+          Enrollment Requests
+        </h2>
+        <div className="space-y-4">
+          {enrollmentRequests.map((req, idx) => (
+            <div key={idx} className="border rounded-xl p-4 shadow-sm flex justify-between items-center" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
+              <div>
+                <p className="font-semibold">{req.name}</p>
+                <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{req.email}</p>
+              </div>
+              <div className="flex gap-2">
+                {/* These buttons are hardcoded with Tailwind classes, keeping them as is */}
+                <button className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg">Accept</button>
+                <button className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg">Decline</button>
+              </div>
             </div>
           ))}
-          </div>
-          <div className="mt-2 text-right font-semibold">
-          Total: {Math.round(flag.evaluation.marks.reduce((sum: number, mark: number) => sum + mark, 0))}
-          /{flag.evaluation.marks.length * 20}
-          </div>
-          </div>
-          </div>
-
-          <div className="mt-4">
-          <p className="text-gray-600">Flag Reason:</p>
-          <p className="italic bg-red-50 p-3 rounded-lg mt-1">{flag.reason || "No reason provided"}</p>
-          </div>
-
-          {flag.evaluation.feedback && (
-            <div className="mt-4">
-            <p className="text-gray-600">Feedback:</p>
-            <p className="italic bg-blue-50 p-3 rounded-lg mt-1">{flag.evaluation.feedback}</p>
+        </div>
+      </motion.div>
+    ),
+    password: (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="p-8 w-full h-full flex flex-col items-center justify-start"
+      >
+        <h2 className="text-4xl font-bold mb-10" style={{ color: currentPalette['text-primary'] }}>Change Password</h2>
+        <div className="border rounded-3xl p-10 shadow-xl w-full max-w-2xl" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
+          <form className="space-y-6">
+            <div>
+              <label className="block mb-2 text-lg font-semibold" htmlFor="currentPassword" style={{ color: currentPalette['text-primary'] }}>Current Password</label>
+              <input type="password" id="currentPassword" name="currentPassword" className="w-full px-4 py-3 rounded-xl text-base" style={{ borderColor: currentPalette['form-input-border'], backgroundColor: currentPalette['form-input-bg'], color: currentPalette['form-input-text'] }} required />
             </div>
-          )}
-
-          <div className="mt-6 flex justify-end space-x-4">
-          <button
-          onClick={() => handleDownloadTranscript(flag.evaluation._id)}
-          className="flex items-center gap-2 text-blue-600 hover:underline"
-          >
-          <FiDownload /> Download Submission
-          </button>
-          <button
-          onClick={() => handleUpdateMarks(flag._id)}
-          className="flex items-center gap-2 text-green-600 hover:underline"
-          >
-          <FiEdit /> Update Marks
-          </button>
-          <button
-          onClick={() => handleSendToTeacher(flag._id)}
-          className="flex items-center gap-2 text-red-600 hover:underline"
-          >
-          <FiSend /> Send to Teacher
-          </button>
-          </div>
-          </li>
-        ))}
-        </ul>
-      )}
-      </div>
-      </div>
+            <div>
+              <label className="block mb-2 text-lg font-semibold" htmlFor="newPassword" style={{ color: currentPalette['text-primary'] }}>New Password</label>
+              <input type="password" id="newPassword" name="newPassword" className="w-full px-4 py-3 rounded-xl text-base" style={{ borderColor: currentPalette['form-input-border'], backgroundColor: currentPalette['form-input-bg'], color: currentPalette['form-input-text'] }} required />
+            </div>
+            <div>
+              <label className="block mb-2 text-lg font-semibold" htmlFor="confirmPassword" style={{ color: currentPalette['text-primary'] }}>Confirm New Password</label>
+              <input type="password" id="confirmPassword" name="confirmPassword" className="w-full px-4 py-3 rounded-xl text-base" style={{ borderColor: currentPalette['form-input-border'], backgroundColor: currentPalette['form-input-bg'], color: currentPalette['form-input-text'] }} required />
+            </div>
+            <button type="submit" className="w-full text-white py-3 px-4 rounded-xl font-semibold text-lg" style={{ backgroundColor: currentPalette['form-button-bg'] }}>Change Password</button>
+          </form>
+        </div>
+      </motion.div>
     )
+
   };
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "linear-gradient(180deg,#ffe3ec 80%,#f0f0f5 100%)" }}>
-    {/* Sidebar */}
-    <div className={`${showSidebar ? 'w-64' : 'w-20'} bg-gradient-to-b from-[#493a6b] to-[#2D2150] text-white flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300`}>
-    <button onClick={() => setShowSidebar(!showSidebar)} className="self-start mb-6 p-2 border-2 border-transparent hover:border-blue-300 rounded-full active:scale-95 transition">
-    <FiMenu className="text-2xl" />
-    </button>
-    <div className="flex-1 flex flex-col items-center">
-    <h2 className={`font-bold mb-10 mt-4 transition-all ${showSidebar ? 'text-2xl' : 'text-lg'}`}>{showSidebar ? 'TA Panel' : 'TA'}</h2>
-    <ul className="space-y-3 w-full">
-    {[
-      { key: 'home', label: 'Home', icon: FiHome },
-      { key: 'flagged', label: 'Flagged Evaluations', icon: FiShield }
-    ].map(({ key, label, icon: Icon }) => (
-      <li key={key} onClick={() => setActivePage(key)} className={`cursor-pointer ${activePage === key ? 'bg-[#57418d]' : ''} flex items-center px-4 py-2 rounded transition`}>
-      <Icon className={`transition-all ${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-      {showSidebar && label}
-      </li>
-    ))}
-    </ul>
-    </div>
-    <button onClick={() => setLogoutDialog(true)} className="flex items-center justify-center gap-2 hover:text-red-400 transition">
-    <FiLogOut className={`${showSidebar ? 'mr-2 text-xl' : 'text-3xl'}`} />
-    {showSidebar && 'Logout'}
-    </button>
-    </div>
-
-    {/* Main Content */}
-    <div className="flex-1 relative overflow-y-auto flex justify-center items-start">
-    <div className="bg-white rounded-3xl shadow-lg w-full h-auto mt-24 mb-8 mx-4 p-0 flex items-start justify-center overflow-auto max-w-6xl"
-    style={{ minHeight: "calc(100vh - 120px)", boxShadow: '0 2px 24px 0 rgba(87,65,141,0.10)' }}>
-    <div className="w-full">{pages[activePage]}</div>
-    </div>
-
-    <DialogBox show={logoutDialog} message="Are you sure you want to logout?">
-    <div className="flex gap-8 mt-4">
-    <button onClick={() => setLogoutDialog(false)} className="bg-gray-200 text-gray-700 rounded-xl px-8 py-2 font-semibold hover:bg-gray-300 transition">No</button>
-    <button onClick={() => { setLogoutDialog(false); onLogout ? onLogout() : window.location.href = "/login"; }} className="bg-red-500 text-white rounded-xl px-8 py-2 font-semibold hover:bg-red-600 transition">Yes</button>
-    </div>
-    </DialogBox>
-
-    <DialogBox show={commentDialog.show} message="Add a comment before sending">
-    <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Write your note here..." className="w-full border rounded-lg p-2 text-gray-800 mb-4" rows={3} />
-    <div className="flex gap-4">
-    <button onClick={() => setCommentDialog({ show: false, id: null })} className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
-    <button onClick={confirmSendToTeacher} className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">Send</button>
-    </div>
-    </DialogBox>
-
-    <DialogBox show={updateMarksDialog.show} message="Update evaluation marks">
-    <div className="w-full mb-4">
-    <div className="text-sm text-gray-500 mb-3">Enter marks for each question (0-20):</div>
-
-    {newMarks.map((mark, index) => (
-      <div key={index} className="mb-3">
-      <label className="block text-gray-700 text-sm font-medium mb-1">
-      Question {index + 1}:
-      </label>
-      <input
-      type="number"
-      min="0"
-      max="20"
-      value={mark}
-      onChange={(e) => handleMarkChange(index, e.target.value)}
-      className="w-full border rounded-lg p-2 text-gray-800"
-      />
+    <div className="flex min-h-screen font-sans relative" style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-primary'] }}>
+      <div className={`${showSidebar ? 'w-64' : 'w-20'} transition-all duration-300 p-5 pt-4 rounded-r-3xl flex flex-col justify-between`} style={{ backgroundColor: currentPalette['accent-purple-light'] }}>
+        <div>
+          <button onClick={() => setShowSidebar(!showSidebar)} className="mb-4 text-left">
+            <FeatherIcon name="menu" className="text-2xl" color={currentPalette['sidebar-icon-color']} />
+          </button>
+          <h2 className={`font-extrabold text-xl mb-6 pl-2 ${!showSidebar && 'hidden'}`} style={{ color: currentPalette['text-primary'] }}>TA Panel</h2>
+          <ul className="space-y-4">
+            {[{ key: 'home', label: 'Home', icon: 'home' },
+              { key: 'flagged', label: 'Flagged Evaluations', icon: 'shield' },
+              { key: 'enrollments', label: 'Enrollment Requests', icon: 'user' },
+              { key: 'password', label: 'Change Password', icon: 'key' }] // Added 'key' icon
+              .map(({ key, label, icon: iconName }) => (
+              <li
+                key={key}
+                onClick={() => setActiveTab(key as any)}
+                className={`cursor-pointer flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 ${
+                  activeTab === key ? '' : `hover:bg-[${currentPalette['sidebar-hover-bg']}]`
+                }`}
+                style={{
+                  backgroundColor: activeTab === key ? currentPalette['sidebar-active-bg'] : 'transparent',
+                  color: activeTab === key ? currentPalette['sidebar-active-text'] : currentPalette['text-primary']
+                }}
+              >
+                <FeatherIcon name={iconName} className="text-xl" color={activeTab === key ? currentPalette['sidebar-active-text'] : currentPalette['sidebar-icon-color']} />
+                {showSidebar && (
+                  <span className="flex items-center gap-2 font-medium">
+                    {label}
+                    {key === 'flagged' && (
+                      <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: currentPalette['flagged-badge-bg'], color: currentPalette['flagged-badge-text'] }}>
+                        {flaggedCount}
+                      </span>
+                    )}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={() => setShowLogoutDialog(true)} className="flex items-center gap-2 px-3 py-2 transition" style={{ color: currentPalette['logout-button-text'] }}>
+            <FeatherIcon name="log-out" className="text-xl" color={currentPalette['logout-button-text']} />
+            {showSidebar && <span className="font-medium">Logout</span>}
+          </button>
+        </div>
       </div>
-    ))}
 
-    <div className="mt-3 text-right">
-    <strong>
-    Total: {newMarks.reduce((sum, mark) => sum + mark, 0)} / {(updateMarksDialog.evaluation?.exam?.numQuestions || newMarks.length) * 20}
-    </strong>
-    </div>
-    </div>
+      <main className="flex-1 p-6 md:p-10">
+        <div className="flex justify-end items-center mb-4">
+          <div className="relative">
+            <button onClick={() => setShowProfileDropdown(prev => !prev)} className="p-2 rounded-full shadow" style={{ backgroundColor: currentPalette['profile-button-bg'], color: currentPalette['text-primary'] }}>
+              <FeatherIcon name="user" className="text-xl" color={currentPalette['text-primary']} />
+            </button>
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-2 w-56 border rounded-xl shadow-lg p-4 text-sm" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
+                <p><strong>Name:</strong> Test TA</p>
+                <p><strong>Email:</strong> ta@example.com</p>
+                <p><strong>Role:</strong> Teaching Assistant</p>
+              </div>
+            )}
+          </div>
+        </div>
+        {pages[activeTab]}
+      </main>
 
-    <div className="flex gap-4">
-    <button
-    onClick={() => setUpdateMarksDialog({ show: false, id: null })}
-    className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400"
-    >
-    Cancel
-    </button>
-    <button
-    onClick={confirmUpdateMarks}
-    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
-    >
-    Save Changes
-    </button>
-    </div>
-    </DialogBox>
-    </div>
+      <AnimatePresence>
+        {showLogoutDialog && (
+          <Modal
+            show={showLogoutDialog}
+            onClose={() => setShowLogoutDialog(false)}
+            onConfirm={() => {
+              setShowLogoutDialog(false);
+              navigate('/login');
+              onLogout?.();
+            }}
+            title="Are you sure you want to logout?"
+            currentPalette={currentPalette}
+          >
+            {/* No additional children needed for this modal */}
+          </Modal>
+        )}
+      </AnimatePresence>
+
+      <button onClick={toggleTheme} className="fixed bottom-6 right-6 p-3 rounded-full shadow-xl z-50" style={{ backgroundColor: currentPalette['profile-button-bg'], color: currentPalette['text-primary'] }}>
+        {darkMode ? <FeatherIcon name="sun" className="text-xl" color={currentPalette['text-primary']} /> : <FeatherIcon name="moon" className="text-xl" color={currentPalette['text-primary']} />}
+      </button>
     </div>
   );
 };
