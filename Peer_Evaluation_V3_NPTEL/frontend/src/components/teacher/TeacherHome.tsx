@@ -18,7 +18,7 @@ const AnimatedCount = ({ value }: { value: number }) => {
   useState(() => {
     let start = 0;
     const end = value;
-    const increment = end > start ? 1 : -1;
+    const increment = end > start ? 1 : 0;
     const timer = setInterval(() => {
       start += increment;
       setDisplay(start);

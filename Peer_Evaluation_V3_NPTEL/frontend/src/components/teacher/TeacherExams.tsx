@@ -1,11 +1,29 @@
-// Enhanced TeacherExams.tsx styled using thingy.tsx palette and layout
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { FiEdit, FiTrash2, FiPlus } from "react-icons/fi";
+import { FiEdit, FiTrash2, FiPlus, FiSend } from "react-icons/fi";
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
+interface ToastProps {
+  message: string;
+  type: "success" | "error";
+  onClose: () => void;
+}
+
+export function Toast({ message, type, onClose }: ToastProps) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg text-white
+      ${type === "success" ? "bg-green-600" : "bg-red-600"}`}>
+      {message}
+    </div>
+  );
+}
 interface Course {
   _id: string;
   name: string;
@@ -21,6 +39,7 @@ interface Exam {
 }
 
 export default function TeacherExams() {
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const token = localStorage.getItem("token");
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -164,14 +183,43 @@ export default function TeacherExams() {
                 <td className="px-4 py-2">{new Date(exam.endTime).toLocaleString()}</td>
                 <td className="px-4 py-2">{exam.numQuestions}</td>
                 <td className="px-4 py-2">{exam.k}</td>
-                <td className="px-4 py-2 space-x-2">
-                  <button onClick={() => openEditForm(exam)} className="bg-yellow-400 px-3 py-1 rounded-xl text-black font-semibold shadow hover:bg-yellow-300">
-                    <FiEdit className="inline-block mr-1" /> Edit
-                  </button>
-                  <button onClick={() => deleteExam(exam._id)} className="bg-red-600 px-3 py-1 rounded-xl text-white font-semibold shadow hover:bg-red-500">
-                    <FiTrash2 className="inline-block mr-1" /> Delete
-                  </button>
-                </td>
+                <td className="px-4 py-2 flex gap-3 items-center">
+  <button
+    onClick={() => openEditForm(exam)}
+    className="p-2 bg-yellow-100 rounded-full hover:bg-yellow-200 shadow"
+    title="Edit Exam"
+  >
+    <FiEdit className="text-yellow-700" />
+  </button>
+
+  <button
+    onClick={() => deleteExam(exam._id)}
+    className="p-2 bg-red-100 rounded-full hover:bg-red-200 shadow"
+    title="Delete Exam"
+  >
+    <FiTrash2 className="text-red-600" />
+  </button>
+
+  <button title="Initiate Peer Evaluation"
+  onClick={async () => {
+    try {
+      const res = await axios.post(
+        `http://localhost:${PORT}/api/teacher/initiate-evaluation`,
+        { examId: exam._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setToast({ message: res.data.message || "Evaluation initiated", type: "success" });
+    } catch (err: any) {
+      setToast({ message: err.response?.data?.message || "Error initiating evaluation", type: "error" });
+    }
+  }}
+  className="group relative p-2 bg-green-100 rounded-full hover:bg-green-200 shadow"
+>
+  <FiSend className="text-green-700" />
+</button>
+
+</td>
+
               </tr>
             ))}
           </tbody>

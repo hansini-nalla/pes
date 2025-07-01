@@ -14,18 +14,24 @@ export const getTeacherDashboardStats = async (
       return;
     }
 
-    // 🔍 Find all batches where the user is instructor
-    const batches = await Batch.find({ instructor: user._id }).select("course");
+    // 🔍 Step 1: Find all batches assigned to the teacher
+    const teacherBatches = await Batch.find({ instructor: user._id }).select(
+      "_id course"
+    );
 
-    // 🧠 Create a set of unique course IDs
+    const batchIds = teacherBatches.map((batch) => batch._id);
     const courseSet = new Set<string>();
-    batches.forEach((batch) => {
+    teacherBatches.forEach((batch) => {
       if (batch.course) courseSet.add(batch.course.toString());
     });
 
     const coursesCount = courseSet.size;
-    const batchesCount = batches.length;
-    const examsCount = await Exam.countDocuments({ createdBy: user._id });
+    const batchesCount = batchIds.length;
+
+    // 🔍 Step 2: Count all exams assigned to those batches
+    const examsCount = await Exam.countDocuments({
+      batch: { $in: batchIds },
+    });
 
     res.json({
       isTeacher: true,

@@ -1,11 +1,15 @@
 // frontend/src/components/teacher/TeacherDashboard.tsx
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FiMenu, FiHome, FiShield, FiBook, FiEdit, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import TeacherHome from "../components/teacher/TeacherHome";
 import TeacherManageRoles from "../components/teacher/ManageRoles";
 import TeacherCourses from "../components/teacher/TeacherCourses";
 import TeacherExams from "../components/teacher/TeacherExams";
+import ChangePassword from "../components/teacher/ChangePassword";
+
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 const palette = {
   "bg-primary": "#FFFBF6",
@@ -44,17 +48,24 @@ const TeacherDashboard = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [profile, setProfile] = useState({ name: "", email: "", role: "" });
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/dashboard/profile", {
+    fetch(`http://localhost:${PORT}/api/dashboard/profile`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then(res => res.json())
       .then(data => setProfile(data))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const toggleDarkMode = () => setDarkMode((d) => !d);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  }
 
   const pages: Record<string, JSX.Element> = {
     home: <TeacherHome />,
@@ -74,9 +85,8 @@ const TeacherDashboard = () => {
     <div className="flex h-screen overflow-hidden relative" style={{ backgroundColor: palette["bg-primary"] }}>
       {/* Sidebar */}
       <motion.div
-        className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl shadow-xl z-20 transition-all duration-300 ${
-          showSidebar ? "w-64" : "w-20"
-        }`}
+        className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl shadow-xl z-20 transition-all duration-300 ${showSidebar ? "w-64" : "w-20"
+          }`}
         style={{
           backgroundColor: palette["sidebar-bg"],
           boxShadow: `8px 0 30px ${palette["shadow-medium"]}`,
@@ -91,9 +101,8 @@ const TeacherDashboard = () => {
         </button>
         <div className="flex-1 flex flex-col items-center">
           <h2
-            className={`font-bold mb-10 mt-4 transition-all duration-300 ${
-              showSidebar ? "text-2xl" : "text-lg"
-            }`}
+            className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? "text-2xl" : "text-lg"
+              }`}
             style={{ color: palette["text-sidebar-dark"] }}
           >
             {showSidebar ? "Teacher Panel" : "Tea"}
@@ -141,7 +150,7 @@ const TeacherDashboard = () => {
           whileTap={{ scale: 0.98 }}
         >
           <FiLogOut className={`${showSidebar ? "mr-3 text-xl" : "text-3xl"}`} />
-          {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
+          {showSidebar && <span className="font-medium whitespace-nowrap" onClick={handleLogout}>Logout</span>}
         </motion.button>
       </motion.div>
 
@@ -181,6 +190,13 @@ const TeacherDashboard = () => {
                   <p><strong>Name:</strong> {profile.name}</p>
                   <p><strong>Email:</strong> {profile.email}</p>
                   <p><strong>Role:</strong> {profile.role}</p>
+                  <motion.button
+                    onClick={() => setShowPasswordModal(true)}
+                    className="w-full text-left text-sm text-purple-700 mt-2 hover:underline"
+                  >
+                    Change Password
+                  </motion.button>
+
                 </div>
               </motion.div>
             )}
@@ -215,6 +231,10 @@ const TeacherDashboard = () => {
           {darkMode ? <FiSun className="text-2xl" /> : <FiMoon className="text-2xl" />}
         </motion.button>
       </div>
+      {showPasswordModal && (
+        <ChangePassword onClose={() => setShowPasswordModal(false)} />
+      )}
+
     </div>
   );
 };
