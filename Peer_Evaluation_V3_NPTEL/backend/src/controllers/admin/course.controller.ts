@@ -155,7 +155,6 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
 };
 
 
-
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
     const batches = await Batch.find()
