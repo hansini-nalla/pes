@@ -5,7 +5,7 @@ import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
 // Create a new exam
 export const createExam = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
@@ -20,6 +20,12 @@ export const createExam = async (
       numQuestions,
       k,
     } = req.body;
+
+    if (!req.user?._id) {
+      res.status(401).json({ message: "Unauthorized: no user ID in token" });
+      return;
+    }
+
     const exam = new Exam({
       title,
       startTime,
@@ -28,8 +34,10 @@ export const createExam = async (
       batch,
       questions,
       numQuestions,
-      k, // 👈 include k
+      k,
+      createdBy: req.user._id, // ✅ Add teacher ID here
     });
+
     await exam.save();
     res.status(201).json({ message: "Exam created successfully", exam });
   } catch (error) {
