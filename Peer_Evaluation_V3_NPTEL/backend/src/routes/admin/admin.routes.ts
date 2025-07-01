@@ -39,31 +39,7 @@ router.get('/users', async (_req: Request, res: Response) => {
   }
 });
 
-router.put('/update-role', async (req: Request, res: Response) => {
-  const { email, role } = req.body;
 
-  if (!email || !role) {
-    res.status(400).json({ error: 'Email and role are required' });
-    return;
-  }
-
-  try {
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
-
-    user.role = role;
-    await user.save();
-
-    res.json({ message: `Role updated to '${role}' for ${email}` });
-  } catch (error) {
-    console.error('Error updating role:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 
 // router.delete("/courses/code/:code",authMiddleware,authorizeRoles("admin"),deleteCourseAndBatches);
 router.get('/courses/',authMiddleware,authorizeRoles("admin"), getAllCourses);

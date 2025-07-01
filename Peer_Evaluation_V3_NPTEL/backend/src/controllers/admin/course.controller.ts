@@ -127,8 +127,11 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
   try {
     const { email, role } = req.body;
 
-    if (!email || !role || !["student", "ta"].includes(role)) {
-      res.status(400).json({ message: "Valid email and role (student/ta) are required." });
+    // Validate input
+    if (!email || !role || !["student", "teacher", "admin"].includes(role)) {
+      res.status(400).json({
+        message: "Valid email and role (student, teacher, admin) are required. Changing to TA is not allowed directly."
+      });
       return;
     }
 
@@ -139,11 +142,19 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
       return;
     }
 
-    if (user.role !== "student" && user.role !== "ta") {
-      res.status(400).json({ message: "Only students or TAs can be updated." });
+    // Prevent changing to TA directly
+    if (role === "ta") {
+      res.status(400).json({ message: "Changing to TA is not allowed directly." });
       return;
     }
 
+    // Prevent changing to the same role
+    if (user.role === role) {
+      res.status(400).json({ message: `User already has the role '${role}'. No update performed.` });
+      return;
+    }
+
+    // Update role
     user.role = role;
     await user.save();
 
