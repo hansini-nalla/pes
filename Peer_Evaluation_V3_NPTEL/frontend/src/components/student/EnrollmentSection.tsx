@@ -58,7 +58,7 @@ const EnrollmentSection = () => {
             try {
                 const token = localStorage.getItem("token");
                 const res = await axios.get(
-                    `http://localhost:${PORT}/student/batches-by-course?courseId=${selectedCourse}`,
+                    `http://localhost:${PORT}/api/student/batches-by-course?courseId=${selectedCourse}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 setBatches(res.data.batches || []);
