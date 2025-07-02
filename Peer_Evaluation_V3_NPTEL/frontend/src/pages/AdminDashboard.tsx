@@ -645,7 +645,8 @@ const AdminDashboard = () => {
                         >
                             <option value="">Select Role</option>
                             <option value="student">Student</option>
-                            <option value="ta">Teaching Assistant (TA)</option>
+                            <option value="ta">Teacher</option>
+                            <option value="ta">Admin</option>
                         </Select>
                     </div>
                     <div className="pt-2">
