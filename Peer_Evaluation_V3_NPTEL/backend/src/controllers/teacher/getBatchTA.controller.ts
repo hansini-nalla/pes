@@ -1,7 +1,5 @@
-// controllers/teacher/getBatchTA.ts
 import { Request, Response } from "express";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts";
 import { Types } from "mongoose";
 
 export const getBatchTA = async (
@@ -23,11 +21,15 @@ export const getBatchTA = async (
       return;
     }
 
-    if (!batch.ta) {
-      res.json({ ta: null });
-    } else {
-      res.json({ ta: batch.ta });
-    }
+    const taArray =
+      batch.ta instanceof Array
+        ? batch.ta.map((ta: any) => ({
+            name: ta.name,
+            email: ta.email,
+          }))
+        : [];
+
+    res.json({ ta: taArray });
   } catch (error) {
     console.error("Error fetching TA:", error);
     res.status(500).json({ message: "Server error" });

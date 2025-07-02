@@ -12,7 +12,8 @@ import {
   updateExam,
   deleteExam,
   getExamSubmissions,
-  uploadAnswerKey
+  uploadAnswerKey,
+  getAllExamsForTeacher
 } from "../../controllers/teacher/exam.controller.ts";
 import { getBatchStudents } from "../../controllers/teacher/getBatchStudents.controller.ts";
 import { initiatePeerEvaluation } from "../../controllers/teacher/peerEvaluation.controller.ts";
@@ -21,10 +22,11 @@ import { getAllStudents } from "../../controllers/teacher/getAllStudents.control
 import { enrollStudents } from '../../controllers/teacher/teacherEnroll.controller.ts';
 import { getBatchStudents2 } from '../../controllers/teacher/teacherEnroll.controller.ts';
 import { getBatchTA } from "../../controllers/teacher/getBatchTA.controller.ts";
-
+import { generateQrPdfBundle } from "../../controllers/teacher/generateExamQrPdfBundle.controller.ts";
+import { handleBulkUploadScans } from "../../controllers/teacher/handleBulkUploadScans.controller.ts" 
 
 const router = Router();
-const upload = multer();
+const upload = multer({ storage: multer.memoryStorage() });
 // Courses
 router.get("/courses", authMiddleware, getTeacherCourses);
 router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
@@ -33,15 +35,13 @@ router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
 router.get("/dashboard-stats", authMiddleware, getTeacherDashboardStats);
 
 // Exam CRUD + Submissions
+router.get("/exams", authMiddleware, getAllExamsForTeacher);
 router.post("/exams", authMiddleware, createExam);
 router.get("/exams/:examId", authMiddleware, getSingleExam);
 router.put("/exams/:examId", authMiddleware, updateExam);
 router.delete("/exams/:examId", authMiddleware, deleteExam);
 router.get("/exams/:examId/submissions", authMiddleware, getExamSubmissions);
-router.get("/test", (req, res) => {
-  console.log("/api/teacher/test HIT");
-  res.send("Hello from teacher route");
-});
+
 router.post("/:examId/answer-key", authMiddleware, upload.single("answerKeyPdf"), uploadAnswerKey);
 
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
@@ -52,6 +52,15 @@ router.get("/students", authMiddleware, getAllStudents);
 router.post('/enroll', authMiddleware, enrollStudents);
 router.get('/batch/:batchId/students', authMiddleware, getBatchStudents2);
 router.get("/batch/:batchId/ta", authMiddleware, getBatchTA);
+
+//QR Stuff
+router.get('/exam/:examId/generate-qrs', authMiddleware, generateQrPdfBundle);
+router.post(
+  '/exams/:examId/upload-scans',
+  authMiddleware,
+  upload.array('scannedPdfs'),
+  handleBulkUploadScans
+);
 
 //Escalated Tickets
 router.get("/escalated-tickets", authMiddleware, getAllEscalatedTickets);
