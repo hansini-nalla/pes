@@ -1,360 +1,808 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-// Removed specific react-icons/fi imports as they will be replaced by FeatherIcon
-// import { FiHome, FiShield, FiLogOut, FiSun, FiMoon, FiUser, FiMenu, FiKey } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, type JSX } from 'react';
+import {
+  FiMenu,
+  FiLogOut,
+  FiHome,
+  FiShield,
+  FiDownload,
+  FiEdit,
+  FiSend,
+  FiSun, // For light mode icon
+  FiMoon, // For dark mode icon
+} from 'react-icons/fi';
+import { motion, AnimatePresence } from "framer-motion"; // For advanced animations
+
+interface FlaggedEvaluation {
+  _id: string;
+  evaluation: {
+    _id: string;
+    evaluatee: {
+      name: string;
+      email: string;
+    };
+    evaluator: {
+      name: string;
+      email: string;
+    };
+    marks: number[];
+    feedback?: string;
+    exam: {
+      title: string;
+      startTime?: string;
+      endTime?: string;
+      numQuestions?: number;
+      course?: {
+        name: string;
+        code: string;
+        startDate?: string;
+        endDate?: string;
+      }
+    }
+  };
+  flaggedBy: {
+    name: string;
+    email: string;
+  };
+  reason?: string;
+  resolutionStatus: 'pending' | 'resolved' | 'escalated';
+}
+
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+
+// Custom "Pinkish, Lilac, Purple & Yellow" Palette - Revised Mix (Light Mode)
+const lightPalette = {
+    'bg-primary': '#FFFBF6',         // Very Light Creamy Yellow (dominant background)
+    'bg-secondary': '#FFFAF2',       // Slightly darker creamy yellow (for card/section backgrounds)
+    'accent-bright-yellow': '#FFD700', // Bright Gold/Yellow (main energetic accent)
+    'accent-light-yellow': '#FFECB3', // Lighter Yellow (for subtle use)
+    'accent-pink': '#FF8DA1',        // Primary Pink Accent
+    'accent-lilac': '#C8A2C8',       // Soft Lilac (modern cool accent)
+    'accent-purple': '#800080',      // Deep Purple (primary purple accent)
+    'accent-light-purple': '#DDA0DD', // Medium Lilac/Purple (for subtle use)
+    'sidebar-bg': '#E6E6FA',         // Lavender Blush (sidebar background)
+    'text-dark': '#4B0082',          // Indigo (Very Dark Purple for primary text on light backgrounds)
+    'text-muted': '#A9A9A9',         // Dark Gray (Medium Gray for secondary text/borders)
+    'text-sidebar-dark': '#4B0082', // Dark text for sidebar for contrast on light lavender
+    'border-soft': '#F0E6EF',        // Very Light Pinkish-Purple for subtle borders
+    'shadow-light': 'rgba(128, 0, 128, 0.04)',  // Very light, subtle purple shadows
+    'shadow-medium': 'rgba(128, 0, 128, 0.08)', // Medium subtle purple shadows
+    'shadow-strong': 'rgba(128, 0, 128, 0.15)', // Stronger subtle purple shadows
+    'white': '#FFFFFF',               // Add white for button text
+};
+
+const darkPalette = {
+    'bg-primary': '#1A1A2E',
+    'bg-secondary': '#16213E',
+    'accent-bright-yellow': '#FFEB3B',
+    'accent-light-yellow': '#FFEE58',
+    'accent-pink': '#EC407A',
+    'accent-lilac': '#9C27B0',
+    'accent-purple': '#6A1B9A',
+    'accent-light-purple': '#8E24AA',
+    'sidebar-bg': '#0F3460',
+    'text-dark': '#E0E0E0',
+    'text-muted': '#B0BEC5',
+    'text-sidebar-dark': '#E0E0E0',
+    'border-soft': '#3F51B5',
+    'shadow-light': 'rgba(0, 0, 0, 0.2)',
+    'shadow-medium': 'rgba(0, 0, 0, 0.4)',
+    'shadow-strong': 'rgba(0, 0, 0, 0.6)',
+    'white': '#FFFFFF',               // Add white for button text
+};
+
+type Palette = typeof lightPalette;
+
+const getColors = (isDarkMode: boolean): Palette => isDarkMode ? darkPalette : lightPalette;
 
 const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
-  const [activeTab, setActiveTab] = useState<'home' | 'flagged' | 'enrollments' | 'password'>('home');
-  const [flaggedCount, setFlaggedCount] = useState<number>(3);
+  const [activePage, setActivePage] = useState("home");
   const [showSidebar, setShowSidebar] = useState(true);
-  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true'); // Using darkMode boolean state
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const navigate = useNavigate();
+  const [logoutDialog, setLogoutDialog] = useState(false);
+  const [darkMode, setDarkMode] = useState(false); // Initial state for dark mode
+  const [commentDialog, setCommentDialog] = useState<{ show: boolean; id: string | null }>({ show: false, id: null });
+  const [comment, setComment] = useState('');
+  const [updateMarksDialog, setUpdateMarksDialog] = useState<{
+    show: boolean;
+    id: string | null;
+    evaluation?: any;
+  }>({ show: false, id: null });
+  const [newMarks, setNewMarks] = useState<number[]>([]);
+  const [flaggedEvaluations, setFlaggedEvaluations] = useState<FlaggedEvaluation[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const course = "CS101 - Data Structures";
-  const batch = "Batch A";
+  const token = localStorage.getItem('token');
+  const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
 
-  const enrollmentRequests = [
-    { name: 'Alice Johnson', email: 'alice@example.com' },
-    { name: 'Bob Smith', email: 'bob@example.com' }
-  ];
+  // Effect to apply/remove dark mode class from the document html element
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
-  // --- Color Palettes for Theming ---
-  const lightPalette = {
-      'bg-primary': '#fef9f4',
-      'bg-secondary': '#ffffff',
-      'accent-purple-light': '#ebe4ff',
-      'accent-purple-dark': '#e5e9f8',
-      'text-primary': '#2c1552',
-      'text-secondary': '#4b3b77',
-      'text-muted': '#555',
-      'sidebar-active-bg': '#efe2ff',
-      'sidebar-active-text': '#6226c9',
-      'sidebar-hover-bg': '#f4f0ff',
-      'sidebar-icon-color': '#8a75d1',
-      'card-blue-bg': '#dbe8fd',
-      'card-pink-bg': '#f6d4fa',
-      'card-orange-bg': '#ffe3ec',
-      'card-text-light-mode': '#2c1552', // Added for clarity, though same as text-primary
-      'logout-button-text': '#6a32a8',
-      'logout-button-hover': '#ef4444', // red-400
-      'profile-button-bg': '#eceaff',
-      'profile-button-hover': '#dedaff',
-      'logout-dialog-bg': '#ffffff',
-      'logout-dialog-text': '#2c1552',
-      'logout-cancel-bg': '#e5e7eb', // gray-200
-      'logout-cancel-hover': '#d1d5db', // gray-300
-      'logout-cancel-text': '#2c1552',
-      'logout-confirm-bg': '#ef4444', // red-500
-      'logout-confirm-hover': '#dc2626', // red-600
-      'flagged-badge-bg': '#ffecf0',
-      'flagged-badge-text': '#ff3366',
-      'form-input-border': '#e5e7eb', // gray-200
-      'form-input-focus-border': '#a78bfa', // purple-400
-      'form-input-bg': '#ffffff',
-      'form-input-text': '#2c1552',
-      'form-button-bg': '#6a32a8',
-      'form-button-hover': '#5a2694',
+  const toggleDarkMode = () => {
+    setDarkMode(prevMode => !prevMode);
   };
 
-  const darkPalette = {
-      'bg-primary': '#1A1A2E',
-      'bg-secondary': '#16213E',
-      'accent-purple-light': '#0F3460',
-      'accent-purple-dark': '#0F3460',
-      'text-primary': '#E0E0E0',
-      'text-secondary': '#B0BEC5',
-      'text-muted': '#90A4AE',
-      'sidebar-active-bg': '#4A148C', // Lighter purple for highlight
-      'sidebar-active-text': '#FFFFFF', // White text on lighter purple
-      'sidebar-hover-bg': '#34495E',
-      'sidebar-icon-color': '#B0BEC5',
-      'card-blue-bg': '#BBDEFB', // Light blue
-      'card-pink-bg': '#E1BEE7', // Light purple/pink
-      'card-orange-bg': '#FFCCBC', // Light orange
-      'card-text-dark-mode': '#333333', // Dark text for contrast on light cards
-      'logout-button-text': '#E0E0E0',
-      'logout-button-hover': '#EF5350',
-      'profile-button-bg': '#3F51B5',
-      'profile-button-hover': '#5C6BC0',
-      'logout-dialog-bg': '#16213E',
-      'logout-dialog-text': '#E0E0E0',
-      'logout-cancel-bg': '#424242',
-      'logout-cancel-hover': '#616161',
-      'logout-cancel-text': '#E0E0E0',
-      'logout-confirm-bg': '#EF5350',
-      'logout-confirm-hover': '#D32F2F',
-      'flagged-badge-bg': '#FFCDD2',
-      'flagged-badge-text': '#C62828',
-      'form-input-border': '#3F51B5',
-      'form-input-focus-border': '#8E24AA',
-      'form-input-bg': '#1A1A2E',
-      'form-input-text': '#E0E0E0',
-      'form-button-bg': '#6A1B9A',
-      'form-button-hover': '#8E24AA',
-  };
+  // Fetch flagged evaluations from backend
+  const fetchFlaggedEvaluations = async () => {
+    setLoading(true);
+    setError(null);
 
-  type Palette = typeof lightPalette;
-  const currentPalette = useMemo(() => darkMode ? darkPalette : lightPalette, [darkMode]);
+    try {
+      const response = await fetch(`http://localhost:${PORT}/api/ta/flagged-evaluations`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-  // Helper component for Feather Icons (SVGs)
-  const FeatherIcon = ({ name, size = 24, strokeWidth = 2, className = '', color = 'currentColor' }: { name: string, size?: number, strokeWidth?: number, className?: string, color?: string }) => {
-    const iconPaths: { [key: string]: JSX.Element } = {
-      'home': <><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></>,
-      'shield': <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></>,
-      'log-out': <><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></>,
-      'sun': <><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></>,
-      'moon': <><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></>,
-      'user': <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></>,
-      'menu': <><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></>,
-      'key': <><path d="M21 2l-2 2m-7 7l-4 4L3 18l3-3m2-2l4-4m-3 3l-6 6a2 2 0 01-3 3L3 21l-3-3 2-2a2 2 0 013-3l6-6z"></path></>,
-    };
+      if (!response.ok) {
+        throw new Error('Failed to fetch flagged evaluations');
+      }
 
-    return (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-      >
-        {iconPaths[name]}
-      </svg>
-    );
-  };
-
-  // Modal Component (adapted for dynamic colors)
-  const Modal = ({ show, onClose, onConfirm, title, children, currentPalette }: { show: boolean, onClose: () => void, onConfirm: () => void, title: string, children: React.ReactNode, currentPalette: Palette }) => {
-    if (!show) return null;
-    return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-                className="rounded-2xl p-8 shadow-xl text-center"
-                style={{ backgroundColor: currentPalette['logout-dialog-bg'], color: currentPalette['logout-dialog-text'] }}>
-                <h2 className="text-xl font-bold mb-4">{title}</h2>
-                <div className="mb-6">{children}</div>
-                <div className="flex justify-center gap-6">
-                    <button onClick={onClose} className="px-6 py-2 rounded-lg font-medium" style={{ backgroundColor: currentPalette['logout-cancel-bg'], color: currentPalette['logout-cancel-text'] }}>Cancel</button>
-                    <button onClick={onConfirm} className="px-6 py-2 rounded-lg text-white font-semibold" style={{ backgroundColor: currentPalette['logout-confirm-bg'] }}>Logout</button>
-                </div>
-            </motion.div>
-        </motion.div>
-    );
+      const data = await response.json();
+      setFlaggedEvaluations(data.flaggedEvaluations || []);
+    } catch (err) {
+      console.error('Error fetching flagged evaluations:', err);
+      setError('Failed to load flagged evaluations. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    // Apply theme class to documentElement
-    document.documentElement.classList.toggle('dark', darkMode);
-    // Store theme preference
-    localStorage.setItem('darkMode', darkMode.toString());
-  }, [darkMode]);
+    fetchFlaggedEvaluations();
+  }, [activePage]);
 
-  const toggleTheme = () => {
-    setDarkMode(prev => !prev);
+  const handleDownloadTranscript = async (evaluationId: string) => {
+    try {
+      const response = await fetch(`http://localhost:${PORT}/api/ta/submission/${evaluationId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download submission');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `submission_${evaluationId}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading transcript:', err);
+      setError('Failed to download submission. Please try again.');
+    }
   };
 
-  const pages = {
-    home: (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="p-8 w-full"
-      >
-        <h1 className="text-3xl font-extrabold mb-2" style={{ color: currentPalette['text-primary'] }}>
-          Hello, TA 👋
-        </h1>
-        <h2 className="text-xl font-semibold mb-6" style={{ color: currentPalette['text-primary'] }}>
-          Welcome to TA Dashboard
-        </h2>
+  const handleUpdateMarks = async (flagId: string) => {
+    try {
+      const flag = flaggedEvaluations.find(ev => ev._id === flagId);
+      if (!flag) return;
 
-        <div className="mb-6">
-          <p className="text-md font-medium" style={{ color: currentPalette['text-secondary'] }}>Course: <span className="font-bold">{course}</span></p>
-          <p className="text-md font-medium" style={{ color: currentPalette['text-secondary'] }}>Batch: <span className="font-bold">{batch}</span></p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="shadow rounded-2xl p-6 text-center" style={{ backgroundColor: currentPalette['card-blue-bg'], color: darkMode ? currentPalette['card-text-dark-mode'] : currentPalette['card-text-light-mode'] }}>
-            <p className="font-medium mb-2">Flagged Evaluations</p>
-            <p className="text-3xl font-bold">{flaggedCount}</p>
-          </div>
-          <div className="shadow rounded-2xl p-6 text-center" style={{ backgroundColor: currentPalette['card-pink-bg'], color: darkMode ? currentPalette['card-text-dark-mode'] : currentPalette['card-text-light-mode'] }}>
-            <p className="font-medium mb-2">Resolved</p>
-            <p className="text-3xl font-bold">--</p>
-          </div>
-          <div className="shadow rounded-2xl p-6 text-center" style={{ backgroundColor: currentPalette['card-orange-bg'], color: darkMode ? currentPalette['card-text-dark-mode'] : currentPalette['card-text-light-mode'] }}>
-            <p className="font-medium mb-2">Escalated</p>
-            <p className="text-3xl font-bold">--</p>
-          </div>
-        </div>
-      </motion.div>
-    ),
-    flagged: (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="p-8 w-full"
-      >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: currentPalette['text-primary'] }}>
-          Flagged Evaluations
-        </h2>
-        <div className="border rounded-xl p-6 shadow-sm" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
-          <p>List of evaluations flagged by students or peers will appear here.</p>
-        </div>
-      </motion.div>
-    ),
-    enrollments: (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="p-8 w-full"
-      >
-        <h2 className="text-3xl font-bold mb-6" style={{ color: currentPalette['text-primary'] }}>
-          Enrollment Requests
-        </h2>
-        <div className="space-y-4">
-          {enrollmentRequests.map((req, idx) => (
-            <div key={idx} className="border rounded-xl p-4 shadow-sm flex justify-between items-center" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
-              <div>
-                <p className="font-semibold">{req.name}</p>
-                <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{req.email}</p>
-              </div>
-              <div className="flex gap-2">
-                {/* These buttons are hardcoded with Tailwind classes, keeping them as is */}
-                <button className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg">Accept</button>
-                <button className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg">Decline</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-    ),
-    password: (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="p-8 w-full h-full flex flex-col items-center justify-start"
-      >
-        <h2 className="text-4xl font-bold mb-10" style={{ color: currentPalette['text-primary'] }}>Change Password</h2>
-        <div className="border rounded-3xl p-10 shadow-xl w-full max-w-2xl" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
-          <form className="space-y-6">
-            <div>
-              <label className="block mb-2 text-lg font-semibold" htmlFor="currentPassword" style={{ color: currentPalette['text-primary'] }}>Current Password</label>
-              <input type="password" id="currentPassword" name="currentPassword" className="w-full px-4 py-3 rounded-xl text-base" style={{ borderColor: currentPalette['form-input-border'], backgroundColor: currentPalette['form-input-bg'], color: currentPalette['form-input-text'] }} required />
-            </div>
-            <div>
-              <label className="block mb-2 text-lg font-semibold" htmlFor="newPassword" style={{ color: currentPalette['text-primary'] }}>New Password</label>
-              <input type="password" id="newPassword" name="newPassword" className="w-full px-4 py-3 rounded-xl text-base" style={{ borderColor: currentPalette['form-input-border'], backgroundColor: currentPalette['form-input-bg'], color: currentPalette['form-input-text'] }} required />
-            </div>
-            <div>
-              <label className="block mb-2 text-lg font-semibold" htmlFor="confirmPassword" style={{ color: currentPalette['text-primary'] }}>Confirm New Password</label>
-              <input type="password" id="confirmPassword" name="confirmPassword" className="w-full px-4 py-3 rounded-xl text-base" style={{ borderColor: currentPalette['form-input-border'], backgroundColor: currentPalette['form-input-bg'], color: currentPalette['form-input-text'] }} required />
-            </div>
-            <button type="submit" className="w-full text-white py-3 px-4 rounded-xl font-semibold text-lg" style={{ backgroundColor: currentPalette['form-button-bg'] }}>Change Password</button>
-          </form>
-        </div>
-      </motion.div>
-    )
-
+      setNewMarks([...flag.evaluation.marks]);
+      setUpdateMarksDialog({
+        show: true,
+        id: flagId,
+        evaluation: flag.evaluation
+      });
+    } catch (err) {
+      console.error('Error preparing marks update:', err);
+      setError('Failed to prepare marks update. Please try again.');
+    }
   };
 
-  return (
-    <div className="flex min-h-screen font-sans relative" style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-primary'] }}>
-      <div className={`${showSidebar ? 'w-64' : 'w-20'} transition-all duration-300 p-5 pt-4 rounded-r-3xl flex flex-col justify-between`} style={{ backgroundColor: currentPalette['accent-purple-light'] }}>
-        <div>
-          <button onClick={() => setShowSidebar(!showSidebar)} className="mb-4 text-left">
-            <FeatherIcon name="menu" className="text-2xl" color={currentPalette['sidebar-icon-color']} />
-          </button>
-          <h2 className={`font-extrabold text-xl mb-6 pl-2 ${!showSidebar && 'hidden'}`} style={{ color: currentPalette['text-primary'] }}>TA Panel</h2>
-          <ul className="space-y-4">
-            {[{ key: 'home', label: 'Home', icon: 'home' },
-              { key: 'flagged', label: 'Flagged Evaluations', icon: 'shield' },
-              { key: 'enrollments', label: 'Enrollment Requests', icon: 'user' },
-              { key: 'password', label: 'Change Password', icon: 'key' }] // Added 'key' icon
-              .map(({ key, label, icon: iconName }) => (
-              <li
-                key={key}
-                onClick={() => setActiveTab(key as any)}
-                className={`cursor-pointer flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 ${
-                  activeTab === key ? '' : `hover:bg-[${currentPalette['sidebar-hover-bg']}]`
-                }`}
-                style={{
-                  backgroundColor: activeTab === key ? currentPalette['sidebar-active-bg'] : 'transparent',
-                  color: activeTab === key ? currentPalette['sidebar-active-text'] : currentPalette['text-primary']
-                }}
-              >
-                <FeatherIcon name={iconName} className="text-xl" color={activeTab === key ? currentPalette['sidebar-active-text'] : currentPalette['sidebar-icon-color']} />
-                {showSidebar && (
-                  <span className="flex items-center gap-2 font-medium">
-                    {label}
-                    {key === 'flagged' && (
-                      <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: currentPalette['flagged-badge-bg'], color: currentPalette['flagged-badge-text'] }}>
-                        {flaggedCount}
-                      </span>
+  const handleMarkChange = (index: number, value: string) => {
+    const updatedMarks = [...newMarks];
+    updatedMarks[index] = Number(value);
+    setNewMarks(updatedMarks);
+  };
+
+  const confirmUpdateMarks = async () => {
+    if (!updateMarksDialog.id) return;
+
+    try {
+      setLoading(true);
+
+      const invalidMarks = newMarks.some(mark =>
+        isNaN(mark) || mark < 0 || mark > 20
+      );
+
+      if (invalidMarks) {
+        alert("Please enter valid marks between 0 and 20 for all questions");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:${PORT}/api/ta/resolve-flag/${updateMarksDialog.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          resolution: 'Marks updated by TA',
+          newMarks: newMarks,
+          feedback: `Marks updated by TA on ${new Date().toLocaleDateString()}`
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update marks');
+      }
+
+      setSuccessMessage('Marks updated successfully');
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      fetchFlaggedEvaluations();
+    } catch (err) {
+      console.error('Error updating marks:', err);
+      setError('Failed to update marks. Please try again.');
+    } finally {
+      setLoading(false);
+      setUpdateMarksDialog({ show: false, id: null });
+      setNewMarks([]);
+    }
+  };
+
+  const handleSendToTeacher = (flagId: string) => {
+    setCommentDialog({ show: true, id: flagId });
+  };
+
+  const confirmSendToTeacher = async () => {
+    if (!commentDialog.id) return;
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(`http://localhost:${PORT}/api/ta/escalate/${commentDialog.id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason: comment })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to escalate to teacher');
+      }
+
+      setSuccessMessage('Flag escalated to teacher successfully');
+      setTimeout(() => setSuccessMessage(null), 3000);
+
+      fetchFlaggedEvaluations();
+    } catch (err) {
+      console.error('Error escalating to teacher:', err);
+      setError('Failed to escalate to teacher. Please try again.');
+    } finally {
+      setLoading(false);
+      setCommentDialog({ show: false, id: null });
+      setComment('');
+    }
+  };
+
+  // Common Tailwind classes for cards and buttons based on the new palette
+  const commonCardClasses = `
+    rounded-xl p-6 space-y-4 border transition-all duration-300
+    hover:shadow-xl transform hover:translate-y-[-4px]
+  `;
+  const getCardStyles = () => ({
+    backgroundColor: currentPalette['bg-secondary'],
+    borderColor: currentPalette['border-soft'],
+    boxShadow: `0 8px 20px ${currentPalette['shadow-medium']}`,
+  });
+
+  const commonButtonClasses = `
+    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
+    focus:outline-none focus:ring-2 focus:ring-offset-2
+  `;
+  const getButtonStyles = (colorKey: keyof Palette, textColorKey: keyof Palette = 'text-dark') => ({
+    backgroundColor: currentPalette[colorKey],
+    color: currentPalette[textColorKey],
+    boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
+    // @ts-ignore
+    '--tw-ring-color': currentPalette[colorKey] + '50', // For focus ring
+  });
+
+
+  const DialogBox = ({ show, message, children }: { show: boolean, message: string, children?: React.ReactNode }) => {
+    if (!show) return null;
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.8 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="rounded-lg p-6 w-80 text-center shadow-2xl"
+          style={{ backgroundColor: currentPalette['bg-primary'], boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}` }}
+        >
+          <div className="mb-2">
+            {/* The SVG color is static, so it will not change with dark mode */}
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="28" fill="#6ddf99" />
+              <path d="M18 30l7 7 13-13" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div className="text-lg font-semibold text-center mb-1" style={{ color: currentPalette['text-dark'] }}>{message}</div>
+          {children}
+        </motion.div>
+      </motion.div>
+    );
+  };
+
+  const renderContent = () => {
+    const pages: Record<string, JSX.Element> = {
+      home: (
+        <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+          <h1 className="text-4xl font-bold text-center mb-6" style={{ color: currentPalette['text-dark'] }}>
+            Welcome to TA Dashboard
+          </h1>
+
+          {error && (
+            <div className="border text-red-700 px-4 py-3 rounded-lg mb-4 w-full max-w-2xl"
+                 style={{ backgroundColor: currentPalette['accent-pink'] + '10', borderColor: currentPalette['accent-pink'] + '40', color: currentPalette['accent-pink'] + '90' }}>
+              {error}
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="border text-green-700 px-4 py-3 rounded-lg mb-4 w-full max-w-2xl"
+                 style={{ backgroundColor: currentPalette['accent-light-purple'] + '10', borderColor: currentPalette['accent-light-purple'] + '40', color: currentPalette['accent-purple'] + '90' }}>
+              {successMessage}
+            </div>
+          )}
+
+          <div className="mt-10 flex flex-col items-center w-full max-w-2xl">
+            <div className={`border rounded-3xl p-8 w-full shadow flex flex-col items-center`}
+                 style={getCardStyles()}>
+              <h2 className="text-2xl font-bold mb-2" style={{ color: currentPalette['accent-purple'] }}>Flagged Evaluations</h2>
+              {loading ? (
+                <div className="flex justify-center py-6">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: currentPalette['accent-purple'] }}></div>
+                </div>
+              ) : flaggedEvaluations.length === 0 ? (
+                <p className="text-center mb-2" style={{ color: currentPalette['text-muted'] }}>
+                  No flagged evaluations at the moment.
+                </p>
+              ) : (
+                <ul className="w-full">
+                  {flaggedEvaluations.slice(0, 3).map(flag => (
+                    <li key={flag._id} className="mb-2 rounded-xl p-3 shadow text-left"
+                        style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-dark'], boxShadow: `0 2px 8px ${currentPalette['shadow-light']}` }}>
+                      <div className="flex justify-between">
+                        <span className="font-semibold">{flag.evaluation.evaluatee.name}</span>
+                        <span className="text-sm" style={{ color: currentPalette['accent-pink'] }}>{flag.evaluation.exam.title}</span>
+                      </div>
+                      <p className="text-sm mt-1" style={{ color: currentPalette['text-muted'] }}>{flag.reason || "No reason provided"}</p>
+                      <div className="mt-2 flex justify-end space-x-2">
+                        <button
+                          onClick={() => handleUpdateMarks(flag._id)}
+                          className="text-sm hover:underline flex items-center gap-1"
+                          style={{ color: currentPalette['accent-lilac'] }}
+                        >
+                          <FiEdit size={14} /> Update
+                        </button>
+                        <button
+                          onClick={() => handleSendToTeacher(flag._id)}
+                          className="text-sm hover:underline flex items-center gap-1"
+                          style={{ color: currentPalette['accent-purple'] }}
+                        >
+                          <FiSend size={14} /> Escalate
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {flaggedEvaluations.length > 3 && (
+                <button
+                  onClick={() => setActivePage("flagged")}
+                  className="mt-4 hover:underline"
+                  style={{ color: currentPalette['accent-purple'] }}
+                >
+                  View all ({flaggedEvaluations.length})
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+      flagged: (
+        <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+          <h2 className="text-3xl font-bold text-center mb-8" style={{ color: currentPalette['accent-purple'] }}>Flagged Evaluations</h2>
+
+          {error && (
+            <div className="border px-4 py-3 rounded-lg mb-4 w-full max-w-4xl"
+                 style={{ backgroundColor: currentPalette['accent-pink'] + '10', borderColor: currentPalette['accent-pink'] + '40', color: currentPalette['accent-pink'] + '90' }}>
+              {error}
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="border px-4 py-3 rounded-lg mb-4 w-full max-w-4xl"
+                 style={{ backgroundColor: currentPalette['accent-light-purple'] + '10', borderColor: currentPalette['accent-light-purple'] + '40', color: currentPalette['accent-purple'] + '90' }}>
+              {successMessage}
+            </div>
+          )}
+
+          <div className="w-full max-w-4xl">
+            {loading ? (
+              <div className="flex justify-center py-6">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: currentPalette['accent-purple'] }}></div>
+              </div>
+            ) : flaggedEvaluations.length === 0 ? (
+              <p className="text-center" style={{ color: currentPalette['text-muted'] }}>No flagged evaluations at the moment.</p>
+            ) : (
+              <ul className="space-y-4">
+                {flaggedEvaluations.map(flag => (
+                  <li key={flag._id} className={`${commonCardClasses}`} style={getCardStyles()}>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p style={{ color: currentPalette['text-muted'] }}>Student:</p>
+                        <p className="font-semibold" style={{ color: currentPalette['text-dark'] }}>{flag.evaluation.evaluatee.name}</p>
+                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{flag.evaluation.evaluatee.email}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: currentPalette['text-muted'] }}>Evaluator:</p>
+                        <p className="font-semibold" style={{ color: currentPalette['text-dark'] }}>{flag.evaluation.evaluator.name}</p>
+                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>{flag.evaluation.evaluator.email}</p>
+                      </div>
+                      <div>
+                        <p style={{ color: currentPalette['text-muted'] }}>Course:</p>
+                        <p className="font-semibold" style={{ color: currentPalette['text-dark'] }}>{flag.evaluation.exam.course?.name || 'N/A'}</p>
+                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
+                          Code: {flag.evaluation.exam.course?.code || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p style={{ color: currentPalette['text-muted'] }}>Exam:</p>
+                        <p className="font-semibold" style={{ color: currentPalette['text-dark'] }}>{flag.evaluation.exam.title}</p>
+                        <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
+                          Questions: {flag.evaluation.exam.numQuestions || 'N/A'}
+                        </p>
+                        {flag.evaluation.exam.startTime && (
+                          <p className="text-sm" style={{ color: currentPalette['text-muted'] }}>
+                            Start: {new Date(flag.evaluation.exam.startTime).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p style={{ color: currentPalette['text-muted'] }}>Current Marks:</p>
+                        <div className="mt-1 grid grid-cols-5 gap-1">
+                          {flag.evaluation.marks.map((mark: number, idx: number) => (
+                            <div key={idx} className="rounded-lg p-2 text-center" style={{ backgroundColor: currentPalette['bg-primary'], color: currentPalette['text-dark'] }}>
+                              <div className="text-xs" style={{ color: currentPalette['text-muted'] }}>Q{idx+1}</div>
+                              <div className="font-semibold">{mark}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 text-right font-semibold" style={{ color: currentPalette['text-dark'] }}>
+                          Total: {Math.round(flag.evaluation.marks.reduce((sum: number, mark: number) => sum + mark, 0))}
+                          /{flag.evaluation.marks.length * 20}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <p style={{ color: currentPalette['text-muted'] }}>Flag Reason:</p>
+                      <p className="italic p-3 rounded-lg mt-1" style={{ backgroundColor: currentPalette['accent-pink'] + '10', color: currentPalette['text-dark'] }}>{flag.reason || "No reason provided"}</p>
+                    </div>
+
+                    {flag.evaluation.feedback && (
+                      <div className="mt-4">
+                        <p style={{ color: currentPalette['text-muted'] }}>Feedback:</p>
+                        <p className="italic p-3 rounded-lg mt-1" style={{ backgroundColor: currentPalette['accent-light-purple'] + '10', color: currentPalette['text-dark'] }}>{flag.evaluation.feedback}</p>
+                      </div>
                     )}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={() => setShowLogoutDialog(true)} className="flex items-center gap-2 px-3 py-2 transition" style={{ color: currentPalette['logout-button-text'] }}>
-            <FeatherIcon name="log-out" className="text-xl" color={currentPalette['logout-button-text']} />
-            {showSidebar && <span className="font-medium">Logout</span>}
-          </button>
-        </div>
-      </div>
 
-      <main className="flex-1 p-6 md:p-10">
-        <div className="flex justify-end items-center mb-4">
-          <div className="relative">
-            <button onClick={() => setShowProfileDropdown(prev => !prev)} className="p-2 rounded-full shadow" style={{ backgroundColor: currentPalette['profile-button-bg'], color: currentPalette['text-primary'] }}>
-              <FeatherIcon name="user" className="text-xl" color={currentPalette['text-primary']} />
-            </button>
-            {showProfileDropdown && (
-              <div className="absolute right-0 mt-2 w-56 border rounded-xl shadow-lg p-4 text-sm" style={{ backgroundColor: currentPalette['bg-secondary'], color: currentPalette['text-primary'], borderColor: currentPalette['text-muted'] }}>
-                <p><strong>Name:</strong> Test TA</p>
-                <p><strong>Email:</strong> ta@example.com</p>
-                <p><strong>Role:</strong> Teaching Assistant</p>
-              </div>
+                    <div className="mt-6 flex justify-end space-x-4">
+                      <button
+                        onClick={() => handleDownloadTranscript(flag.evaluation._id)}
+                        className="flex items-center gap-2 hover:underline"
+                        style={{ color: currentPalette['accent-lilac'] }}
+                      >
+                        <FiDownload /> Download Submission
+                      </button>
+                      <button
+                        onClick={() => handleUpdateMarks(flag._id)}
+                        className="flex items-center gap-2 hover:underline"
+                        style={{ color: currentPalette['accent-purple'] }}
+                      >
+                        <FiEdit /> Update Marks
+                      </button>
+                      <button
+                        onClick={() => handleSendToTeacher(flag._id)}
+                        className="flex items-center gap-2 hover:underline"
+                        style={{ color: currentPalette['accent-pink'] }}
+                      >
+                        <FiSend /> Send to Teacher
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
-        {pages[activeTab]}
-      </main>
+      )
+    };
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+            key={activePage} // Key is crucial for AnimatePresence to detect changes
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="w-full" // Ensure it takes full width within the container
+        >
+          {pages[activePage]}
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
 
-      <AnimatePresence>
-        {showLogoutDialog && (
-          <Modal
-            show={showLogoutDialog}
-            onClose={() => setShowLogoutDialog(false)}
-            onConfirm={() => {
-              setShowLogoutDialog(false);
-              navigate('/login');
-              onLogout?.();
-            }}
-            title="Are you sure you want to logout?"
-            currentPalette={currentPalette}
+  return (
+    <div className="flex h-screen overflow-hidden relative" style={{ background: currentPalette['bg-primary'] }}>
+      {/* Subtle background pattern for visual interest, blending with white */}
+      <div className="absolute inset-0 z-0 opacity-[0.03]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='${encodeURIComponent(currentPalette['text-muted'])}' fill-opacity='0.1' fill-rule='evenodd'%3E%3Cpath d='M3 0L0 3l3 3 3-3z'/%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundSize: '80px 80px',
+          background: `linear-gradient(135deg, ${currentPalette['bg-primary']} 0%, ${currentPalette['bg-primary']} 50%, ${currentPalette['bg-primary']} 100%)`
+      }}></div>
+
+      {/* Sidebar */}
+      <motion.div
+          className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl transition-all duration-300 shadow-xl z-20 overflow-hidden ${showSidebar ? 'w-64' : 'w-20'}`}
+          style={{
+              backgroundColor: currentPalette['sidebar-bg'],
+              backgroundImage: `linear-gradient(180deg, ${currentPalette['sidebar-bg']}, ${currentPalette['sidebar-bg']}E0)`,
+              boxShadow: `8px 0 30px ${currentPalette['shadow-medium']}`
+          }}
+      >
+          <button
+              onClick={() => setShowSidebar(!showSidebar)}
+              className="self-start mb-6 p-2 border-2 border-transparent rounded-full active:scale-95 transition-transform duration-200 focus:outline-none focus:ring-2"
+              style={{ borderColor: currentPalette['accent-lilac'], '--tw-ring-color': currentPalette['accent-lilac'] + '70' } as React.CSSProperties & Record<string, any>}
           >
-            {/* No additional children needed for this modal */}
-          </Modal>
-        )}
+              <FiMenu className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }} />
+          </button>
+          <div className="flex-1 flex flex-col items-center">
+              <h2 className={`font-bold mb-10 mt-4 transition-all duration-300 ${showSidebar ? 'text-2xl' : 'text-lg'}`} style={{ color: currentPalette['text-sidebar-dark'] }}>
+                  {showSidebar ? 'TA Panel' : 'TA'}
+              </h2>
+              <ul className="space-y-3 w-full">
+                  {[
+                      { key: 'home', icon: FiHome, label: 'Dashboard' },
+                      { key: 'flagged', icon: FiShield, label: 'Flagged Evaluations' }
+                  ].map(({ key, icon: Icon, label }) => (
+                      <motion.li
+                          key={key}
+                          onClick={() => setActivePage(key)}
+                          className={`cursor-pointer flex items-center px-4 py-2 rounded-lg transition-all duration-200 transform
+                               ${activePage === key ? 'scale-100 relative' : 'hover:scale-[1.02]'}
+                               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+                          `}
+                          style={{
+                              color: currentPalette['text-sidebar-dark'],
+                          }}
+                          whileHover={{ scale: 1.03, x: 5, boxShadow: `0 0 10px ${currentPalette['shadow-light']}` }}
+                          whileTap={{ scale: 0.98 }}
+                      >
+                          {activePage === key && (
+                              <motion.div
+                                  layoutId="activePill"
+                                  className="absolute inset-0 rounded-lg -z-10"
+                                  style={{
+                                      backgroundColor: currentPalette['accent-light-purple'] + '20',
+                                      boxShadow: `0 0 15px ${currentPalette['accent-light-purple']}40`
+                                  }}
+                                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              />
+                          )}
+                          <Icon className={`transition-all duration-300 ${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`} />
+                          {showSidebar && <span className="font-medium whitespace-nowrap">`{label}`</span>}
+                      </motion.li>
+                  ))}
+              </ul>
+          </div>
+          <motion.button
+              onClick={() => setLogoutDialog(true)}
+              className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto" // Added mt-auto to push to bottom
+              style={{ color: currentPalette['text-sidebar-dark'] }}
+              whileHover={{ scale: 1.03, x: 5 }}
+              whileTap={{ scale: 0.98 }}
+          >
+              <FiLogOut className={`${showSidebar ? 'mr-3 text-xl' : 'text-3xl'}`} />
+              {showSidebar && <span className="font-medium whitespace-nowrap">Logout</span>}
+          </motion.button>
+      </motion.div>
+
+      {/* Main Content */}
+      <div className="flex-1 relative overflow-y-auto p-4 flex flex-col z-10">
+          <div
+              className="rounded-xl shadow-xl w-full h-auto mt-8 mb-8 p-6 flex items-start justify-center overflow-auto max-w-5xl mx-auto transform transition-all duration-300"
+              style={{
+                  minHeight: "calc(100vh - 64px)", // Adjusted minHeight based on p-4
+                  backgroundColor: currentPalette['bg-secondary'], // Changed to bg-secondary for card
+                  boxShadow: `0 10px 40px ${currentPalette['shadow-medium']}`
+              }}
+          >
+              {renderContent()}
+          </div>
+      </div>
+
+      {/* Logout Dialog */}
+      <AnimatePresence>
+          {logoutDialog && (
+              <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+              >
+                  <motion.div
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      className="rounded-lg p-6 w-80 text-center shadow-2xl"
+                      style={{ backgroundColor: currentPalette['bg-primary'], boxShadow: `0 8px 25px ${currentPalette['shadow-strong']}` }}
+                  >
+                      <p className="text-lg font-semibold" style={{ color: currentPalette['text-dark'] }}>Are you sure you want to logout?</p>
+                      <div className="flex justify-around mt-6 space-x-4">
+                          <button
+                              onClick={() => setLogoutDialog(false)}
+                              className="px-5 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors duration-200 active:scale-95 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400"
+                              style={{
+                                  backgroundColor: currentPalette['bg-secondary'],
+                                  color: currentPalette['text-dark'],
+                                  boxShadow: `0 2px 10px ${currentPalette['shadow-light']}`
+                              }}
+                          >
+                              Cancel
+                          </button>
+                          <button
+                              onClick={() => { setLogoutDialog(false); onLogout ? onLogout() : window.location.href = "/login"; }}
+                              className={`${commonButtonClasses} focus:ring-offset-2`}
+                              style={getButtonStyles('accent-purple', 'white')}
+                          >
+                              Logout
+                          </button>
+                      </div>
+                  </motion.div>
+              </motion.div>
+          )}
       </AnimatePresence>
 
-      <button onClick={toggleTheme} className="fixed bottom-6 right-6 p-3 rounded-full shadow-xl z-50" style={{ backgroundColor: currentPalette['profile-button-bg'], color: currentPalette['text-primary'] }}>
-        {darkMode ? <FeatherIcon name="sun" className="text-xl" color={currentPalette['text-primary']} /> : <FeatherIcon name="moon" className="text-xl" color={currentPalette['text-primary']} />}
-      </button>
+      {/* Comment Dialog */}
+      <AnimatePresence>
+          {commentDialog.show && (
+              <DialogBox show={commentDialog.show} message="Add a comment before sending">
+                  <textarea value={comment} onChange={e => setComment(e.target.value)} placeholder="Write your note here..."
+                      className="w-full border rounded-lg p-2 mb-4"
+                      style={{
+                          backgroundColor: currentPalette['bg-secondary'],
+                          borderColor: currentPalette['border-soft'],
+                          color: currentPalette['text-dark']
+                      }} rows={3} />
+                  <div className="flex gap-4">
+                      <button onClick={() => setCommentDialog({ show: false, id: null })}
+                          className="px-4 py-2 rounded-lg hover:opacity-90 transition-colors"
+                          style={{
+                              backgroundColor: currentPalette['bg-secondary'],
+                              color: currentPalette['text-dark'],
+                              boxShadow: `0 2px 10px ${currentPalette['shadow-light']}`
+                          }}
+                      >Cancel</button>
+                      <button onClick={confirmSendToTeacher}
+                          className={`${commonButtonClasses}`}
+                          style={getButtonStyles('accent-purple', 'white')}
+                      >Send</button>
+                  </div>
+              </DialogBox>
+          )}
+      </AnimatePresence>
+
+      {/* Update Marks Dialog */}
+      <AnimatePresence>
+          {updateMarksDialog.show && (
+              <DialogBox show={updateMarksDialog.show} message="Update evaluation marks">
+                  <div className="w-full mb-4">
+                      <div className="text-sm mb-3" style={{ color: currentPalette['text-muted'] }}>Enter marks for each question (0-20):</div>
+
+                      {newMarks.map((mark, index) => (
+                          <div key={index} className="mb-3">
+                              <label className="block text-sm font-medium mb-1" style={{ color: currentPalette['text-dark'] }}>
+                                  Question {index + 1}:
+                              </label>
+                              <input
+                                  type="number"
+                                  min="0"
+                                  max="20"
+                                  value={mark}
+                                  onChange={(e) => handleMarkChange(index, e.target.value)}
+                                  className="w-full border rounded-lg p-2"
+                                  style={{
+                                      backgroundColor: currentPalette['bg-secondary'],
+                                      borderColor: currentPalette['border-soft'],
+                                      color: currentPalette['text-dark']
+                                  }}
+                              />
+                          </div>
+                      ))}
+
+                      <div className="mt-3 text-right">
+                          <strong style={{ color: currentPalette['text-dark'] }}>
+                              Total: {newMarks.reduce((sum, mark) => sum + mark, 0)} / {(updateMarksDialog.evaluation?.exam?.numQuestions || newMarks.length) * 20}
+                          </strong>
+                      </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                      <button
+                          onClick={() => setUpdateMarksDialog({ show: false, id: null })}
+                          className="px-4 py-2 rounded-lg hover:opacity-90 transition-colors"
+                          style={{
+                              backgroundColor: currentPalette['bg-secondary'],
+                              color: currentPalette['text-dark'],
+                              boxShadow: `0 2px 10px ${currentPalette['shadow-light']}`
+                          }}
+                      >
+                          Cancel
+                      </button>
+                      <button
+                          onClick={confirmUpdateMarks}
+                          className={`${commonButtonClasses}`}
+                          style={getButtonStyles('accent-purple', 'white')}
+                      >
+                          Save Changes
+                      </button>
+                  </div>
+              </DialogBox>
+          )}
+      </AnimatePresence>
+
+      {/* Floating Dark Mode Toggle */}
+      <div className="fixed bottom-6 right-6 z-20">
+          <button
+              onClick={toggleDarkMode}
+              className="h-12 w-12 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2"
+              style={{
+                  backgroundColor: darkMode ? currentPalette['accent-purple'] : currentPalette['accent-lilac'],
+                  color: 'white', // Ensure text color is white for both modes
+                  boxShadow: darkMode ? `0 4px 15px ${currentPalette['accent-purple']}60` : `0 4px 15px ${currentPalette['accent-lilac']}60`,
+                  // @ts-ignore
+                  ['--tw-ring-color' as any]: darkMode ? currentPalette['accent-purple'] + '70' : currentPalette['accent-lilac'] + '70'
+              } as React.CSSProperties & Record<string, any>}
+          >
+              {darkMode ? (
+                  <FiMoon className="w-6 h-6" />
+              ) : (
+                  <FiSun className="w-6 h-6" />
+              )}
+          </button>
+      </div>
     </div>
   );
 };
