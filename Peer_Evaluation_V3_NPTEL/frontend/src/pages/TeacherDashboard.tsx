@@ -1,7 +1,9 @@
+// frontend/src/components/teacher/TeacherDashboard.tsx
 import { useState, useEffect, type JSX } from "react";
 import { useNavigate } from "react-router-dom";
-import { FiMenu, FiHome, FiShield, FiBook, FiEdit, FiLogOut, FiSun, FiMoon } from "react-icons/fi";
+import { FiMenu, FiHome, FiShield, FiBook, FiEdit, FiLogOut, FiSun, FiMoon,FiAlertCircle } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
+import TeacherEscalatedTickets from "../components/teacher/TeacherEscalatedTickets";
 import TeacherHome from "../components/teacher/TeacherHome";
 import TeacherManageRoles from "../components/teacher/ManageRoles";
 import TeacherCourses from "../components/teacher/TeacherCourses";
@@ -102,6 +104,7 @@ const TeacherDashboard = () => {
     roles: <TeacherManageRoles />,
     courses: <TeacherCourses />,
     exams: <TeacherExams />,
+    tickets: <TeacherEscalatedTickets />,
   };
 
   const icons: Record<string, any> = {
@@ -109,6 +112,7 @@ const TeacherDashboard = () => {
     roles: FiShield,
     courses: FiBook,
     exams: FiEdit,
+     tickets: FiAlertCircle,
   };
 
   return (

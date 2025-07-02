@@ -2,6 +2,7 @@ import { Response } from "express";
 import { Batch } from "../../models/Batch.ts";
 import { User } from "../../models/User.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
+import { sendTAAssignmentEmails } from "../../utils/sendEmailReminder.ts";
 import { Types } from "mongoose";
 
 export const assignTaToBatch = async (
@@ -28,12 +29,22 @@ export const assignTaToBatch = async (
       res.status(404).json({ message: "Student not found" });
       return;
     }
+    if (batch.ta.includes(studentId)) {
+      res
+        .status(400)
+        .json({ message: "Student is already a TA for this batch" });
+      return;
+    }
 
-    // ✅ Assign TA to batch
-    batch.ta = student._id as Types.ObjectId;
+    batch.ta.push(student._id as Types.ObjectId);
     await batch.save();
+    const batchID = batch._id as Types.ObjectId;
+    sendTAAssignmentEmails(batchID.toString());
 
-    res.json({ message: "Student promoted to TA and assigned to batch", batch });
+    res.json({
+      message: "Student promoted to TA and assigned to batch",
+      batch,
+    });
   } catch (err) {
     console.error("Assign TA Error:", err);
     res.status(500).json({ message: "Failed to assign TA" });
