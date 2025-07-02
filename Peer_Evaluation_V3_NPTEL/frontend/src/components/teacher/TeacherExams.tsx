@@ -169,6 +169,31 @@ export default function TeacherExams() {
       }
     };
   };
+  const handleGenerateQRs = async (examId: string) => {
+  try {
+    const response = await fetch(`http://localhost:${PORT}/api/teacher/exam/${examId}/generate-qrs`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) throw new Error("Failed to generate QR bundle");
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Exam_QRs_${examId}.zip`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("QR generation failed:", err);
+    setToast({ message: "QR generation failed", type: "error" });
+  }
+};
+
 
   return (
     <div className="flex flex-col items-center w-full pt-10 px-6 pb-20">
@@ -226,6 +251,15 @@ export default function TeacherExams() {
                   >
                     <FiTrash2 className="text-red-600" />
                   </button>
+
+                  <button
+                    onClick={() => handleGenerateQRs(exam._id)}
+                    className="p-2 bg-indigo-100 rounded-full hover:bg-indigo-200 shadow"
+                    title="Generate QR PDFs"
+                  >
+                    📦
+                  </button>
+
 
                   <button title="Initiate Peer Evaluation"
                     onClick={async () => {

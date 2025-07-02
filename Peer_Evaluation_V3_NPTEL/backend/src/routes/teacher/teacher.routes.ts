@@ -21,6 +21,7 @@ import { getAllStudents } from "../../controllers/teacher/getAllStudents.control
 import { enrollStudents } from '../../controllers/teacher/teacherEnroll.controller.ts';
 import { getBatchStudents2 } from '../../controllers/teacher/teacherEnroll.controller.ts';
 import { getBatchTA } from "../../controllers/teacher/getBatchTA.controller.ts";
+import { generateQrPdfBundle } from "../../controllers/teacher/generateExamQrPdfBundle.controller.ts";
 
 
 const router = Router();
@@ -49,6 +50,9 @@ router.get("/students", authMiddleware, getAllStudents);
 router.post('/enroll', authMiddleware, enrollStudents);
 router.get('/batch/:batchId/students', authMiddleware, getBatchStudents2);
 router.get("/batch/:batchId/ta", authMiddleware, getBatchTA);
+
+//QR Stuff
+router.get('/exam/:examId/generate-qrs', authMiddleware, generateQrPdfBundle);
 
 //Escalated Tickets
 router.get("/escalated-tickets", authMiddleware, getAllEscalatedTickets);
