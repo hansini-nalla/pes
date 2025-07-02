@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Submission } from "../../models/Submission.ts";
 import { Exam } from "../../models/Exam.ts";
-import { Evaluation } from "../../models/Evaluation.ts";
-import { Batch } from "../../models/Batch.ts";
 
 export const submitAnswer = async (
   req: Request,

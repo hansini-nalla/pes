@@ -1,6 +1,6 @@
 console.log("✅ getTeacherCourses controller loaded");
 
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { Batch, IBatch } from "../../models/Batch.ts";
 import { ICourse } from "../../models/Course.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";

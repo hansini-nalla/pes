@@ -10,7 +10,6 @@ import adminroutes from './routes/admin/admin.routes.ts';
 // import adminteachroutes from './routes/admin/teacher.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
 import admincourseroutes from './routes/admin/admin.routes.ts';
-import teacherEnrollRoutes from './routes/teacher/teacher.routes.ts';
 
 
 

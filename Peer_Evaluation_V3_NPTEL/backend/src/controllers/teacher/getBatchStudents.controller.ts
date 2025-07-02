@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { Batch } from "../../models/Batch.ts";
 import { User } from "../../models/User.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";

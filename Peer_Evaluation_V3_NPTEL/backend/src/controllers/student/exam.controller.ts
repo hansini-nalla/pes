@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from 'express';
 import { Exam } from '../../models/Exam.ts';
 import { Batch } from '../../models/Batch.ts';
 import { User } from '../../models/User.ts';
-import { Course } from '../../models/Course.ts';
 
 interface AuthRequest extends Request {
   user?: any; 
