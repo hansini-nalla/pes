@@ -10,13 +10,16 @@ interface Ticket {
   resolved: boolean;
 }
 
+const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
+const BASE_URL = `http://localhost:${PORT}`;
+
 const TeacherEscalatedTickets = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTickets = async () => {
     try {
-      const { data } = await axios.get("/api/teacher/escalated-tickets", {
+      const { data } = await axios.get(`${BASE_URL}/api/teacher/escalated-tickets`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -41,7 +44,7 @@ const TeacherEscalatedTickets = () => {
   const handleResolve = async (ticketId: string) => {
     try {
       await axios.put(
-        `/api/teacher/resolve-ticket/${ticketId}`,
+        `${BASE_URL}/api/teacher/resolve-ticket/${ticketId}`,
         {},
         {
           headers: {
@@ -49,7 +52,7 @@ const TeacherEscalatedTickets = () => {
           },
         }
       );
-      fetchTickets(); // Refresh after resolving
+      fetchTickets(); // Refresh list after resolving
     } catch (error) {
       console.error("Error resolving ticket", error);
     }
