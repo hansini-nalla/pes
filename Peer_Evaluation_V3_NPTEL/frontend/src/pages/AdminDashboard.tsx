@@ -613,9 +613,18 @@ const AdminDashboard = () => {
                           currentPalette={currentPalette}
                         >
                             <option value="">Select User</option>
-                            <optgroup label="Teaching Assistants (TAs)">
+                          <optgroup label="Admins">
                                 {allUsers
-                                .filter(user => user.role === 'ta')
+                                .filter(user => user.role === 'admin')
+                                .map(user => (
+                                    <option key={user.email} value={user.email}>
+                                    {user.name} ({user.email})
+                                    </option>
+                                ))}
+                            </optgroup>
+                            <optgroup label="Teachers">
+                                {allUsers
+                                .filter(user => user.role === 'teacher')
                                 .map(user => (
                                     <option key={user.email} value={user.email}>
                                     {user.name} ({user.email})
