@@ -194,6 +194,48 @@ export default function TeacherExams() {
   }
 };
 
+const handleBulkUploadScans = async (examId: string) => {
+  const fileInput = document.createElement("input");
+  fileInput.type = "file";
+  fileInput.accept = "application/pdf";
+  fileInput.multiple = true;
+  fileInput.click();
+
+  fileInput.onchange = async () => {
+    const files = fileInput.files;
+    if (!files || files.length === 0) return;
+
+    const formData = new FormData();
+    for (const file of files) {
+      formData.append("scannedPdfs", file); // name must match Multer config
+    }
+
+    try {
+      const response = await axios.post(
+        `http://localhost:${PORT}/api/teacher/exams/${examId}/upload-scans`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      const { successCount, failureCount } = response.data;
+      setToast({
+        message: `Uploaded: ${successCount} succeeded, ${failureCount} failed`,
+        type: "success",
+      });
+    } catch (error: any) {
+      setToast({
+        message: error.response?.data?.message || "Bulk upload failed",
+        type: "error",
+      });
+    }
+  };
+};
+
+
 
   return (
     <div className="flex flex-col items-center w-full pt-10 px-6 pb-20">
@@ -259,6 +301,14 @@ export default function TeacherExams() {
                   >
                     📦
                   </button>
+                  <button
+                  onClick={() => handleBulkUploadScans(exam._id)}
+                  className="p-2 bg-pink-100 rounded-full hover:bg-pink-200 shadow"
+                  title="Bulk Upload Scanned PDFs"
+                >
+                  📤
+                </button>
+
 
 
                   <button title="Initiate Peer Evaluation"
