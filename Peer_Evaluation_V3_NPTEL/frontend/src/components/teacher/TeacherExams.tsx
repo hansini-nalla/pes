@@ -39,7 +39,7 @@ interface Exam {
 }
 
 export default function TeacherExams() {
-  const [,setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const token = localStorage.getItem("token");
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
@@ -53,6 +53,7 @@ export default function TeacherExams() {
   const [endTime, setEndTime] = useState("");
   const [k, setK] = useState(1);
   const [questions, setQuestions] = useState([{ q: "", max: 0 }]);
+  const [allExams, setAllExams] = useState<Exam[]>([]);
 
   useEffect(() => {
     axios
@@ -62,6 +63,16 @@ export default function TeacherExams() {
       .then((res) => setCourses(res.data.courses))
       .catch(console.error);
   }, []);
+
+  useEffect(() => {
+    axios
+      .get(`http://localhost:${PORT}/api/teacher/exams`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => setAllExams(res.data.exams))
+      .catch(console.error);
+  }, []);
+
 
   useEffect(() => {
     if (selectedCourse && selectedBatch) {
@@ -170,70 +181,70 @@ export default function TeacherExams() {
     };
   };
   const handleGenerateQRs = async (examId: string) => {
-  try {
-    const response = await fetch(`http://localhost:${PORT}/api/teacher/exam/${examId}/generate-qrs`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) throw new Error("Failed to generate QR bundle");
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Exam_QRs_${examId}.zip`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error("QR generation failed:", err);
-    setToast({ message: "QR generation failed", type: "error" });
-  }
-};
-
-const handleBulkUploadScans = async (examId: string) => {
-  const fileInput = document.createElement("input");
-  fileInput.type = "file";
-  fileInput.accept = "application/pdf";
-  fileInput.multiple = true;
-  fileInput.click();
-
-  fileInput.onchange = async () => {
-    const files = fileInput.files;
-    if (!files || files.length === 0) return;
-
-    const formData = new FormData();
-    for (const file of files) {
-      formData.append("scannedPdfs", file); // name must match Multer config
-    }
-
     try {
-      const response = await axios.post(
-        `http://localhost:${PORT}/api/teacher/exams/${examId}/upload-scans`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      const { successCount, failureCount } = response.data;
-      setToast({
-        message: `Uploaded: ${successCount} succeeded, ${failureCount} failed`,
-        type: "success",
+      const response = await fetch(`http://localhost:${PORT}/api/teacher/exam/${examId}/generate-qrs`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-    } catch (error: any) {
-      setToast({
-        message: error.response?.data?.message || "Bulk upload failed",
-        type: "error",
-      });
+
+      if (!response.ok) throw new Error("Failed to generate QR bundle");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Exam_QRs_${examId}.zip`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("QR generation failed:", err);
+      setToast({ message: "QR generation failed", type: "error" });
     }
   };
-};
+
+  const handleBulkUploadScans = async (examId: string) => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "application/pdf";
+    fileInput.multiple = true;
+    fileInput.click();
+
+    fileInput.onchange = async () => {
+      const files = fileInput.files;
+      if (!files || files.length === 0) return;
+
+      const formData = new FormData();
+      for (const file of files) {
+        formData.append("scannedPdfs", file); // name must match Multer config
+      }
+
+      try {
+        const response = await axios.post(
+          `http://localhost:${PORT}/api/teacher/exams/${examId}/upload-scans`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+        const { successCount, failureCount } = response.data;
+        setToast({
+          message: `Uploaded: ${successCount} succeeded, ${failureCount} failed`,
+          type: "success",
+        });
+      } catch (error: any) {
+        setToast({
+          message: error.response?.data?.message || "Bulk upload failed",
+          type: "error",
+        });
+      }
+    };
+  };
 
 
 
@@ -257,7 +268,7 @@ const handleBulkUploadScans = async (examId: string) => {
         </button>
       </div>
 
-      {exams.length > 0 && (
+      {(selectedCourse && selectedBatch ? exams.length > 0 : allExams.length > 0) && (
         <table className="w-full max-w-6xl text-left border-separate border-spacing-y-4">
           <thead>
             <tr className="text-purple-700">
@@ -270,7 +281,7 @@ const handleBulkUploadScans = async (examId: string) => {
             </tr>
           </thead>
           <tbody>
-            {exams.map((exam) => (
+            {(selectedCourse && selectedBatch ? exams : allExams).map((exam) => (
               <tr key={exam._id} className="bg-purple-50 rounded-xl shadow-md">
                 <td className="px-4 py-2 font-medium">{exam.title}</td>
                 <td className="px-4 py-2">{new Date(exam.startTime).toLocaleString()}</td>
@@ -302,12 +313,12 @@ const handleBulkUploadScans = async (examId: string) => {
                     📦
                   </button>
                   <button
-                  onClick={() => handleBulkUploadScans(exam._id)}
-                  className="p-2 bg-pink-100 rounded-full hover:bg-pink-200 shadow"
-                  title="Bulk Upload Scanned PDFs"
-                >
-                  📤
-                </button>
+                    onClick={() => handleBulkUploadScans(exam._id)}
+                    className="p-2 bg-pink-100 rounded-full hover:bg-pink-200 shadow"
+                    title="Bulk Upload Scanned PDFs"
+                  >
+                    📤
+                  </button>
 
 
 

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Submission } from "../../models/Submission.ts";
+import { Batch } from "../../models/Batch.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
 // Create a new exam
@@ -158,5 +159,38 @@ export const uploadAnswerKey = async (
   } catch (error) {
     console.error("Upload Error:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// get all exams for a teacher
+export const getAllExamsForTeacher = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const teacherId = req.user?._id;
+
+    if (!teacherId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    const batches = await Batch.find({
+      instructor: teacherId,
+    }).select("_id");
+
+    const batchIds = batches.map((b) => b._id);
+
+    // Find all exams under these batches
+    const exams = await Exam.find({
+      batch: { $in: batchIds },
+    })
+      .populate("batch", "name")
+      .sort({ startTime: -1 });
+    res.json({ exams });
+  } catch (err) {
+    console.error("Failed to fetch exams:", err);
+    next(err);
   }
 };

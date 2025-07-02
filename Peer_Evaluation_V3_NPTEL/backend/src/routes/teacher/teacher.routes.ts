@@ -12,7 +12,8 @@ import {
   updateExam,
   deleteExam,
   getExamSubmissions,
-  uploadAnswerKey
+  uploadAnswerKey,
+  getAllExamsForTeacher
 } from "../../controllers/teacher/exam.controller.ts";
 import { getBatchStudents } from "../../controllers/teacher/getBatchStudents.controller.ts";
 import { initiatePeerEvaluation } from "../../controllers/teacher/peerEvaluation.controller.ts";
@@ -34,6 +35,7 @@ router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
 router.get("/dashboard-stats", authMiddleware, getTeacherDashboardStats);
 
 // Exam CRUD + Submissions
+router.get("/exams", authMiddleware, getAllExamsForTeacher);
 router.post("/exams", authMiddleware, createExam);
 router.get("/exams/:examId", authMiddleware, getSingleExam);
 router.put("/exams/:examId", authMiddleware, updateExam);
