@@ -6,9 +6,6 @@ import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { Types } from "mongoose";
 import stream from "stream";
-import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "fallbackSecret";
 
 export const generateQrPdfBundle = async (
   req: Request,
@@ -44,33 +41,34 @@ export const generateQrPdfBundle = async (
     for (const student of batch.students as any[]) {
       const studentId = (student._id as Types.ObjectId).toString();
 
-      const token = jwt.sign({ studentId, examId }, JWT_SECRET, {
-        expiresIn: "10y"
-      });
+      // 🧾 Small payload without JWT
+      const qrData = JSON.stringify({ studentId, examId });
 
-      const qrData = JSON.stringify({ token });
-
-      // ✅ High quality QR
+      // 🖨️ Generate clean QR code
       const qrBuffer = await QRCode.toBuffer(qrData, {
         scale: 10,
-        margin: 4
+        margin: 4,
+        errorCorrectionLevel: "H"
       });
 
       const pdfStream = new stream.PassThrough();
       const doc = new PDFDocument({ autoFirstPage: false });
-
       doc.pipe(pdfStream);
 
+      // 📄 Page 1 – With student info
       doc.addPage({ size: "A4", margin: 50 });
-
-      // ✅ Keep QR on top-left like original
-      doc.image(qrBuffer, 50, 40, { width: 120 });
-
-      doc.moveDown();
+      doc.image(qrBuffer, 50, 40, { width: 150 });
+      doc.moveDown(4);
       doc.fontSize(20).text(`Exam: ${exam.title}`, { align: "center" });
-      const courseName = (exam.course as unknown as { name: string }).name;
+      const courseName = (exam.course as any).name;
       doc.moveDown();
       doc.fontSize(16).text(`Course: ${courseName}`, { align: "center" });
+      doc.moveDown();
+      doc.fontSize(16).text(`Student: ${student.name}`, { align: "center" });
+
+      // 📄 Page 2 – QR-only page
+      doc.addPage({ size: "A4", margin: 50 });
+      doc.image(qrBuffer, 50, 40, { width: 150 });
 
       doc.end();
 

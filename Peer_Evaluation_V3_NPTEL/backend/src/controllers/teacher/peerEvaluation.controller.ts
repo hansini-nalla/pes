@@ -5,26 +5,8 @@ import { Submission } from "../../models/Submission.ts";
 import { Evaluation } from "../../models/Evaluation.ts";
 import { sendBatchReminderEmails } from "../../utils/sendEmailReminder.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
+import { assignEvaluationsFlow } from "../../utils/assignEvaluationsFlow.ts";
 
-function assignBalancedEvaluations(
-  studentIds: string[],
-  k: number
-): { evaluator: string; evaluatee: string }[] {
-  const n = studentIds.length;
-  const assignments: { evaluator: string; evaluatee: string }[] = [];
-
-  for (let offset = 1; offset <= k; offset++) {
-    for (let i = 0; i < n; i++) {
-      const evaluator = studentIds[i];
-      const evaluatee = studentIds[(i + offset) % n];
-      if (evaluator !== evaluatee) {
-        assignments.push({ evaluator, evaluatee });
-      }
-    }
-  }
-
-  return assignments;
-}
 export const initiatePeerEvaluation = async (
   req: AuthenticatedRequest,
   res: Response
@@ -32,11 +14,9 @@ export const initiatePeerEvaluation = async (
   try {
     const teacherId = req.user?._id;
     const { examId } = req.body;
-    console.log("Hello");
+
     if (!teacherId || req.user.role !== "teacher") {
-      res
-        .status(403)
-        .json({ message: "Only teachers can initiate evaluation." });
+      res.status(403).json({ message: "Only teachers can initiate evaluation." });
       return;
     }
 
@@ -53,57 +33,46 @@ export const initiatePeerEvaluation = async (
     }
 
     if (batch.instructor.toString() !== teacherId.toString()) {
-      res
-        .status(403)
-        .json({ message: "You are not the instructor for this batch." });
+      res.status(403).json({ message: "You are not the instructor for this batch." });
       return;
     }
 
     const submissions = await Submission.find({ exam: examId });
     const submittedStudents = submissions.map((sub) => sub.student.toString());
-
     const k = exam.k;
     const n = submittedStudents.length;
 
     if (typeof k !== "number" || k < 1 || k >= n) {
       res.status(400).json({
-        message:
-          "k must be a positive integer less than number of submitted students.",
+        message: "k must be a positive integer less than number of submitted students.",
       });
       return;
     }
 
-    // ✅ Step 1: Shuffle for randomness
-    const shuffled = [...submittedStudents].sort(() => Math.random() - 0.5);
+    const [success, pairs] = assignEvaluationsFlow(submittedStudents, k);
+    if (!success) {
+      res.status(400).json({
+        message: `Unable to assign ${k} evaluations per student. Possibly due to too few submissions.`,
+      });
+      return;
+    }
 
-    // ✅ Step 2: Generate balanced evaluation pairs
-    const assignments = assignBalancedEvaluations(shuffled, k);
-
-    // ✅ Step 3: Clear old evaluations for this exam
     await Evaluation.deleteMany({ exam: examId });
 
-    // ✅ Step 4: Prepare and insert evaluations
-    const evalsToInsert = assignments.map(({ evaluator, evaluatee }) => ({
+    const evalsToInsert = pairs.map(([evaluator, evaluatee]) => ({
       exam: examId,
       evaluator,
       evaluatee,
       marks: [],
-      feedback: "",
-      status: "pending",
+      feedback: '',
+      status: 'pending',
       flagged: false,
     }));
 
     await Evaluation.insertMany(evalsToInsert);
 
     const emailSubject = "📢 Peer Evaluation Round Started";
-    const emailBody = `Hi {{name}},
-
-You have been assigned peer evaluations for your recent exam.
-
-Please visit the PES portal and complete your assigned evaluations at the earliest.
-
-Thank you,
-PES Team`;
+    const emailBody = `Hi {{name}},\n\nYou have been assigned peer evaluations for your recent exam.\n\nPlease visit the PES portal and complete your assigned evaluations at the earliest.\n\nThank you,\nPES Team`;
 
     await sendBatchReminderEmails(
       exam.batch.toString(),
@@ -111,13 +80,22 @@ PES Team`;
       emailBody
     );
 
+    // ✅ Receipt: evaluator → list of assigned evaluatees
+    const receipt: Record<string, string[]> = {};
+    for (const [evaluator, evaluatee] of pairs) {
+      if (!receipt[evaluator]) receipt[evaluator] = [];
+      receipt[evaluator].push(evaluatee);
+    }
+
     res.status(200).json({
-      message:
-        "Peer evaluation initiated with balanced randomized assignments.",
+      message: "Peer evaluation initiated with guaranteed balanced assignments.",
       totalEvaluations: evalsToInsert.length,
+      receipt,
     });
+    return;
   } catch (err) {
     console.error("Error initiating peer evaluation:", err);
     res.status(500).json({ message: "Internal server error" });
+    return;
   }
 };
