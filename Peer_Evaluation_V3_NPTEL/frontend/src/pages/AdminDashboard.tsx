@@ -613,7 +613,7 @@ const AdminDashboard = () => {
                           currentPalette={currentPalette}
                         >
                             <option value="">Select User</option>
-                          <optgroup label="Admins">
+                            <optgroup label="Admins">
                                 {allUsers
                                 .filter(user => user.role === 'admin')
                                 .map(user => (
@@ -653,9 +653,10 @@ const AdminDashboard = () => {
                           currentPalette={currentPalette}
                         >
                             <option value="">Select Role</option>
+                            <option value="admin">Admin</option>
                             <option value="student">Student</option>
-                            <option value="ta">Teacher</option>
-                            <option value="ta">Admin</option>
+                            <option value="teacher">Teacher</option>
+
                         </Select>
                     </div>
                     <div className="pt-2">
