@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts";
 import { Ticket } from "../../models/Ticket.ts";
 
 export const raiseTicket = async (
@@ -9,6 +8,8 @@ export const raiseTicket = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  console.log("HIT /raise-ticket controller");
+
   try {
     const studentId = req.user?._id;
     const { examId, evaluatorId, message } = req.body;
@@ -24,7 +25,6 @@ export const raiseTicket = async (
       return;
     }
 
-    // Find batch that includes the student and is tied to the exam's course
     const batch = await Batch.findOne({
       course: exam.course,
       students: studentId,
@@ -35,22 +35,16 @@ export const raiseTicket = async (
       return;
     }
 
-    // Find a TA responsible for this course + batch
-    const ta = await User.findOne({
-      role: "ta",
-      enrolledCourses: exam.course,
-      _id: { $in: batch.students },
-    });
-
-    if (!ta) {
-      res.status(404).json({ error: "No TA found for this course and batch" });
+    const taId = batch.ta?.[0];
+    if (!taId) {
+      res.status(404).json({ error: "No TA assigned to this batch" });
       return;
     }
 
     const newTicket = new Ticket({
       student: studentId,
       evaluator: evaluatorId,
-      ta: ta._id,
+      ta: taId,
       exam: examId,
       message,
     });
@@ -58,8 +52,8 @@ export const raiseTicket = async (
     await newTicket.save();
 
     res.status(201).json({ message: "Ticket raised successfully", ticketId: newTicket._id });
-  } catch (err) {
-    console.error("Error in raiseTicket:", err);
-    next(err);
+  } catch (err: any) {
+    console.error("Error in raiseTicket:", err.message || err);
+    res.status(500).json({ error: "Something went wrong while raising the ticket." });
   }
 };

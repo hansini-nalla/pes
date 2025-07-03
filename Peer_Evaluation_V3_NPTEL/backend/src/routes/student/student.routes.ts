@@ -14,12 +14,20 @@ import { flagEvaluation } from "../../controllers/student/flagEvaluation.control
 import { submitPeerEvaluation } from "../../controllers/student/submitPeerEvaluation.controller.ts";
 import { getSubmissionPdf } from "../../controllers/student/getSubmissionPdf.controller.ts";
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
-import { getAllCourses, getStudentCourses, getStudentCoursesWithBatches, getBatchesByCourse } from "../../controllers/student/course.controller.ts";
+import {
+  getAllCourses,
+  getStudentCourses,
+  getStudentCoursesWithBatches,
+  getBatchesByCourse,
+} from "../../controllers/student/course.controller.ts";
 import { changePassword } from "../../controllers/student/changePassword.controller.ts";
-import { raiseTicket } from "../../controllers/student/raiseTIcket.controller.ts";
-import {createEnrollment, getStudentEnrollments } from "../../controllers/student/enrollment.controller.ts";
-import { Exam } from "../../models/Exam.ts";
+import { raiseTicket } from "../../controllers/student/raiseTicket.controller.ts";
+import {
+  createEnrollment,
+  getStudentEnrollments,
+} from "../../controllers/student/enrollment.controller.ts";
 import { getAnswerKeyPdf } from "../../controllers/student/answerKeyPdf.controller.ts";
+import { getQuestionPaperPdf } from "../../controllers/student/questionPaperPdf.controller.ts";
 const router = Router();
 const upload = multer();
 
@@ -39,11 +47,7 @@ router.post(
 router.get("/submissions", authMiddleware, getSubmissions);
 router.post("/flag-evaluation", authMiddleware, flagEvaluation);
 router.post("/submit-peer-evaluation", authMiddleware, submitPeerEvaluation);
-router.get(
-  "/submission-pdf/:submissionId",
-  authMiddleware,
-  getSubmissionPdf
-);
+router.get("/submission-pdf/:submissionId", authMiddleware, getSubmissionPdf);
 router.get(
   "/enrolled-courses-batches",
   authMiddleware,
@@ -52,9 +56,9 @@ router.get(
 router.post("/change-password", authMiddleware, changePassword);
 router.post("/raise-ticket", authMiddleware, raiseTicket);
 router.post("/enrollment", authMiddleware, upload.none(), createEnrollment);
-router.get("/enrollment",authMiddleware,getStudentEnrollments);
-router.get("/all-courses",authMiddleware,getAllCourses);
-router.get("/batches-by-course",authMiddleware,getBatchesByCourse);
+router.get("/enrollment", authMiddleware, getStudentEnrollments);
+router.get("/all-courses", authMiddleware, getAllCourses);
+router.get("/batches-by-course", authMiddleware, getBatchesByCourse);
 router.get("/answer-key/:examId", authMiddleware, getAnswerKeyPdf);
-
+router.get("/question-paper/:examId", authMiddleware, getQuestionPaperPdf);
 export default router;

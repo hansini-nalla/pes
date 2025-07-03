@@ -36,11 +36,14 @@ export const createExam = async (
       questions,
       numQuestions,
       k,
-      createdBy: req.user._id, // ✅ Add teacher ID here
+      createdBy: req.user._id,
     });
 
     await exam.save();
-    res.status(201).json({ message: "Exam created successfully", exam });
+
+    res
+      .status(201)
+      .json({ message: "Exam created successfully", examId: exam._id });
   } catch (error) {
     next(error);
   }
@@ -85,7 +88,7 @@ export const updateExam = async (
       return;
     }
 
-    res.json({ message: "Exam updated successfully", exam });
+    res.json({ message: "Exam updated successfully", examId: exam._id });
   } catch (error) {
     next(error);
   }
@@ -192,5 +195,35 @@ export const getAllExamsForTeacher = async (
   } catch (err) {
     console.error("Failed to fetch exams:", err);
     next(err);
+  }
+};
+
+//upload question paper
+export const uploadQuestionPaper = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const examId = req.params.examId;
+    const file = req.file;
+
+    if (!file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    const exam = await Exam.findById(examId);
+    if (!exam) {
+      res.status(404).json({ message: "Exam not found" });
+      return;
+    }
+
+    exam.questionPaperPdf = file.buffer;
+    exam.questionPaperMimeType = file.mimetype;
+    await exam.save();
+    res.status(200).json({ message: "Question paper uploaded successfully" });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
