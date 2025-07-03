@@ -1,10 +1,10 @@
-import { Request, Response, NextFunction } from 'express';
-import { Exam } from '../../models/Exam.ts';
-import { Batch } from '../../models/Batch.ts';
-import { User } from '../../models/User.ts';
+import { Request, Response, NextFunction } from "express";
+import { Exam } from "../../models/Exam.ts";
+import { Batch } from "../../models/Batch.ts";
+import { User } from "../../models/User.ts";
 
 interface AuthRequest extends Request {
-  user?: any; 
+  user?: any;
 }
 
 export const getStudentExamsByCourse = async (
@@ -17,13 +17,13 @@ export const getStudentExamsByCourse = async (
     const { courseId } = req.params; // or req.query if you prefer
 
     if (!courseId) {
-      res.status(400).json({ error: 'courseId is required' });
+      res.status(400).json({ error: "courseId is required" });
       return;
     }
 
     const student = await User.findById(studentId);
     if (!student) {
-      res.status(404).json({ error: 'Student not found' });
+      res.status(404).json({ error: "Student not found" });
       return;
     }
 
@@ -41,8 +41,8 @@ export const getStudentExamsByCourse = async (
       batch: { $in: batchIds },
       endTime: { $gte: now },
     })
-      .populate('course', 'name code')
-      .populate('batch', 'name');
+      .populate("course", "name code")
+      .populate("batch", "name");
 
     res.status(200).json({ exams });
   } catch (err) {
@@ -50,7 +50,6 @@ export const getStudentExamsByCourse = async (
     next(err);
   }
 };
-
 
 export const getStudentExams = async (
   req: Request,
@@ -62,7 +61,7 @@ export const getStudentExams = async (
 
     const student = await User.findById(studentId);
     if (!student) {
-      res.status(404).json({ error: 'Student not found' });
+      res.status(404).json({ error: "Student not found" });
       return;
     }
 
@@ -76,8 +75,8 @@ export const getStudentExams = async (
       batch: { $in: batchIds },
       endTime: { $gte: now },
     })
-      .populate('course', 'name code')
-      .populate('batch', 'name');
+      .populate("course", "name code")
+      .populate("batch", "name");
 
     res.json({ exams });
   } catch (err) {
