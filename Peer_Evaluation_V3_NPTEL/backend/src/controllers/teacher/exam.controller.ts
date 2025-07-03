@@ -36,11 +36,14 @@ export const createExam = async (
       questions,
       numQuestions,
       k,
-      createdBy: req.user._id, // ✅ Add teacher ID here
+      createdBy: req.user._id,
     });
 
     await exam.save();
-    res.status(201).json({ message: "Exam created successfully", exam });
+
+    res
+      .status(201)
+      .json({ message: "Exam created successfully", examId: exam._id });
   } catch (error) {
     next(error);
   }
@@ -85,7 +88,7 @@ export const updateExam = async (
       return;
     }
 
-    res.json({ message: "Exam updated successfully", exam });
+    res.json({ message: "Exam updated successfully", examId: exam._id });
   } catch (error) {
     next(error);
   }

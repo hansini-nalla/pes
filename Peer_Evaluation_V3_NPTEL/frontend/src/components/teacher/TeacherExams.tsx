@@ -54,6 +54,7 @@ export default function TeacherExams() {
   const [k, setK] = useState(1);
   const [questions, setQuestions] = useState([{ q: "", max: 0 }]);
   const [allExams, setAllExams] = useState<Exam[]>([]);
+  const [questionPaper, setQuestionPaper] = useState<File | null>(null);
 
   useEffect(() => {
     axios
@@ -100,43 +101,90 @@ export default function TeacherExams() {
     setEndTime("");
     setK(1);
     setQuestions([{ q: "", max: 0 }]);
+    setQuestionPaper(null); // reset the file
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await axios.post(`http://localhost:${PORT}/api/teacher/exams`, {
-      title,
-      startTime,
-      endTime,
-      k,
-      numQuestions: questions.length,
-      questions: questions.map((q) => ({ questionText: q.q, maxMarks: q.max })),
-      course: selectedCourse,
-      batch: selectedBatch,
-    }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setCreateOpen(false);
-    resetForm();
-    refreshExams();
+
+    try {
+      const createRes = await axios.post(`http://localhost:${PORT}/api/teacher/exams`, {
+        title,
+        startTime,
+        endTime,
+        k,
+        numQuestions: questions.length,
+        questions: questions.map((q) => ({ questionText: q.q, maxMarks: q.max })),
+        course: selectedCourse,
+        batch: selectedBatch,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // console.log(createRes.data.examId);
+      const createdExamId = createRes.data.examId;
+
+      if (questionPaper) {
+        const formData = new FormData();
+        formData.append("questionPaperPdf", questionPaper);
+
+        await axios.post(`http://localhost:${PORT}/api/teacher/exams/${createdExamId}/question-paper`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+      console.log("Created!");
+      setCreateOpen(false);
+      resetForm();
+      refreshExams();
+      setToast({ message: "Exam created successfully", type: "success" });
+
+    } catch (err: any) {
+      console.error(err);
+      setToast({ message: err.response?.data?.message || "Creation failed", type: "error" });
+    }
   };
+
+
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editExam) return;
-    await axios.put(`http://localhost:${PORT}/api/teacher/exams/${editExam._id}`, {
-      title,
-      startTime,
-      endTime,
-      k,
-    }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setEditOpen(false);
-    setEditExam(null);
-    resetForm();
-    refreshExams();
+
+    try {
+      await axios.put(`http://localhost:${PORT}/api/teacher/exams/${editExam._id}`, {
+        title,
+        startTime,
+        endTime,
+        k,
+      }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (questionPaper) {
+        const formData = new FormData();
+        formData.append("questionPaperPdf", questionPaper);
+
+        await axios.post(`http://localhost:${PORT}/api/teacher/exams/${editExam._id}/question-paper`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      setEditOpen(false);
+      setEditExam(null);
+      resetForm();
+      refreshExams();
+      setToast({ message: "Exam updated successfully", type: "success" });
+
+    } catch (err: any) {
+      console.error(err);
+      setToast({ message: err.response?.data?.message || "Update failed", type: "error" });
+    }
   };
+
+
 
   const openEditForm = (exam: Exam) => {
     setEditExam(exam);
@@ -246,6 +294,32 @@ export default function TeacherExams() {
     };
   };
 
+  const handleUploadQuestionPaper = async (examId: string) => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "application/pdf";
+    fileInput.click();
+
+    fileInput.onchange = async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("questionPaperPdf", file);
+
+      try {
+        await axios.post(`http://localhost:${PORT}/api/teacher/exams/${examId}/question-paper`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        setToast({ message: "Question paper uploaded successfully", type: "success" });
+      } catch (error: any) {
+        setToast({ message: error.response?.data?.message || "Upload failed", type: "error" });
+      }
+    };
+  };
 
 
   return (
@@ -303,6 +377,13 @@ export default function TeacherExams() {
                     title="Delete Exam"
                   >
                     <FiTrash2 className="text-red-600" />
+                  </button>
+                  <button
+                    onClick={() => handleUploadQuestionPaper(exam._id)}
+                    className="p-2 bg-cyan-100 rounded-full hover:bg-cyan-200 shadow"
+                    title="Upload Question Paper PDF"
+                  >
+                    📑
                   </button>
 
                   <button
@@ -379,6 +460,13 @@ export default function TeacherExams() {
                 ))}
                 <button type="button" className="bg-purple-100 px-3 py-1 rounded-xl" onClick={() => setQuestions([...questions, { q: "", max: 0 }])}>+ Add Question</button>
               </div>
+              <input
+                type="file"
+                accept="application/pdf"
+                className="w-full border-2 px-4 py-2 rounded-xl"
+                onChange={(e) => setQuestionPaper(e.target.files?.[0] || null)}
+              />
+
               <div className="flex justify-between pt-4">
                 <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-xl">Create</button>
                 <button type="button" onClick={() => setCreateOpen(false)} className="text-sm text-purple-600">Cancel</button>
@@ -413,6 +501,13 @@ export default function TeacherExams() {
                 ))}
                 <button type="button" className="bg-purple-100 px-3 py-1 rounded-xl" onClick={() => setQuestions([...questions, { q: "", max: 0 }])}>+ Add Question</button>
               </div>
+              <input
+                type="file"
+                accept="application/pdf"
+                className="w-full border-2 px-4 py-2 rounded-xl"
+                onChange={(e) => setQuestionPaper(e.target.files?.[0] || null)}
+              />
+
               <div className="flex justify-between pt-4">
                 <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl">Update</button>
                 <button type="button" onClick={() => setEditOpen(false)} className="text-sm text-purple-600">Cancel</button>

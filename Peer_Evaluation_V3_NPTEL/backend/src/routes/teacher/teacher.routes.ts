@@ -46,7 +46,7 @@ router.put("/exams/:examId", authMiddleware, updateExam);
 router.delete("/exams/:examId", authMiddleware, deleteExam);
 router.get("/exams/:examId/submissions", authMiddleware, getExamSubmissions);
 router.post(
-  "/exams/:examId/upload-question-paper",
+  "/exams/:examId/question-paper",
   authMiddleware,
   upload.single("questionPaperPdf"),
   uploadQuestionPaper
