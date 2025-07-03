@@ -16,7 +16,7 @@ import { getSubmissionPdf } from "../../controllers/student/getSubmissionPdf.con
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
 import { getAllCourses, getStudentCourses, getStudentCoursesWithBatches, getBatchesByCourse } from "../../controllers/student/course.controller.ts";
 import { changePassword } from "../../controllers/student/changePassword.controller.ts";
-import { raiseTicket } from "../../controllers/student/raiseTIcket.controller.ts";
+import { raiseTicket } from "../../controllers/student/raiseTicket.controller.ts";
 import {createEnrollment, getStudentEnrollments } from "../../controllers/student/enrollment.controller.ts";
 import { Exam } from "../../models/Exam.ts";
 import { getAnswerKeyPdf } from "../../controllers/student/answerKeyPdf.controller.ts";
