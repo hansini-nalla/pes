@@ -15,6 +15,8 @@ export interface IExam extends Document {
   k: number; // Number of peer evaluations per student
   answerKeyPdf?: Buffer;
   answerKeyMimeType?: string;
+  questionPaperPdf?: Buffer;
+  questionPaperMimeType?: string;
 }
 
 const examSchema = new Schema<IExam>({
@@ -34,6 +36,8 @@ const examSchema = new Schema<IExam>({
   k: { type: Number, required: true }, // Add k field
   answerKeyPdf: { type: Buffer },
   answerKeyMimeType: { type: String },
+  questionPaperPdf: { type: Buffer },
+  questionPaperMimeType: { type: String },
 });
 
 export const Exam = model<IExam>("Exam", examSchema);

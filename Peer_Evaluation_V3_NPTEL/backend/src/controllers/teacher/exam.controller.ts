@@ -194,3 +194,33 @@ export const getAllExamsForTeacher = async (
     next(err);
   }
 };
+
+//upload question paper
+export const uploadQuestionPaper = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const examId = req.params.examId;
+    const file = req.file;
+
+    if (!file) {
+      res.status(400).json({ message: "No file uploaded" });
+      return;
+    }
+
+    const exam = await Exam.findById(examId);
+    if (!exam) {
+      res.status(404).json({ message: "Exam not found" });
+      return;
+    }
+
+    exam.questionPaperPdf = file.buffer;
+    exam.questionPaperMimeType = file.mimetype;
+    await exam.save();
+    res.status(200).json({ message: "Question paper uploaded successfully" });
+  } catch (error) {
+    console.error("Upload Error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

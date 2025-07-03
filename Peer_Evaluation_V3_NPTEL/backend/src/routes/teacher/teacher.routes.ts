@@ -1,6 +1,9 @@
 import { Router } from "express";
 import multer from "multer";
-import { getAllEscalatedTickets, resolveTicket } from "../../controllers/teacher/teacherEscalatedTicket.controller.ts";
+import {
+  getAllEscalatedTickets,
+  resolveTicket,
+} from "../../controllers/teacher/teacherEscalatedTicket.controller.ts";
 
 import { authMiddleware } from "../../middlewares/authMiddleware.ts";
 import { getTeacherCourses } from "../../controllers/teacher/getTeacherCourses.controller.ts";
@@ -13,17 +16,18 @@ import {
   deleteExam,
   getExamSubmissions,
   uploadAnswerKey,
-  getAllExamsForTeacher
+  getAllExamsForTeacher,
+  uploadQuestionPaper,
 } from "../../controllers/teacher/exam.controller.ts";
 import { getBatchStudents } from "../../controllers/teacher/getBatchStudents.controller.ts";
 import { initiatePeerEvaluation } from "../../controllers/teacher/peerEvaluation.controller.ts";
 import { assignTaToBatch } from "../../controllers/teacher/assignTaToBatch.controller.ts";
 import { getAllStudents } from "../../controllers/teacher/getAllStudents.controller.ts";
-import { enrollStudents } from '../../controllers/teacher/teacherEnroll.controller.ts';
-import { getBatchStudents2 } from '../../controllers/teacher/teacherEnroll.controller.ts';
+import { enrollStudents } from "../../controllers/teacher/teacherEnroll.controller.ts";
+import { getBatchStudents2 } from "../../controllers/teacher/teacherEnroll.controller.ts";
 import { getBatchTA } from "../../controllers/teacher/getBatchTA.controller.ts";
 import { generateQrPdfBundle } from "../../controllers/teacher/generateExamQrPdfBundle.controller.ts";
-import { handleBulkUploadScans } from "../../controllers/teacher/handleBulkUploadScans.controller.ts" 
+import { handleBulkUploadScans } from "../../controllers/teacher/handleBulkUploadScans.controller.ts";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -41,24 +45,34 @@ router.get("/exams/:examId", authMiddleware, getSingleExam);
 router.put("/exams/:examId", authMiddleware, updateExam);
 router.delete("/exams/:examId", authMiddleware, deleteExam);
 router.get("/exams/:examId/submissions", authMiddleware, getExamSubmissions);
-
-router.post("/:examId/answer-key", authMiddleware, upload.single("answerKeyPdf"), uploadAnswerKey);
+router.post(
+  "/exams/:examId/upload-question-paper",
+  authMiddleware,
+  upload.single("questionPaperPdf"),
+  uploadQuestionPaper
+);
+router.post(
+  "/:examId/answer-key",
+  authMiddleware,
+  upload.single("answerKeyPdf"),
+  uploadAnswerKey
+);
 
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
 router.post("/initiate-evaluation", authMiddleware, initiatePeerEvaluation);
 
-router.post('/batch/:batchId/assign-ta',authMiddleware,assignTaToBatch);
+router.post("/batch/:batchId/assign-ta", authMiddleware, assignTaToBatch);
 router.get("/students", authMiddleware, getAllStudents);
-router.post('/enroll', authMiddleware, enrollStudents);
-router.get('/batch/:batchId/students', authMiddleware, getBatchStudents2);
+router.post("/enroll", authMiddleware, enrollStudents);
+router.get("/batch/:batchId/students", authMiddleware, getBatchStudents2);
 router.get("/batch/:batchId/ta", authMiddleware, getBatchTA);
 
 //QR Stuff
-router.get('/exam/:examId/generate-qrs', authMiddleware, generateQrPdfBundle);
+router.get("/exam/:examId/generate-qrs", authMiddleware, generateQrPdfBundle);
 router.post(
-  '/exams/:examId/upload-scans',
+  "/exams/:examId/upload-scans",
   authMiddleware,
-  upload.array('scannedPdfs'),
+  upload.array("scannedPdfs"),
   handleBulkUploadScans
 );
 
