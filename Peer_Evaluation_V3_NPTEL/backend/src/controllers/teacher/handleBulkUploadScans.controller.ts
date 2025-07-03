@@ -9,11 +9,14 @@ import { createRequire } from "module";
 import { Exam } from "../../models/Exam.ts";
 import { Submission } from "../../models/Submission.ts";
 import { Types } from "mongoose";
+import jwt from "jsonwebtoken";
 
 const require = createRequire(import.meta.url);
 const jsQR = require("jsqr");
 
-interface QRData {
+const JWT_SECRET = process.env.JWT_SECRET || "fallbackSecret";
+
+interface QRPayload {
   studentId: string;
   examId: string;
 }
@@ -55,7 +58,7 @@ const convertPdfToImage = async (pdfBuffer: Buffer): Promise<string> => {
   return outputImagePath;
 };
 
-const decodeQrFromImage = async (imagePath: string): Promise<QRData> => {
+const decodeQrFromImage = async (imagePath: string): Promise<QRPayload> => {
   const image = await Jimp.read(imagePath);
   const { data, width, height } = image.bitmap;
 
@@ -63,25 +66,26 @@ const decodeQrFromImage = async (imagePath: string): Promise<QRData> => {
 
   if (!qrCode) throw new Error("QR not detected");
 
-  let parsed: QRData;
+  let decoded: any;
   try {
-    parsed = JSON.parse(qrCode.data);
-  } catch {
-    throw new Error("QR data is invalid JSON");
+    const qrContent = JSON.parse(qrCode.data);
+    if (!qrContent.token) throw new Error("Missing JWT token in QR");
+    decoded = jwt.verify(qrContent.token, JWT_SECRET);
+  } catch (err: any) {
+    throw new Error("Invalid or expired QR JWT");
   }
 
-  if (!parsed.studentId || !parsed.examId) {
-    throw new Error("QR missing studentId or examId");
+  if (!decoded.studentId || !decoded.examId) {
+    throw new Error("QR payload missing studentId or examId");
   }
 
-  return parsed;
+  return decoded as QRPayload;
 };
 
 export const handleBulkUploadScans = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-
   try {
     const files = req.files as Express.Multer.File[];
     const { examId } = req.params;

@@ -1,13 +1,14 @@
 import { Request, Response } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts";
-import { Course } from "../../models/Course.ts";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { Types } from "mongoose";
 import stream from "stream";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "fallbackSecret";
 
 export const generateQrPdfBundle = async (
   req: Request,
@@ -42,9 +43,18 @@ export const generateQrPdfBundle = async (
 
     for (const student of batch.students as any[]) {
       const studentId = (student._id as Types.ObjectId).toString();
-      const qrData = JSON.stringify({ studentId, examId });
 
-      const qrBuffer = await QRCode.toBuffer(qrData);
+      const token = jwt.sign({ studentId, examId }, JWT_SECRET, {
+        expiresIn: "10y"
+      });
+
+      const qrData = JSON.stringify({ token });
+
+      // ✅ High quality QR
+      const qrBuffer = await QRCode.toBuffer(qrData, {
+        scale: 10,
+        margin: 4
+      });
 
       const pdfStream = new stream.PassThrough();
       const doc = new PDFDocument({ autoFirstPage: false });
@@ -52,13 +62,15 @@ export const generateQrPdfBundle = async (
       doc.pipe(pdfStream);
 
       doc.addPage({ size: "A4", margin: 50 });
-      doc.image(qrBuffer, 50, 40, { width: 100 });
+
+      // ✅ Keep QR on top-left like original
+      doc.image(qrBuffer, 50, 40, { width: 120 });
 
       doc.moveDown();
       doc.fontSize(20).text(`Exam: ${exam.title}`, { align: "center" });
+      const courseName = (exam.course as unknown as { name: string }).name;
       doc.moveDown();
-        const courseName = (exam.course as unknown as { name: string }).name;
-        doc.fontSize(16).text(`Course: ${courseName}`, { align: "center" });
+      doc.fontSize(16).text(`Course: ${courseName}`, { align: "center" });
 
       doc.end();
 
