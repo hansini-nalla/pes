@@ -35,10 +35,9 @@ export const raiseTicket = async (
       return;
     }
 
-    // FIXED: Use batch.ta
     const taId = batch.ta?.[0];
     if (!taId) {
-      res.status(404).json({ error: "No TA assigned to this batch" })
+      res.status(404).json({ error: "No TA assigned to this batch" });
       return;
     }
 
@@ -53,8 +52,8 @@ export const raiseTicket = async (
     await newTicket.save();
 
     res.status(201).json({ message: "Ticket raised successfully", ticketId: newTicket._id });
-  } catch (err) {
-    console.error("Error in raiseTicket:", err);
-    next(err);
+  } catch (err: any) {
+    console.error("Error in raiseTicket:", err.message || err);
+    res.status(500).json({ error: "Something went wrong while raising the ticket." });
   }
 };

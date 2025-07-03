@@ -1,5 +1,6 @@
 
 import express from "express";
+import { Request, Response, NextFunction } from 'express';
 import connectDB from "./config/db.ts";
 import studentRoutes from "./routes/student/student.routes.ts";
 import taRoutes from "./routes/ta/ta.routes.ts"; 
@@ -61,6 +62,10 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use("/api/admin/courses", admincourseroutes);
 //app.use('/api/teacher', teacherEnrollRoutes);
 
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ error: "Something went wrong on the server." });
+});
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
