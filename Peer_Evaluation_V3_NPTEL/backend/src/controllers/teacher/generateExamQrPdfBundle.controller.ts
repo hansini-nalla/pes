@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts";
-import { Course } from "../../models/Course.ts";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
@@ -42,23 +40,35 @@ export const generateQrPdfBundle = async (
 
     for (const student of batch.students as any[]) {
       const studentId = (student._id as Types.ObjectId).toString();
+
+      // 🧾 Small payload without JWT
       const qrData = JSON.stringify({ studentId, examId });
 
-      const qrBuffer = await QRCode.toBuffer(qrData);
+      // 🖨️ Generate clean QR code
+      const qrBuffer = await QRCode.toBuffer(qrData, {
+        scale: 10,
+        margin: 4,
+        errorCorrectionLevel: "H"
+      });
 
       const pdfStream = new stream.PassThrough();
       const doc = new PDFDocument({ autoFirstPage: false });
-
       doc.pipe(pdfStream);
 
+      // 📄 Page 1 – With student info
       doc.addPage({ size: "A4", margin: 50 });
-      doc.image(qrBuffer, 50, 40, { width: 100 });
-
-      doc.moveDown();
+      doc.image(qrBuffer, 50, 40, { width: 150 });
+      doc.moveDown(4);
       doc.fontSize(20).text(`Exam: ${exam.title}`, { align: "center" });
+      const courseName = (exam.course as any).name;
       doc.moveDown();
-        const courseName = (exam.course as unknown as { name: string }).name;
-        doc.fontSize(16).text(`Course: ${courseName}`, { align: "center" });
+      doc.fontSize(16).text(`Course: ${courseName}`, { align: "center" });
+      doc.moveDown();
+      doc.fontSize(16).text(`Student: ${student.name}`, { align: "center" });
+
+      // 📄 Page 2 – QR-only page
+      doc.addPage({ size: "A4", margin: 50 });
+      doc.image(qrBuffer, 50, 40, { width: 150 });
 
       doc.end();
 

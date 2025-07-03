@@ -13,7 +13,7 @@ import { Types } from "mongoose";
 const require = createRequire(import.meta.url);
 const jsQR = require("jsqr");
 
-interface QRData {
+interface QRPayload {
   studentId: string;
   examId: string;
 }
@@ -55,33 +55,47 @@ const convertPdfToImage = async (pdfBuffer: Buffer): Promise<string> => {
   return outputImagePath;
 };
 
-const decodeQrFromImage = async (imagePath: string): Promise<QRData> => {
+const decodeQrFromImage = async (imagePath: string): Promise<QRPayload> => {
   const image = await Jimp.read(imagePath);
   const { data, width, height } = image.bitmap;
 
   const qrCode = jsQR(new Uint8ClampedArray(data), width, height);
-
   if (!qrCode) throw new Error("QR not detected");
 
-  let parsed: QRData;
+  let parsed: any;
   try {
     parsed = JSON.parse(qrCode.data);
-  } catch {
-    throw new Error("QR data is invalid JSON");
+  } catch (err) {
+    throw new Error("QR data is not valid JSON");
   }
 
   if (!parsed.studentId || !parsed.examId) {
-    throw new Error("QR missing studentId or examId");
+    throw new Error("QR payload missing studentId or examId");
   }
 
-  return parsed;
+  return parsed as QRPayload;
+};
+
+const extractPdfWithoutFirstPage = async (pdfBuffer: Buffer): Promise<Buffer> => {
+  const srcDoc = await PDFDocument.load(pdfBuffer);
+  const totalPages = srcDoc.getPageCount();
+
+  if (totalPages <= 1) {
+    throw new Error("Cannot remove first page from a single-page PDF.");
+  }
+
+  const newDoc = await PDFDocument.create();
+  const pages = await newDoc.copyPages(srcDoc, [...Array(totalPages - 1)].map((_, i) => i + 1));
+  pages.forEach(page => newDoc.addPage(page));
+
+  const uint8Array = await newDoc.save();
+  return Buffer.from(uint8Array); // 👈 Fix: convert to proper Node.js Buffer
 };
 
 export const handleBulkUploadScans = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-
   try {
     const files = req.files as Express.Multer.File[];
     const { examId } = req.params;
@@ -113,6 +127,8 @@ export const handleBulkUploadScans = async (
           throw new Error("QR exam ID mismatch");
         }
 
+        const trimmedPdf = await extractPdfWithoutFirstPage(file.buffer);
+
         await Submission.findOneAndUpdate(
           {
             student: qrData.studentId,
@@ -123,7 +139,7 @@ export const handleBulkUploadScans = async (
             exam: new Types.ObjectId(examId),
             course: exam.course,
             batch: exam.batch,
-            answerPdf: file.buffer,
+            answerPdf: trimmedPdf,
             answerPdfMimeType: file.mimetype,
             submittedAt: new Date()
           },
@@ -147,7 +163,9 @@ export const handleBulkUploadScans = async (
 
     res.status(200).json({
       message: "Step 1–5 complete. Submissions saved to DB.",
-      results
+      results,
+      successCount: results.filter(r => !r.error).length,
+      failureCount: results.filter(r => r.error).length
     });
   } catch (err) {
     console.error("❌ Final crash in bulk upload:", err);
