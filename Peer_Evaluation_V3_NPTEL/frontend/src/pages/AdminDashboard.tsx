@@ -294,7 +294,7 @@ const AdminDashboard = () => {
   const [endDate, setEndDate] = useState('');
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [roleEmail, setRoleEmail] = useState("");
-  const [roleType, setRoleType] = useState("admin"); // Default to admin
+  const [roleType, setRoleType] = useState(""); // Default to empty
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
@@ -473,7 +473,7 @@ const AdminDashboard = () => {
         showToast('Role updated successfully');
         fetchData(`http://localhost:${PORT}/api/admin/users`, setAllUsers, 'Failed to refetch users');
         setRoleEmail('');
-        setRoleType('admin');
+        setRoleType('');
     } catch(error) {
         console.error("Failed to update role", error);
         showToast("Failed to update role", 'error');
