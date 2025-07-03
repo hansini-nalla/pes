@@ -10,7 +10,7 @@ import adminroutes from './routes/admin/admin.routes.ts';
 // import adminstudentroutes from './routes/admin/student_admin.routes.ts';
 // import adminteachroutes from './routes/admin/teacher.routes.ts';
 import dashboardRoutes from './routes/admin/dashboard.ts';
-import admincourseroutes from './routes/admin/admin.routes.ts';
+//import admincourseroutes from './routes/admin/admin.routes.ts';
 
 
 
@@ -59,7 +59,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/ta', taRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-app.use("/api/admin/courses", admincourseroutes);
+//app.use("/api/admin/courses", admincourseroutes);
 //app.use('/api/teacher', teacherEnrollRoutes);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

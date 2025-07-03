@@ -294,7 +294,7 @@ const AdminDashboard = () => {
   const [endDate, setEndDate] = useState('');
   const [courseIdToDelete, setCourseIdToDelete] = useState('');
   const [roleEmail, setRoleEmail] = useState("");
-  const [roleType, setRoleType] = useState("admin"); // Default to admin
+  const [roleType, setRoleType] = useState(""); // Default to empty
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
 
@@ -473,7 +473,7 @@ const AdminDashboard = () => {
         showToast('Role updated successfully');
         fetchData(`http://localhost:${PORT}/api/admin/users`, setAllUsers, 'Failed to refetch users');
         setRoleEmail('');
-        setRoleType('admin');
+        setRoleType('');
     } catch(error) {
         console.error("Failed to update role", error);
         showToast("Failed to update role", 'error');
@@ -613,7 +613,7 @@ const AdminDashboard = () => {
                           currentPalette={currentPalette}
                         >
                             <option value="">Select User</option>
-                          <optgroup label="Admins">
+                            <optgroup label="Admins">
                                 {allUsers
                                 .filter(user => user.role === 'admin')
                                 .map(user => (
@@ -653,9 +653,10 @@ const AdminDashboard = () => {
                           currentPalette={currentPalette}
                         >
                             <option value="">Select Role</option>
+                            <option value="admin">Admin</option>
                             <option value="student">Student</option>
-                            <option value="ta">Teacher</option>
-                            <option value="ta">Admin</option>
+                            <option value="teacher">Teacher</option>
+
                         </Select>
                     </div>
                     <div className="pt-2">
