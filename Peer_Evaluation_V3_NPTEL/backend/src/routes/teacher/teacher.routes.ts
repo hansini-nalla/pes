@@ -1,5 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
+
+import { removeTAFromBatch } from "../../controllers/teacher/removeTAFromBatch.controller.ts";
 import {
   getAllEscalatedTickets,
   resolveTicket,
@@ -31,6 +33,7 @@ import { handleBulkUploadScans } from "../../controllers/teacher/handleBulkUploa
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
+
 // Courses
 router.get("/courses", authMiddleware, getTeacherCourses);
 router.get("/courses/:courseId/exams", authMiddleware, getExamsByCourse);
@@ -58,16 +61,17 @@ router.post(
   uploadAnswerKey
 );
 
+// Batch & TA
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
 router.post("/initiate-evaluation", authMiddleware, initiatePeerEvaluation);
-
 router.post("/batch/:batchId/assign-ta", authMiddleware, assignTaToBatch);
+router.delete("/batch/:batchId/remove-ta/:taId", authMiddleware, removeTAFromBatch);
+router.get("/batch/:batchId/ta", authMiddleware, getBatchTA);
 router.get("/students", authMiddleware, getAllStudents);
 router.post("/enroll", authMiddleware, enrollStudents);
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents2);
-router.get("/batch/:batchId/ta", authMiddleware, getBatchTA);
 
-//QR Stuff
+// QR Code Uploads
 router.get("/exam/:examId/generate-qrs", authMiddleware, generateQrPdfBundle);
 router.post(
   "/exams/:examId/upload-scans",
@@ -76,7 +80,8 @@ router.post(
   handleBulkUploadScans
 );
 
-//Escalated Tickets
+// Escalated Tickets
 router.get("/escalated-tickets", authMiddleware, getAllEscalatedTickets);
 router.put("/resolve-ticket/:ticketId", authMiddleware, resolveTicket);
+
 export default router;

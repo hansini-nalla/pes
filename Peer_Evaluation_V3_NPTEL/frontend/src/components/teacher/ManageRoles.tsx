@@ -1,3 +1,4 @@
+// Keep existing imports
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { FiUserCheck } from "react-icons/fi";
@@ -55,7 +56,10 @@ const ManageRoles = () => {
       .get(`http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/ta`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
-      .then((res) => setTAs(res.data.ta || []))
+      .then((res) => {
+        console.log("Fetched TAs:", res.data.ta);
+        setTAs(res.data.ta || []);
+      })
       .catch(() => setTAs([]));
   }, [selectedBatch]);
 
@@ -83,13 +87,36 @@ const ManageRoles = () => {
     }
   };
 
+  const handleRemoveTA = async (taId: string) => {
+    if (!selectedBatch || !taId) {
+      setMessage("Invalid batch or TA");
+      return;
+    }
+
+    try {
+      const res = await axios.delete(
+        `http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/remove-ta/${taId}`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      setMessage(res.data.message || "TA removed successfully");
+
+      const taRes = await axios.get(
+        `http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/ta`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        }
+      );
+      setTAs(taRes.data.ta || []);
+    } catch (err: any) {
+      console.error("Failed to remove TA:", err);
+      setMessage(err.response?.data?.message || "Failed to remove TA");
+    }
+  };
+
   return (
-    <motion.div
-      className="flex flex-col items-center justify-center w-full h-full pt-10 pb-4"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    >
+    <motion.div className="flex flex-col items-center justify-center w-full h-full pt-10 pb-4" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: "easeOut" }}>
       <motion.div
         className="shadow-2xl rounded-3xl border px-10 py-12 max-w-lg w-full flex flex-col items-center relative"
         style={{
@@ -119,18 +146,7 @@ const ManageRoles = () => {
         }}>
           <div className="flex flex-col gap-2 w-full">
             <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Course</label>
-            <select
-              className="border-2 px-4 py-3 rounded-xl w-full shadow-md"
-              style={{
-                borderColor: palette['border-soft'],
-                backgroundColor: "#FFFFFF",
-                color: palette['text-dark'],
-                outlineColor: palette['sidebar-bg']
-              }}
-              value={selectedCourse}
-              onChange={(e) => setSelectedCourse(e.target.value)}
-              required
-            >
+            <select className="border-2 px-4 py-3 rounded-xl w-full shadow-md" style={{ borderColor: palette['border-soft'], backgroundColor: "#FFFFFF", color: palette['text-dark'], outlineColor: palette['sidebar-bg'] }} value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} required>
               <option value="">-- Select Course --</option>
               {courses.map((course) => (
                 <option key={course._id} value={course._id}>
@@ -143,18 +159,7 @@ const ManageRoles = () => {
           {batches.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Batch</label>
-              <select
-                className="border-2 px-4 py-3 rounded-xl w-full shadow-md"
-                style={{
-                  borderColor: palette['border-soft'],
-                  backgroundColor: "#FFFFFF",
-                  color: palette['text-dark'],
-                  outlineColor: palette['sidebar-bg']
-                }}
-                value={selectedBatch}
-                onChange={(e) => setSelectedBatch(e.target.value)}
-                required
-              >
+              <select className="border-2 px-4 py-3 rounded-xl w-full shadow-md" style={{ borderColor: palette['border-soft'], backgroundColor: "#FFFFFF", color: palette['text-dark'], outlineColor: palette['sidebar-bg'] }} value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} required>
                 <option value="">-- Select Batch --</option>
                 {batches.map((batch) => (
                   <option key={batch._id} value={batch._id}>
@@ -165,32 +170,25 @@ const ManageRoles = () => {
             </div>
           )}
 
-          {/* Expandable TA List */}
           {tas.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
-              <label className="font-semibold" style={{ color: palette['text-dark'] }}>
-                Assigned TA{tas.length > 1 ? "s" : ""}
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowTAs(!showTAs)}
-                className="text-sm underline text-purple-700 hover:text-purple-900 text-left"
-              >
+              <label className="font-semibold" style={{ color: palette['text-dark'] }}>Assigned TA{tas.length > 1 ? "s" : ""}</label>
+              <button type="button" onClick={() => setShowTAs(!showTAs)} className="text-sm underline text-purple-700 hover:text-purple-900 text-left">
                 {showTAs ? "Hide TA list" : `View ${tas.length} TA${tas.length > 1 ? "s" : ""}`}
               </button>
               <AnimatePresence>
                 {showTAs && (
-                  <motion.ul
-                    className="bg-white border-2 rounded-xl p-4 shadow-inner mt-2 space-y-2"
-                    style={{ borderColor: palette["border-soft"] }}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <motion.ul className="bg-white border-2 rounded-xl p-4 shadow-inner mt-2 space-y-2" style={{ borderColor: palette["border-soft"] }} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
                     {tas.map((ta, index) => (
-                      <li key={index} className="text-sm text-purple-800">
+                      <li key={index} className="text-sm text-purple-800 flex justify-between items-center">
                         {ta.name} ({ta.email})
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTA(ta._id)}
+                          className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        >
+                          Remove
+                        </button>
                       </li>
                     ))}
                   </motion.ul>
@@ -202,18 +200,7 @@ const ManageRoles = () => {
           {students.length > 0 && (
             <div className="flex flex-col gap-2 w-full">
               <label className="font-semibold" style={{ color: palette['text-dark'] }}>Select Student</label>
-              <select
-                className="border-2 px-4 py-3 rounded-xl w-full shadow-md"
-                style={{
-                  borderColor: palette['border-soft'],
-                  backgroundColor: "#FFFFFF",
-                  color: palette['text-dark'],
-                  outlineColor: palette['sidebar-bg']
-                }}
-                value={selectedStudent}
-                onChange={(e) => setSelectedStudent(e.target.value)}
-                required
-              >
+              <select className="border-2 px-4 py-3 rounded-xl w-full shadow-md" style={{ borderColor: palette['border-soft'], backgroundColor: "#FFFFFF", color: palette['text-dark'], outlineColor: palette['sidebar-bg'] }} value={selectedStudent} onChange={(e) => setSelectedStudent(e.target.value)} required>
                 <option value="">-- Select Student --</option>
                 {students.map((student) => (
                   <option key={student._id} value={student._id}>
@@ -224,32 +211,13 @@ const ManageRoles = () => {
             </div>
           )}
 
-          <motion.button
-            type="submit"
-            disabled={!selectedStudent}
-            className="px-6 py-3 rounded-xl font-semibold text-white shadow-md disabled:opacity-50"
-            style={{
-              backgroundColor: palette['sidebar-bg'],
-              color: palette['text-sidebar-dark'],
-              boxShadow: `0 4px 15px ${palette['sidebar-bg']}40`
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ duration: 0.2 }}
-          >
+          <motion.button type="submit" disabled={!selectedStudent} className="px-6 py-3 rounded-xl font-semibold text-white shadow-md disabled:opacity-50" style={{ backgroundColor: palette['sidebar-bg'], color: palette['text-sidebar-dark'], boxShadow: `0 4px 15px ${palette['sidebar-bg']}40` }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} transition={{ duration: 0.2 }}>
             Assign TA Role
           </motion.button>
 
           <AnimatePresence>
             {message && (
-              <motion.div
-                className="text-center font-medium mt-2"
-                style={{ color: palette['text-muted'] }}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
+              <motion.div className="text-center font-medium mt-2" style={{ color: palette['text-muted'] }} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
                 {message}
               </motion.div>
             )}
