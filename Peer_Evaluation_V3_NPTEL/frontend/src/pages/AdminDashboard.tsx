@@ -396,7 +396,7 @@ const AdminDashboard = () => {
         return;
     }
     try {
-      await axios.delete(`http://localhost:${PORT}/api/admin/courses/${courseIdToDelete}`, { headers: { Authorization: `Bearer ${token}` } });
+      await axios.delete(`http://localhost:${PORT}/api/admin/${courseIdToDelete}`, { headers: { Authorization: `Bearer ${token}` } });
       showToast('Course deleted');
       setCourseIdToDelete('');
       fetchData(`http://localhost:${PORT}/api/admin/courses`, setCourses, 'Error refetching courses');
