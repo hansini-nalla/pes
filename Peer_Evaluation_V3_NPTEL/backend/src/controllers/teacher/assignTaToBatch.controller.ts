@@ -29,6 +29,9 @@ export const assignTaToBatch = async (
       res.status(404).json({ message: "Student not found" });
       return;
     }
+    if (batch.ta == null) {
+      batch.ta = [];
+    }
     if (batch.ta.includes(studentId)) {
       res
         .status(400)
