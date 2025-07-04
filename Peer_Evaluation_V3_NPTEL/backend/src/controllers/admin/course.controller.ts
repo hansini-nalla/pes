@@ -154,6 +154,12 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
       return;
     }
 
+    // If teacher is being changed to student, delete their assigned batches
+    if (user.role === "teacher" && role === "student") {
+      const deleted = await Batch.deleteMany({ instructor: user._id });
+      console.log(`Deleted ${deleted.deletedCount} batches assigned to the teacher.`);
+    }
+
     // Update role
     user.role = role;
     await user.save();
@@ -164,7 +170,6 @@ export const updateStudentTaRole = async (req: Request, res: Response): Promise<
     res.status(500).json({ message: "Server error", error: err });
   }
 };
-
 
 export const getAllBatches = async (_req: Request, res: Response): Promise<void> => {
   try {
