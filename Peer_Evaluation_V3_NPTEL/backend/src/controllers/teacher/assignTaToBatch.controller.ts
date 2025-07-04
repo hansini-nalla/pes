@@ -29,6 +29,15 @@ export const assignTaToBatch = async (
       res.status(404).json({ message: "Student not found" });
       return;
     }
+    // Check if this student is already a TA in any batch
+    const existingTABatch = await Batch.findOne({ ta: student._id });
+    if (existingTABatch) {
+      res.status(400).json({
+        message: "This student is already a TA for another batch/course and cannot be assigned again.",
+      });
+      return;
+    }
+
     if (batch.ta.includes(studentId)) {
       res
         .status(400)
