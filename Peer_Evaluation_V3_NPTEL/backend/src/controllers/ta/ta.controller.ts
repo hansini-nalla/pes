@@ -1,43 +1,245 @@
 import { Request, Response, NextFunction } from 'express';
-import { Flag } from '../../models/Flag.ts';
 import { Evaluation } from '../../models/Evaluation.ts';
 import { User } from '../../models/User.ts';
 import { Notification } from '../../models/Notification.ts';
 import { Submission } from '../../models/Submission.ts';
+import { Ticket } from '../../models/Ticket.ts';
+import { TeacherTicket } from '../../models/TeacherTicket.ts';
+// Add these imports at the top with existing imports
+import Enrollment from '../../models/Enrollment.ts';
+import { Batch } from '../../models/Batch.ts';
+import { Course } from '../../models/Course.ts';
+import { Exam } from '../../models/Exam.ts';
 
 /**
- * Get all flagged evaluations that need TA review
+ * Get TA profile with assigned courses and batches
  */
-export const getFlaggedEvaluations = async (
+export const getTAProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Find all flags with pending status
-    const flaggedEvaluations = await Flag.find({
-      resolutionStatus: 'pending'
-    })
-    .populate({
-      path: 'evaluation',
-      populate: [
-        { path: 'evaluator', select: 'name email' },
-        { path: 'evaluatee', select: 'name email' },
-        {
-          path: 'exam',
-          select: 'title startTime endTime numQuestions createdBy',
-          populate: {
-            path: 'course',
-            select: 'name code startDate endDate'
-          }
+    const taId = (req as any).user.id;
+    
+    // Find all batches where the user is assigned as a TA
+    const batches = await Batch.find({ ta: taId })
+      .populate('course', 'name code');
+    
+    if (!batches || batches.length === 0) {
+      res.json({ 
+        profile: {
+          name: (req as any).user.name,
+          email: (req as any).user.email,
+          courses: [],
+          batches: []
         }
-      ]
-    })
-    .populate('flaggedBy', 'name email');
-
-    res.json({ flaggedEvaluations });
+      });
+      return;
+    }
+    
+    // Extract unique courses from batches
+    const courses = Array.from(new Set(
+      batches.map(batch => JSON.stringify(batch.course))
+    )).map(course => JSON.parse(course));
+    
+    // Extract batch information (without year)
+    const batchesInfo = batches.map(batch => ({
+      _id: batch._id,
+      name: batch.name
+    }));
+    
+    res.json({
+      profile: {
+        name: (req as any).user.name,
+        email: (req as any).user.email,
+        courses,
+        batches: batchesInfo
+      }
+    });
   } catch (error) {
-    console.error('Error fetching flagged evaluations:', error);
+    console.error('Error fetching TA profile:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get pending enrollment requests for courses and batches where the user is a TA
+ */
+export const getPendingEnrollments = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const taId = (req as any).user.id;
+    
+    // Find all batches where the user is assigned as a TA
+    const batches = await Batch.find({ ta: taId });
+    
+    if (!batches || batches.length === 0) {
+      res.json({ pendingEnrollments: [] });
+      return;
+    }
+    
+    const batchIds = batches.map(batch => batch._id);
+    
+    // Find pending enrollments for these batches
+    const pendingEnrollments = await Enrollment.find({
+      batchId: { $in: batchIds },
+      status: 'pending'
+    })
+    .populate('studentId', 'name email')
+    .populate('courseId', 'name code')
+    .populate('batchId', 'name');
+    
+    // Format the response (without year)
+    const formattedEnrollments = pendingEnrollments.map(enrollment => ({
+      _id: enrollment._id,
+      student: {
+        name: (enrollment.studentId as any).name,
+        email: (enrollment.studentId as any).email
+      },
+      course: {
+        _id: enrollment.courseId,
+        name: (enrollment.courseId as any).name,
+        code: (enrollment.courseId as any).code
+      },
+      batch: {
+        _id: enrollment.batchId,
+        name: (enrollment.batchId as any).name
+      },
+      requestDate: enrollment.enrollmentDate,
+      status: enrollment.status
+    }));
+    
+    res.json({ pendingEnrollments: formattedEnrollments });
+  } catch (error) {
+    console.error('Error fetching pending enrollments:', error);
+    next(error);
+  }
+};
+
+/**
+ * Handle enrollment decision (approve/reject)
+ */
+export const handleEnrollmentDecision = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { enrollmentId } = req.params;
+    const { decision, notes } = req.body;
+    const taId = (req as any).user.id;
+    
+    if (!['approve', 'reject'].includes(decision)) {
+      res.status(400).json({ error: 'Invalid decision. Must be "approve" or "reject"' });
+      return;
+    }
+    
+    // Find the enrollment
+    const enrollment = await Enrollment.findById(enrollmentId);
+    if (!enrollment) {
+      res.status(404).json({ error: 'Enrollment request not found' });
+      return;
+    }
+    
+    // Verify that the TA is assigned to this batch
+    const batch = await Batch.findById(enrollment.batchId);
+    if (!batch || !batch.ta.includes(taId)) {
+      res.status(403).json({ error: 'Not authorized to manage this enrollment' });
+      return;
+    }
+    
+    // Update enrollment status based on decision
+    enrollment.status = decision === 'approve' ? 'completed' : 'rejected';
+    if (notes) {
+      enrollment.notes = notes;
+    }
+    await enrollment.save();
+    
+    // If approved, add student to the batch's students array
+    if (decision === 'approve') {
+      batch.students.push(enrollment.studentId);
+      await batch.save();
+      
+      // Notify the student that their enrollment was approved
+      await Notification.create({
+        recipient: enrollment.studentId,
+        message: `Your enrollment for ${(enrollment.courseId as any).name || 'the course'} has been approved.`,
+        relatedResource: {
+          type: 'course',
+          id: enrollment.courseId
+        }
+      });
+    } else {
+      // Notify the student that their enrollment was rejected
+      await Notification.create({
+        recipient: enrollment.studentId,
+        message: `Your enrollment for ${(enrollment.courseId as any).name || 'the course'} has been declined.`,
+        relatedResource: {
+          type: 'course',
+          id: enrollment.courseId
+        }
+      });
+    }
+    
+    res.json({
+      message: `Enrollment ${decision === 'approve' ? 'approved' : 'rejected'} successfully`,
+      status: enrollment.status
+    });
+  } catch (error) {
+    console.error('Error handling enrollment decision:', error);
+    next(error);
+  }
+};
+
+/**
+ * Get all tickets for TA's assigned batches and courses
+ */
+export const getStudentTickets = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const taId = (req as any).user.id;
+    
+    // Find all batches where the user is assigned as a TA
+    const batches = await Batch.find({ ta: taId });
+    
+    if (!batches || batches.length === 0) {
+      res.json({ tickets: [] });
+      return;
+    }
+    
+    // Get all exams for TA's batches
+    const batchIds = batches.map(batch => batch._id);
+    const exams = await Exam.find({ batch: { $in: batchIds } });
+    const examIds = exams.map(exam => exam._id);
+    
+    // Find tickets for these exams where TA is assigned and status is open
+    const tickets = await Ticket.find({
+      ta: taId,
+      exam: { $in: examIds },
+      status: 'open',
+      escalatedToTeacher: false
+    })
+    .populate('student', 'name email')
+    .populate('evaluator', 'name email')
+    .populate({
+      path: 'exam',
+      select: 'title startTime endTime numQuestions',
+      populate: {
+        path: 'course',
+        select: 'name code'
+      }
+    });
+    
+    res.json({ tickets });
+  } catch (error) {
+    console.error('Error fetching student tickets:', error);
     next(error);
   }
 };
@@ -103,82 +305,47 @@ export const getSubmissionPdf = async (
 };
 
 /**
- * Get detailed information about a specific evaluation
+ * Resolve a student ticket with updated marks
  */
-export const getEvaluationDetails = async (
+export const resolveTicket = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-
-    const evaluation = await Evaluation.findById(id)
-    .populate('evaluator', 'name email')
-    .populate('evaluatee', 'name email')
-    .populate({
-      path: 'exam',
-      select: 'title startTime endTime numQuestions createdBy',
-      populate: {
-        path: 'course',
-        select: 'name code startDate endDate'
-      }
-    });
-
-    if (!evaluation) {
-      res.status(404).json({ error: 'Evaluation not found' });
-      return;
-    }
-
-    const flags = await Flag.find({
-      evaluation: id
-    }).populate('flaggedBy', 'name email');
-
-    res.json({ evaluation, flags });
-  } catch (error) {
-    console.error('Error fetching evaluation details:', error);
-    next(error);
-  }
-};
-
-/**
- * Resolve a flagged evaluation with updated validation
- */
-export const resolveFlag = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const { flagId } = req.params;
+    const { ticketId } = req.params;
     const { resolution, newMarks, feedback } = req.body;
     const taId = (req as any).user.id;
 
-    const flag = await Flag.findById(flagId).populate('evaluation');
-    if (!flag) {
-      res.status(404).json({ error: 'Flag not found' });
+    const ticket = await Ticket.findById(ticketId)
+      .populate('exam')
+      .populate('student');
+      
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
       return;
     }
 
-    // Update flag status
-    flag.resolutionStatus = 'resolved';
-    flag.resolvedBy = taId;
-    await flag.save();
+    // Verify TA is assigned to this ticket
+    if (ticket.ta.toString() !== taId) {
+      res.status(403).json({ error: 'Not authorized to resolve this ticket' });
+      return;
+    }
+
+    // Find the evaluation related to this ticket
+    const evaluation = await Evaluation.findOne({
+      exam: ticket.exam,
+      evaluator: ticket.evaluator,
+      evaluatee: ticket.student
+    });
+
+    if (!evaluation) {
+      res.status(404).json({ error: 'Related evaluation not found' });
+      return;
+    }
 
     // If new marks are provided, validate and update the evaluation
     if (newMarks) {
-      // Get the evaluation with exam details
-      const evaluation = await Evaluation.findById(flag.evaluation)
-      .populate({
-        path: 'exam',
-        select: 'numQuestions'
-      });
-
-      if (!evaluation) {
-        res.status(404).json({ error: 'Evaluation not found' });
-        return;
-      }
-
       // Validate marks array
       if (!Array.isArray(newMarks)) {
         res.status(400).json({ error: 'Marks must be provided as an array' });
@@ -186,7 +353,7 @@ export const resolveFlag = async (
       }
 
       // Get expected number of questions from exam
-      const expectedQuestions = (evaluation.exam as any)?.numQuestions || evaluation.marks.length;
+      const expectedQuestions = (ticket.exam as any)?.numQuestions || evaluation.marks.length;
 
       if (newMarks.length !== expectedQuestions) {
         res.status(400).json({
@@ -206,89 +373,113 @@ export const resolveFlag = async (
       }
 
       // Update the evaluation
-      await Evaluation.findByIdAndUpdate(flag.evaluation, {
-        marks: newMarks,
-        feedback: feedback || evaluation.feedback,
-        status: 'completed'
-      });
+      evaluation.marks = newMarks;
+      if (feedback) {
+        evaluation.feedback = feedback;
+      }
+      evaluation.status = 'completed';
+      await evaluation.save();
     }
 
-    // Notify the student who flagged the evaluation
+    // Update ticket status to closed
+    ticket.status = 'closed';
+    await ticket.save();
+
+    // Notify the student who raised the ticket
     await Notification.create({
-      recipient: flag.flaggedBy,
-      message: `Your flagged evaluation has been resolved by a TA.`,
+      recipient: ticket.student,
+      message: `Your ticket regarding the evaluation has been resolved by a TA.`,
       relatedResource: {
-        type: 'flag',
-        id: flag._id
+        type: 'evaluation',
+        id: evaluation._id
       }
     });
 
     res.json({
-      message: 'Flag resolved successfully',
+      message: 'Ticket resolved successfully',
       resolution
     });
   } catch (error) {
-    console.error('Error resolving flag:', error);
+    console.error('Error resolving ticket:', error);
     next(error);
   }
 };
 
 /**
- * Escalate a flagged evaluation to a teacher
+ * Escalate a ticket to teachers
  */
-export const escalateToTeacher = async (
+export const escalateTicketToTeacher = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { flagId } = req.params;
+    const { ticketId } = req.params;
     const { reason } = req.body;
+    const taId = (req as any).user.id;
 
-    const flag = await Flag.findById(flagId);
-    if (!flag) {
-      res.status(404).json({ error: 'Flag not found' });
+    const ticket = await Ticket.findById(ticketId)
+      .populate('exam')
+      .populate('student');
+      
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
       return;
     }
 
-    // Update flag status to escalated
-    flag.resolutionStatus = 'escalated';
-    flag.escalationReason = reason;
-    await flag.save();
-
-    // Find teachers to notify (only those who can handle this course)
-    const teachers = await User.find({ role: 'teacher' }).select('_id');
-
-    // Create notifications for teachers
-    const teacherNotifications = teachers.map(teacher => ({
-      recipient: teacher._id,
-      message: 'A flagged evaluation has been escalated and requires your attention',
-      relatedResource: {
-        type: 'flag',
-        id: flag._id
-      }
-    }));
-
-    if (teacherNotifications.length > 0) {
-      await Notification.insertMany(teacherNotifications);
+    // Verify TA is assigned to this ticket
+    if (ticket.ta.toString() !== taId) {
+      res.status(403).json({ error: 'Not authorized to escalate this ticket' });
+      return;
     }
 
-    // Also notify the student who flagged the evaluation
+    // Update ticket status to escalated
+    ticket.escalatedToTeacher = true;
+    await ticket.save();
+
+    // Create a teacher ticket
+    const teacherTicket = new TeacherTicket({
+      subject: `Escalated Evaluation Ticket - ${(ticket.exam as any)?.title}`,
+      description: `${reason}\n\nOriginal student message: ${ticket.message}`,
+      student: ticket.student,
+      ta: taId,
+      evaluationId: ticket.exam
+    });
+
+    await teacherTicket.save();
+
+    // Find teachers who are instructors of the related batch
+    const exam = await Exam.findById(ticket.exam).populate('batch');
+    const batch = (exam as any)?.batch;
+    
+    if (batch) {
+      // Notify the instructor (teacher) of this batch
+      await Notification.create({
+        recipient: batch.instructor,
+        message: `A ticket has been escalated from TA and requires your attention regarding ${(ticket.exam as any)?.title}`,
+        relatedResource: {
+          type: 'evaluation',
+          id: teacherTicket._id
+        }
+      });
+    }
+
+    // Also notify the student who raised the ticket
     await Notification.create({
-      recipient: flag.flaggedBy,
-      message: 'Your flagged evaluation has been escalated to a teacher for review',
+      recipient: ticket.student,
+      message: 'Your ticket has been escalated to a teacher for review',
       relatedResource: {
-        type: 'flag',
-        id: flag._id
+        type: 'evaluation',
+        id: ticket._id
       }
     });
 
     res.json({
-      message: 'Flag escalated to teacher successfully',
+      message: 'Ticket escalated to teacher successfully',
       reason
     });
   } catch (error) {
-    console.error('Error escalating flag:', error);
+    console.error('Error escalating ticket:', error);
     next(error);
   }
 };
@@ -302,16 +493,30 @@ export const getTAStats = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const pendingFlags = await Flag.countDocuments({ resolutionStatus: 'pending' });
-    const resolvedFlags = await Flag.countDocuments({ resolutionStatus: 'resolved' });
-    const escalatedFlags = await Flag.countDocuments({ resolutionStatus: 'escalated' });
+    const taId = (req as any).user.id;
+    
+    const openTickets = await Ticket.countDocuments({ 
+      ta: taId, 
+      status: 'open', 
+      escalatedToTeacher: false 
+    });
+    
+    const closedTickets = await Ticket.countDocuments({ 
+      ta: taId, 
+      status: 'closed' 
+    });
+    
+    const escalatedTickets = await Ticket.countDocuments({ 
+      ta: taId, 
+      escalatedToTeacher: true 
+    });
 
     res.json({
       stats: {
-        pendingFlags,
-        resolvedFlags,
-        escalatedFlags,
-        totalFlags: pendingFlags + resolvedFlags + escalatedFlags
+        openTickets,
+        closedTickets,
+        escalatedTickets,
+        totalTickets: openTickets + closedTickets + escalatedTickets
       }
     });
   } catch (error) {
