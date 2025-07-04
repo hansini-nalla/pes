@@ -332,7 +332,7 @@ export const createBatchWithNames = async (req: Request, res: Response): Promise
       name: batchName,
       course: courseId,
       instructor: instructorId,
-      ta: taId ?? null, // <-- always set ta explicitly to null if not provided
+      ta: taId ?? [], // <-- always set ta explicitly to an empty array if not provided
       students: students || [],
     });
 
