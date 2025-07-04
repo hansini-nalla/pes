@@ -14,22 +14,14 @@ export const getBatchTA = async (
       return;
     }
 
-    const batch = await Batch.findById(batchId).populate("ta", "name email");
+    const batch = await Batch.findById(batchId).populate("ta", "_id name email");
 
     if (!batch) {
       res.status(404).json({ message: "Batch not found" });
       return;
     }
 
-    const taArray =
-      batch.ta instanceof Array
-        ? batch.ta.map((ta: any) => ({
-            name: ta.name,
-            email: ta.email,
-          }))
-        : [];
-
-    res.json({ ta: taArray });
+    res.json({ ta: batch.ta });
   } catch (error) {
     console.error("Error fetching TA:", error);
     res.status(500).json({ message: "Server error" });

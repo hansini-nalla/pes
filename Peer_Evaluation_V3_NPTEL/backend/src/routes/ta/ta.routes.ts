@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import {
-  getFlaggedEvaluations,
-  getEvaluationDetails,
-  resolveFlag,
-  escalateToTeacher,
+  getStudentTickets,
   getSubmissionPdf,
-  getTAStats
+  getTAStats,
+  getTAProfile,
+  getPendingEnrollments,
+  handleEnrollmentDecision,
+  resolveTicket,
+  escalateTicketToTeacher
 } from '../../controllers/ta/ta.controller.ts';
 import { authMiddleware } from '../../middlewares/authMiddleware.ts';
 import { authorizeRoles } from '../../middlewares/authorizeRoles.ts';
@@ -23,22 +25,28 @@ router.use(asyncHandler(authMiddleware));
 // Ensure only TAs can access these routes
 router.use(asyncHandler(authorizeRoles('ta')));
 
+// Get TA profile with assigned courses and batches
+router.get('/profile', asyncHandler(getTAProfile));
+
+// Get pending enrollments for TA's assigned batches
+router.get('/pending-enrollments', asyncHandler(getPendingEnrollments));
+
+// Handle enrollment decision (approve/reject)
+router.post('/enrollment/:enrollmentId/decision', asyncHandler(handleEnrollmentDecision));
+
 // Get TA dashboard statistics
 router.get('/stats', asyncHandler(getTAStats));
 
-// Get all flagged evaluations that need TA review
-router.get('/flagged-evaluations', asyncHandler(getFlaggedEvaluations));
-
-// Get detailed information about a specific evaluation
-router.get('/evaluation/:id', asyncHandler(getEvaluationDetails));
+// Get all student tickets for TA's assigned batches and courses
+router.get('/student-tickets', asyncHandler(getStudentTickets));
 
 // Get submission PDF for an evaluation
 router.get('/submission/:evaluationId', asyncHandler(getSubmissionPdf));
 
-// Resolve a flagged evaluation
-router.post('/resolve-flag/:flagId', asyncHandler(resolveFlag));
+// Resolve a student ticket
+router.post('/resolve-ticket/:ticketId', asyncHandler(resolveTicket));
 
-// Escalate a flagged evaluation to a teacher
-router.post('/escalate/:flagId', asyncHandler(escalateToTeacher));
+// Escalate a ticket to teachers
+router.post('/escalate-ticket/:ticketId', asyncHandler(escalateTicketToTeacher));
 
 export default router;
