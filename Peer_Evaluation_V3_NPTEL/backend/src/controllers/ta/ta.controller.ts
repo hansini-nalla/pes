@@ -437,32 +437,58 @@ export const escalateTicketToTeacher = async (
     ticket.escalatedToTeacher = true;
     await ticket.save();
 
-    // Create a teacher ticket
+    // Get the exam with batch information
+    const exam = await Exam.findById(ticket.exam).populate({
+      path: 'batch',
+      populate: {
+        path: 'instructor',
+        select: 'name email'
+      }
+    });
+
+    if (!exam) {
+      res.status(404).json({ error: 'Associated exam not found' });
+      return;
+    }
+
+    const batch = exam.batch as any;
+    if (!batch || !batch.instructor) {
+      res.status(404).json({ error: 'Batch instructor not found' });
+      return;
+    }
+
+    // Find the evaluation related to this ticket
+    const evaluation = await Evaluation.findOne({
+      exam: ticket.exam,
+      evaluator: ticket.evaluator,
+      evaluatee: ticket.student
+    });
+
+    if (!evaluation) {
+      res.status(404).json({ error: 'Related evaluation not found' });
+      return;
+    }
+
+    // Create a teacher ticket with evaluation ID
     const teacherTicket = new TeacherTicket({
-      subject: `Escalated Evaluation Ticket - ${(ticket.exam as any)?.title}`,
+      subject: `Escalated Evaluation Ticket - ${exam.title}`,
       description: `${reason}\n\nOriginal student message: ${ticket.message}`,
       student: ticket.student,
       ta: taId,
-      evaluationId: ticket.exam
+      evaluationId: evaluation._id  // Use evaluation ID instead of exam ID
     });
 
     await teacherTicket.save();
 
-    // Find teachers who are instructors of the related batch
-    const exam = await Exam.findById(ticket.exam).populate('batch');
-    const batch = (exam as any)?.batch;
-    
-    if (batch) {
-      // Notify the instructor (teacher) of this batch
-      await Notification.create({
-        recipient: batch.instructor,
-        message: `A ticket has been escalated from TA and requires your attention regarding ${(ticket.exam as any)?.title}`,
-        relatedResource: {
-          type: 'evaluation',
-          id: teacherTicket._id
-        }
-      });
-    }
+    // Notify only the specific instructor (teacher) of this batch
+    await Notification.create({
+      recipient: batch.instructor._id,
+      message: `A ticket has been escalated from TA and requires your attention regarding ${exam.title}`,
+      relatedResource: {
+        type: 'evaluation',
+        id: teacherTicket._id
+      }
+    });
 
     // Also notify the student who raised the ticket
     await Notification.create({
