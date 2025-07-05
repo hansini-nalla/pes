@@ -11,6 +11,7 @@ import {
 } from '../../controllers/ta/ta.controller.ts';
 import { authMiddleware } from '../../middlewares/authMiddleware.ts';
 import { authorizeRoles } from '../../middlewares/authorizeRoles.ts';
+import { authorizeTA } from '../../middlewares/authorizeTA.ts';
 
 const router = Router();
 
@@ -21,9 +22,7 @@ const asyncHandler = (fn: any) => (req: any, res: any, next: any) => {
 
 // Apply authentication middleware to all routes
 router.use(asyncHandler(authMiddleware));
-
-// Ensure only TAs can access these routes
-router.use(asyncHandler(authorizeRoles('ta')));
+router.use(asyncHandler(authorizeTA));
 
 // Get TA profile with assigned courses and batches
 router.get('/profile', asyncHandler(getTAProfile));
