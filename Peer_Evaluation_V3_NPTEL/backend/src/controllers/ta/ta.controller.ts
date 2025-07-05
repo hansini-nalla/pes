@@ -245,7 +245,7 @@ export const getStudentTickets = async (
 };
 
 /**
- * Get the submission PDF associated with an evaluation
+ * Get the submission PDF for a student's exam submission
  */
 export const getSubmissionPdf = async (
   req: Request,
@@ -253,28 +253,29 @@ export const getSubmissionPdf = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { evaluationId } = req.params;
+    const { ticketId } = req.params;
+    const taId = (req as any).user.id;
 
-    // Find the evaluation with better error handling
-    const evaluation = await Evaluation.findById(evaluationId)
-    .populate('exam')
-    .populate('evaluatee');
+    // Find the ticket first to get exam and student information
+    const ticket = await Ticket.findById(ticketId)
+      .populate('exam')
+      .populate('student');
 
-    if (!evaluation) {
-      res.status(404).json({ error: 'Evaluation not found' });
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
       return;
     }
 
-    // Ensure exam exists (required by new model)
-    if (!evaluation.exam) {
-      res.status(404).json({ error: 'Associated exam not found' });
+    // Verify TA is authorized to access this ticket
+    if (ticket.ta.toString() !== taId) {
+      res.status(403).json({ error: 'Not authorized to access this submission' });
       return;
     }
 
-    // Find the submission for this evaluation
+    // Find the submission using exam and student from the ticket
     const submission = await Submission.findOne({
-      exam: evaluation.exam,
-      student: evaluation.evaluatee
+      exam: ticket.exam,
+      student: ticket.student
     });
 
     if (!submission) {
@@ -288,9 +289,10 @@ export const getSubmissionPdf = async (
       return;
     }
 
-    // Create a safe filename - remove invalid characters and limit length
-    const evaluateeName = (evaluation.evaluatee as any)?.name || 'student';
-    const safeFilename = `submission_${evaluateeName.replace(/[^a-zA-Z0-9]/g, '_')}_${evaluationId.slice(-6)}.pdf`;
+    // Create a safe filename
+    const studentName = (ticket.student as any)?.name || 'student';
+    const examTitle = (ticket.exam as any)?.title || 'exam';
+    const safeFilename = `submission_${studentName.replace(/[^a-zA-Z0-9]/g, '_')}_${examTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
 
     // Set appropriate headers for PDF download
     res.setHeader('Content-Type', submission.answerPdfMimeType);

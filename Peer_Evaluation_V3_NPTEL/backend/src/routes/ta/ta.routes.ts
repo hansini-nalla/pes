@@ -40,8 +40,12 @@ router.get('/stats', asyncHandler(getTAStats));
 router.get('/student-tickets', asyncHandler(getStudentTickets));
 
 // Get submission PDF for an evaluation
-router.get('/submission/:evaluationId', asyncHandler(getSubmissionPdf));
+// ...existing code...
 
+// Get submission PDF for a ticket
+router.get('/submission/:ticketId', asyncHandler(getSubmissionPdf));
+
+// ...existing code...
 // Resolve a student ticket
 router.post('/resolve-ticket/:ticketId', asyncHandler(resolveTicket));
 

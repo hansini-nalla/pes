@@ -247,86 +247,77 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     fetchPendingEnrollments();
   }, [activePage]);
 
-  // Helper function to find evaluation for a ticket
-  const findEvaluationForTicket = async (ticket: StudentTicket) => {
-    try {
-      const response = await fetch(`http://localhost:${PORT}/api/ta/evaluation/${ticket.exam._id}/${ticket.evaluator._id}/${ticket.student._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+  // // Helper function to find evaluation for a ticket
+  // const findEvaluationForTicket = async (ticket: StudentTicket) => {
+  //   try {
+  //     const response = await fetch(`http://localhost:${PORT}/api/ta/evaluation/${ticket.exam._id}/${ticket.evaluator._id}/${ticket.student._id}`, {
+  //       headers: {
+  //         'Authorization': `Bearer ${token}`
+  //       }
+  //     });
 
-      if (response.ok) {
-        const data = await response.json();
-        return data.evaluation;
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       return data.evaluation;
+  //     }
+  //     return null;
+  //   } catch (err) {
+  //     console.error('Error fetching evaluation:', err);
+  //     return null;
+  //   }
+  // };
+
+const handleDownloadTranscript = async (ticket: StudentTicket) => {
+  try {
+    // Use the ticket ID directly instead of finding evaluation first
+    const response = await fetch(`http://localhost:${PORT}/api/ta/submission/${ticket._id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
       }
-      return null;
-    } catch (err) {
-      console.error('Error fetching evaluation:', err);
-      return null;
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to download submission');
     }
-  };
 
-  const handleDownloadTranscript = async (ticket: StudentTicket) => {
-    try {
-      // First find the evaluation for this ticket
-      const evaluation = await findEvaluationForTicket(ticket);
-      if (!evaluation) {
-        setError('Could not find evaluation for this ticket');
-        return;
-      }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `submission_${ticket.student.name}_${ticket.exam.title}.pdf`;
 
-      const response = await fetch(`http://localhost:${PORT}/api/ta/submission/${evaluation._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-      if (!response.ok) {
-        throw new Error('Failed to download submission');
-      }
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Error downloading transcript:', err);
+    setError('Failed to download submission. Please try again.');
+  }
+};
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `submission_${ticket.student.name}_${ticket.exam.title}.pdf`;
+const handleUpdateMarks = async (ticketId: string) => {
+  try {
+    const ticket = studentTickets.find(t => t._id === ticketId);
+    if (!ticket) return;
 
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    // Use exam's numQuestions if available, otherwise default to 5
+    const numQuestions = ticket.exam.numQuestions || 5;
+    // Initialize with zeros since we don't need to fetch current marks
+    const currentMarks = Array(numQuestions).fill(0);
 
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Error downloading transcript:', err);
-      setError('Failed to download submission. Please try again.');
-    }
-  };
-
-  const handleUpdateMarks = async (ticketId: string) => {
-    try {
-      const ticket = studentTickets.find(t => t._id === ticketId);
-      if (!ticket) return;
-
-      // Get current evaluation marks to pre-fill the form
-      const evaluation = await findEvaluationForTicket(ticket);
-      
-      // Use exam's numQuestions if available, otherwise default to 5
-      const numQuestions = ticket.exam.numQuestions || 5;
-      const currentMarks = evaluation?.marks || Array(numQuestions).fill(0);
-
-      setNewMarks([...currentMarks]);
-      setUpdateMarksDialog({
-        show: true,
-        id: ticketId,
-        ticket: ticket
-      });
-    } catch (err) {
-      console.error('Error preparing marks update:', err);
-      setError('Failed to prepare marks update. Please try again.');
-    }
-  };
-
+    setNewMarks([...currentMarks]);
+    setUpdateMarksDialog({
+      show: true,
+      id: ticketId,
+      ticket: ticket
+    });
+  } catch (err) {
+    console.error('Error preparing marks update:', err);
+    setError('Failed to prepare marks update. Please try again.');
+  }
+};
   const handleMarkChange = (index: number, value: string) => {
     const updatedMarks = [...newMarks];
     updatedMarks[index] = Number(value);
