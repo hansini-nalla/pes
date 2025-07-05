@@ -245,7 +245,7 @@ export const getStudentTickets = async (
 };
 
 /**
- * Get the submission PDF associated with an evaluation
+ * Get the submission PDF for a student's exam submission
  */
 export const getSubmissionPdf = async (
   req: Request,
@@ -253,28 +253,29 @@ export const getSubmissionPdf = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { evaluationId } = req.params;
+    const { ticketId } = req.params;
+    const taId = (req as any).user.id;
 
-    // Find the evaluation with better error handling
-    const evaluation = await Evaluation.findById(evaluationId)
-    .populate('exam')
-    .populate('evaluatee');
+    // Find the ticket first to get exam and student information
+    const ticket = await Ticket.findById(ticketId)
+      .populate('exam')
+      .populate('student');
 
-    if (!evaluation) {
-      res.status(404).json({ error: 'Evaluation not found' });
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
       return;
     }
 
-    // Ensure exam exists (required by new model)
-    if (!evaluation.exam) {
-      res.status(404).json({ error: 'Associated exam not found' });
+    // Verify TA is authorized to access this ticket
+    if (ticket.ta.toString() !== taId) {
+      res.status(403).json({ error: 'Not authorized to access this submission' });
       return;
     }
 
-    // Find the submission for this evaluation
+    // Find the submission using exam and student from the ticket
     const submission = await Submission.findOne({
-      exam: evaluation.exam,
-      student: evaluation.evaluatee
+      exam: ticket.exam,
+      student: ticket.student
     });
 
     if (!submission) {
@@ -288,9 +289,10 @@ export const getSubmissionPdf = async (
       return;
     }
 
-    // Create a safe filename - remove invalid characters and limit length
-    const evaluateeName = (evaluation.evaluatee as any)?.name || 'student';
-    const safeFilename = `submission_${evaluateeName.replace(/[^a-zA-Z0-9]/g, '_')}_${evaluationId.slice(-6)}.pdf`;
+    // Create a safe filename
+    const studentName = (ticket.student as any)?.name || 'student';
+    const examTitle = (ticket.exam as any)?.title || 'exam';
+    const safeFilename = `submission_${studentName.replace(/[^a-zA-Z0-9]/g, '_')}_${examTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
 
     // Set appropriate headers for PDF download
     res.setHeader('Content-Type', submission.answerPdfMimeType);
@@ -437,32 +439,58 @@ export const escalateTicketToTeacher = async (
     ticket.escalatedToTeacher = true;
     await ticket.save();
 
-    // Create a teacher ticket
+    // Get the exam with batch information
+    const exam = await Exam.findById(ticket.exam).populate({
+      path: 'batch',
+      populate: {
+        path: 'instructor',
+        select: 'name email'
+      }
+    });
+
+    if (!exam) {
+      res.status(404).json({ error: 'Associated exam not found' });
+      return;
+    }
+
+    const batch = exam.batch as any;
+    if (!batch || !batch.instructor) {
+      res.status(404).json({ error: 'Batch instructor not found' });
+      return;
+    }
+
+    // Find the evaluation related to this ticket
+    const evaluation = await Evaluation.findOne({
+      exam: ticket.exam,
+      evaluator: ticket.evaluator,
+      evaluatee: ticket.student
+    });
+
+    if (!evaluation) {
+      res.status(404).json({ error: 'Related evaluation not found' });
+      return;
+    }
+
+    // Create a teacher ticket with evaluation ID
     const teacherTicket = new TeacherTicket({
-      subject: `Escalated Evaluation Ticket - ${(ticket.exam as any)?.title}`,
+      subject: `Escalated Evaluation Ticket - ${exam.title}`,
       description: `${reason}\n\nOriginal student message: ${ticket.message}`,
       student: ticket.student,
       ta: taId,
-      evaluationId: ticket.exam
+      evaluationId: evaluation._id  // Use evaluation ID instead of exam ID
     });
 
     await teacherTicket.save();
 
-    // Find teachers who are instructors of the related batch
-    const exam = await Exam.findById(ticket.exam).populate('batch');
-    const batch = (exam as any)?.batch;
-    
-    if (batch) {
-      // Notify the instructor (teacher) of this batch
-      await Notification.create({
-        recipient: batch.instructor,
-        message: `A ticket has been escalated from TA and requires your attention regarding ${(ticket.exam as any)?.title}`,
-        relatedResource: {
-          type: 'evaluation',
-          id: teacherTicket._id
-        }
-      });
-    }
+    // Notify only the specific instructor (teacher) of this batch
+    await Notification.create({
+      recipient: batch.instructor._id,
+      message: `A ticket has been escalated from TA and requires your attention regarding ${exam.title}`,
+      relatedResource: {
+        type: 'evaluation',
+        id: teacherTicket._id
+      }
+    });
 
     // Also notify the student who raised the ticket
     await Notification.create({
