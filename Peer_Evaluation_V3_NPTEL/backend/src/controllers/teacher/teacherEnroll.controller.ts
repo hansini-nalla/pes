@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { Types } from "mongoose";
 import { Batch } from "../../models/Batch.ts";
 import { User } from "../../models/User.ts";
-import Enrollment from "../../models/Enrollment.ts";
 
 export const enrollStudents = async (req: Request, res: Response) => {
   const { courseId, batchId, students } = req.body;
@@ -38,19 +37,6 @@ export const enrollStudents = async (req: Request, res: Response) => {
           user.enrolledCourses.push(courseId);
           await user.save();
         }
-      }
-
-      // Only update existing enrollment if pending
-      const existingEnrollment = await Enrollment.findOne({
-        studentId: user._id,
-        courseId,
-        batchId,
-        status: "pending",
-      });
-
-      if (existingEnrollment) {
-        existingEnrollment.status = "completed";
-        await existingEnrollment.save();
       }
 
       if (
