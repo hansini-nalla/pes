@@ -1,11 +1,16 @@
 import { Request, Response } from "express";
 import { Exam } from "../../models/Exam.ts";
 import { Batch } from "../../models/Batch.ts";
+import { UIDMap } from "../../models/UIDMap.ts";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import archiver from "archiver";
 import { Types } from "mongoose";
 import stream from "stream";
+import { customAlphabet } from "nanoid";
+
+// 8-char alphanumeric UID generator (A–Z, a–z, 0–9)
+const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", 8);
 
 export const generateQrPdfBundle = async (
   req: Request,
@@ -39,12 +44,19 @@ export const generateQrPdfBundle = async (
     archive.pipe(res);
 
     for (const student of batch.students as any[]) {
-      const studentId = (student._id as Types.ObjectId).toString();
+      const studentId = student._id as Types.ObjectId;
 
-      // 🧾 Small payload without JWT
-      const qrData = JSON.stringify({ studentId, examId });
+      // 🔍 Check if UID already exists for this (exam, student)
+      let uidEntry = await UIDMap.findOne({ examId, studentId });
 
-      // 🖨️ Generate clean QR code
+      if (!uidEntry) {
+        // ✨ Generate new UID and save mapping
+        const uid = nanoid();
+        uidEntry = await UIDMap.create({ examId, studentId, uid });
+      }
+
+      const qrData = JSON.stringify({ uid: uidEntry.uid });
+
       const qrBuffer = await QRCode.toBuffer(qrData, {
         scale: 10,
         margin: 4,
@@ -77,10 +89,7 @@ export const generateQrPdfBundle = async (
       await new Promise<void>((resolve) =>
         pdfStream.on("end", () => {
           const finalBuffer = Buffer.concat(chunks);
-          const filename = `${student.name}_${student._id}_${exam.title.replace(
-            /\s+/g,
-            "_"
-          )}.pdf`;
+          const filename = `${student.name}_${student._id}_${exam.title.replace(/\s+/g, "_")}.pdf`;
           archive.append(finalBuffer, { name: filename });
           resolve();
         })

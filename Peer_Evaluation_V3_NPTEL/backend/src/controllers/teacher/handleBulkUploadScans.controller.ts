@@ -8,14 +8,14 @@ import { Jimp } from "jimp";
 import { createRequire } from "module";
 import { Exam } from "../../models/Exam.ts";
 import { Submission } from "../../models/Submission.ts";
+import { UIDMap } from "../../models/UIDMap.ts";
 import { Types } from "mongoose";
 
 const require = createRequire(import.meta.url);
 const jsQR = require("jsqr");
 
 interface QRPayload {
-  studentId: string;
-  examId: string;
+  uid: string;
 }
 
 const convertPdfToImage = async (pdfBuffer: Buffer): Promise<string> => {
@@ -69,8 +69,8 @@ const decodeQrFromImage = async (imagePath: string): Promise<QRPayload> => {
     throw new Error("QR data is not valid JSON");
   }
 
-  if (!parsed.studentId || !parsed.examId) {
-    throw new Error("QR payload missing studentId or examId");
+  if (!parsed.uid) {
+    throw new Error("QR payload missing UID");
   }
 
   return parsed as QRPayload;
@@ -123,20 +123,25 @@ export const handleBulkUploadScans = async (
         imagePath = await convertPdfToImage(file.buffer);
         const qrData = await decodeQrFromImage(imagePath);
 
-        if (qrData.examId !== examId) {
-          throw new Error("QR exam ID mismatch");
+        const uidEntry = await UIDMap.findOne({ uid: qrData.uid });
+        if (!uidEntry) {
+          throw new Error("Invalid UID – not mapped");
+        }
+
+        if (uidEntry.examId.toString() !== examId) {
+          throw new Error("UID mismatch with target exam");
         }
 
         const trimmedPdf = await extractPdfWithoutFirstPage(file.buffer);
 
         await Submission.findOneAndUpdate(
           {
-            student: qrData.studentId,
-            exam: examId
+            student: uidEntry.studentId,
+            exam: uidEntry.examId
           },
           {
-            student: new Types.ObjectId(qrData.studentId),
-            exam: new Types.ObjectId(examId),
+            student: new Types.ObjectId(uidEntry.studentId),
+            exam: new Types.ObjectId(uidEntry.examId),
             course: exam.course,
             batch: exam.batch,
             answerPdf: trimmedPdf,
@@ -148,7 +153,7 @@ export const handleBulkUploadScans = async (
 
         results.push({
           fileName: file.originalname,
-          studentId: qrData.studentId,
+          studentId: uidEntry.studentId.toString(),
           imagePath
         });
       } catch (err) {
