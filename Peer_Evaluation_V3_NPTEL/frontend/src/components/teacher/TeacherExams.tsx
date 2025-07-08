@@ -351,6 +351,24 @@ export default function TeacherExams() {
     };
   };
 
+  // Generate Tickets for Pending Evaluations
+  const handleGenerateTickets = async (examId: string) => {
+    try {
+      const response = await axios.post(
+        `http://localhost:${PORT}/api/teacher/exams/${examId}/generate-pending`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toastAction(response.data.message || "Tickets created successfully", "success");
+    } catch (err: any) {
+      toastAction(err.response?.data?.message || "Ticket generation failed", "error");
+    }
+  };
+
   // Table: always white background, colored actions
   function renderExamTable(data: Exam[]) {
     return (
@@ -441,6 +459,14 @@ export default function TeacherExams() {
                 >
                   <FaRegFilePdf className="text-orange-600 text-lg" />
                 </button>
+                <button
+                  onClick={() => handleGenerateTickets(exam._id)}
+                  className="p-2 bg-red-100 rounded-full hover:bg-red-200 shadow"
+                  title="Generate Tickets for Pending Evaluations"
+                >
+                  <FaRegFilePdf className="text-red-600 text-lg" />
+                </button>
+
               </td>
             </tr>
           ))}

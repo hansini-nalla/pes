@@ -24,12 +24,16 @@ import {
 import { getBatchStudents } from "../../controllers/teacher/getBatchStudents.controller.ts";
 import { initiatePeerEvaluation } from "../../controllers/teacher/peerEvaluation.controller.ts";
 import { assignTaToBatch } from "../../controllers/teacher/assignTaToBatch.controller.ts";
-import { getAllStudents } from "../../controllers/teacher/getAllStudents.controller.ts";
+import {
+  getAllStudents,
+  getTaCandidates,
+} from "../../controllers/teacher/getAllStudents.controller.ts";
 import { enrollStudents } from "../../controllers/teacher/teacherEnroll.controller.ts";
 import { getBatchStudents2 } from "../../controllers/teacher/teacherEnroll.controller.ts";
 import { getBatchTA } from "../../controllers/teacher/getBatchTA.controller.ts";
 import { generateQrPdfBundle } from "../../controllers/teacher/generateExamQrPdfBundle.controller.ts";
 import { handleBulkUploadScans } from "../../controllers/teacher/handleBulkUploadScans.controller.ts";
+import { generateTicketsForPendingEvaluations } from "../../controllers/teacher/markUnevaluated.controller.ts";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -60,17 +64,26 @@ router.post(
   upload.single("answerKeyPdf"),
   uploadAnswerKey
 );
+router.post(
+  "/exams/:examId/generate-pending",
+  authMiddleware,
+  generateTicketsForPendingEvaluations
+);
 
 // Batch & TA
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
 router.post("/initiate-evaluation", authMiddleware, initiatePeerEvaluation);
 router.post("/batch/:batchId/assign-ta", authMiddleware, assignTaToBatch);
-router.delete("/batch/:batchId/remove-ta/:taId", authMiddleware, removeTAFromBatch);
+router.delete(
+  "/batch/:batchId/remove-ta/:taId",
+  authMiddleware,
+  removeTAFromBatch
+);
 router.get("/batch/:batchId/ta", authMiddleware, getBatchTA);
 router.get("/students", authMiddleware, getAllStudents);
 router.post("/enroll", authMiddleware, enrollStudents);
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents2);
-
+router.get("/ta-candidates/:courseId", authMiddleware, getTaCandidates);
 // QR Code Uploads
 router.get("/exam/:examId/generate-qrs", authMiddleware, generateQrPdfBundle);
 router.post(
