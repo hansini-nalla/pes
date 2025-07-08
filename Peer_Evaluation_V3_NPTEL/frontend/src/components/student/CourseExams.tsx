@@ -225,26 +225,45 @@ const CourseExams = ({ courseId, onBack }: Props) => {
       })}
 
       {viewingExam && (
-        <div className="fixed inset-0 z-50 backdrop-blur-md bg-white/30 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl w-[90vw] h-[90vh] p-6 flex flex-col overflow-auto relative">
-            <h3 className="text-xl font-bold text-indigo-800 mb-4">
+        <div className="fixed inset-0 z-50 backdrop-blur-sm bg-black/30 flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl h-[90vh] p-6 relative overflow-hidden flex flex-col">
+            <h3 className="text-lg font-bold text-indigo-800 mb-4">
               {viewingExam.title} – Questions
             </h3>
-            {pdfUrl ? (
-              <iframe
-                src={pdfUrl}
-                title="Question Paper PDF"
-                className="w-full h-full rounded-lg shadow-md border border-gray-300"
-              />
-            ) : (
-              <ol className="list-decimal list-inside space-y-2 text-gray-700">
-                {viewingExam.questions.map((q, idx) => (
-                  <li key={idx} className="mb-2">
-                    {q.questionText} <em className="text-gray-500">({q.maxMarks} marks)</em>
-                  </li>
-                ))}
-              </ol>
-            )}
+
+            <div className="flex-1 flex gap-4 overflow-hidden">
+              {/* PDF Viewer */}
+              {pdfUrl ? (
+                <div className="flex-1 overflow-auto border border-gray-300 rounded-lg shadow-inner">
+                  <iframe
+                    src={pdfUrl}
+                    title="Question Paper PDF"
+                    className="w-full h-full rounded-md"
+                    style={{ minHeight: "100%", height: "100%" }}
+                  />
+                </div>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-gray-500 border border-dashed border-gray-300 rounded-lg">
+                  PDF not available
+                </div>
+              )}
+
+              {/* Text Questions */}
+              <div className="w-2/5 overflow-auto pr-2 border border-gray-200 rounded-lg shadow-inner p-4 bg-gray-50">
+                <h4 className="text-sm text-gray-700 font-semibold mb-3">
+                  Text Questions
+                </h4>
+                <ol className="list-decimal list-inside text-gray-800 space-y-3 text-sm">
+                  {viewingExam.questions.map((q, idx) => (
+                    <li key={idx}>
+                      {q.questionText}{" "}
+                      <span className="text-gray-500 italic">({q.maxMarks} marks)</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+
             <button
               className="absolute top-4 right-4 text-sm text-gray-600 hover:text-red-600"
               onClick={handleCloseModal}
@@ -254,6 +273,7 @@ const CourseExams = ({ courseId, onBack }: Props) => {
           </div>
         </div>
       )}
+
     </div>
   );
 };
