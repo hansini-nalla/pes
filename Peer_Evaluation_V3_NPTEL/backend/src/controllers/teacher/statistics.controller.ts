@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import { Evaluation } from "../../models/Evaluation.ts";
 import { Exam } from "../../models/Exam.ts";
 import { Statistics } from "../../models/Statistics.ts";
@@ -12,30 +12,34 @@ export const generateEvaluationStatistics = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   const { examId } = req.params;
   const { generateTickets = false } = req.query;
 
   // 1. Auth: Only teachers allowed
   if (req.user?.role !== "teacher") {
-    return res.status(403).json({ error: "Only teachers can perform this action." });
+    res.status(403).json({ error: "Only teachers can perform this action." });
+    return;
   }
 
   if (!examId) {
-    return res.status(400).json({ error: "Missing examId" });
+    res.status(400).json({ error: "Missing examId" });
+    return;
   }
 
   try {
     const exam = await Exam.findById(examId);
     if (!exam) {
-      return res.status(404).json({ error: "Exam not found" });
+      res.status(404).json({ error: "Exam not found" });
+      return;
     }
 
     const k = exam.k;
     const allEvals = await Evaluation.find({ exam: examId, status: "completed" });
 
     if (allEvals.length === 0) {
-      return res.status(404).json({ error: "No completed evaluations found" });
+      res.status(404).json({ error: "No completed evaluations found" });
+      return;
     }
 
     // Group evaluations by evaluatee
@@ -56,7 +60,6 @@ export const generateEvaluationStatistics = async (
     const statDocs: any[] = [];
 
     if (k <= 3) {
-      // Class SD logic
       const studentAverages = Array.from(studentMap.values())
         .filter(arr => arr.length > 0)
         .map(marksArr => average(marksArr));
@@ -94,9 +97,9 @@ export const generateEvaluationStatistics = async (
         }
       }
     } else {
-      // Per-student SD logic
+      // k > 3: Per-student SD logic
       for (const [studentId, marksArr] of studentMap.entries()) {
-        if (marksArr.length < k) continue; // skip incomplete evaluations
+        if (marksArr.length < k) continue;
 
         const avg = average(marksArr);
         const sd = standardDeviation(marksArr, avg);
@@ -157,11 +160,12 @@ export const generateEvaluationStatistics = async (
           status: "open",
           escalatedToTeacher: false,
         });
+
         await ticket.save();
       }
     }
 
-    return res.status(201).json({
+    res.status(201).json({
       message: "Statistics generated",
       totalStudents: studentMap.size,
       flagged: flaggedCount,

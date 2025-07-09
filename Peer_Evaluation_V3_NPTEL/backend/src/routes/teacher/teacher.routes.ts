@@ -34,6 +34,7 @@ import { getBatchTA } from "../../controllers/teacher/getBatchTA.controller.ts";
 import { generateQrPdfBundle } from "../../controllers/teacher/generateExamQrPdfBundle.controller.ts";
 import { handleBulkUploadScans } from "../../controllers/teacher/handleBulkUploadScans.controller.ts";
 import { generateTicketsForPendingEvaluations } from "../../controllers/teacher/markUnevaluated.controller.ts";
+import { generateEvaluationStatistics } from "../../controllers/teacher/statistics.controller.ts";
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -64,11 +65,16 @@ router.post(
   upload.single("answerKeyPdf"),
   uploadAnswerKey
 );
+
+
+// Flagging Evaluations
 router.post(
   "/exams/:examId/generate-pending",
   authMiddleware,
   generateTicketsForPendingEvaluations
 );
+
+router.post("/exams/:examId/send-flagged-evaluations", authMiddleware, generateEvaluationStatistics);
 
 // Batch & TA
 router.get("/batch/:batchId/students", authMiddleware, getBatchStudents);
