@@ -59,7 +59,7 @@ export const assignTaToBatch = async (
     batch.ta.push(student._id as Types.ObjectId);
     await batch.save();
     const batchID = batch._id as Types.ObjectId;
-    sendTAAssignmentEmails(batchID.toString());
+    sendTAAssignmentEmails(studentId.toString(),batchID.toString());
 
     res.json({
       message: "Student promoted to TA and assigned to batch",

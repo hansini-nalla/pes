@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { Evaluation } from "../../models/Evaluation.ts";
 import { Ticket } from "../../models/Ticket.ts";
 import { Batch } from "../../models/Batch.ts";
-import { User } from "../../models/User.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
 export const generateTicketsForPendingEvaluations = async (
@@ -14,7 +13,7 @@ export const generateTicketsForPendingEvaluations = async (
 
   if (!examId) {
     res.status(400).json({ error: "Missing examId" });
-    return; 
+    return;
   }
 
   try {
@@ -23,10 +22,37 @@ export const generateTicketsForPendingEvaluations = async (
       status: "pending",
     });
 
+    if (pendingEvaluations.length === 0) {
+      res.status(200).json({ message: "No pending evaluations found." });
+      return;
+    }
+
+    const studentIds = Array.from(
+      new Set(pendingEvaluations.map((e) => e.evaluatee.toString()))
+    );
+    const batches = await Batch.find({ students: { $in: studentIds } }).lean();
+
+    const studentToBatchTAInfo: Record<
+      string,
+      { tas: string[]; index: number }
+    > = {};
+
+    for (const batch of batches) {
+      const tas = batch.ta.map((taId) => taId.toString());
+      for (const studentId of batch.students.map((id) => id.toString())) {
+        if (tas.length > 0) {
+          studentToBatchTAInfo[studentId] = {
+            tas,
+            index: Math.floor(Math.random() * tas.length),
+          };
+        }
+      }
+    }
+
     const createdTickets = [];
 
     for (const evalDoc of pendingEvaluations) {
-      const existingTicket = await Ticket.findOne({
+      const existingTicket = await Ticket.exists({
         student: evalDoc.evaluatee,
         evaluator: evalDoc.evaluator,
         exam: evalDoc.exam,
@@ -34,21 +60,19 @@ export const generateTicketsForPendingEvaluations = async (
 
       if (existingTicket) continue;
 
-      let taId = null;
-      const student = await User.findById(evalDoc.evaluatee);
-      if (student) {
-        const batches = await Batch.find({ students: student._id });
-        if (batches.length > 0 && batches[0].ta.length > 0) {
-          taId = batches[0].ta[0];
-        }
+      const studentId = evalDoc.evaluatee.toString();
+      const taInfo = studentToBatchTAInfo[studentId];
+
+      let taId: string | null = null;
+      if (taInfo && taInfo.tas.length > 0) {
+        taId = taInfo.tas[taInfo.index];
+        taInfo.index = (taInfo.index + 1) % taInfo.tas.length;
       }
 
-      const zeroMarks = Array(evalDoc.marks.length).fill(0);
-      evalDoc.marks = zeroMarks;
+      evalDoc.marks = new Array(evalDoc.marks.length).fill(0);
       evalDoc.flagged = true;
       await evalDoc.save();
 
-      // Creating tickets
       const ticket = new Ticket({
         student: evalDoc.evaluatee,
         evaluator: evalDoc.evaluator,
@@ -65,7 +89,7 @@ export const generateTicketsForPendingEvaluations = async (
 
     if (createdTickets.length === 0) {
       res.status(200).json({
-        message: "No pending evaluations found or all already ticketed.",
+        message: "All pending evaluations already have tickets.",
       });
       return;
     }
@@ -74,7 +98,6 @@ export const generateTicketsForPendingEvaluations = async (
       message: `${createdTickets.length} tickets created for pending evaluations.`,
       tickets: createdTickets.length,
     });
-    return;
   } catch (error) {
     console.error("Error generating tickets:", error);
     next(error);
