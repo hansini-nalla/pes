@@ -354,6 +354,7 @@ export default function TeacherExams() {
   // Generate Tickets for Pending Evaluations
   const handleGenerateTickets = async (examId: string) => {
     try {
+      // First: generate tickets for pending evaluations
       const response = await axios.post(
         `http://localhost:${PORT}/api/teacher/exams/${examId}/generate-pending`,
         {},
@@ -364,8 +365,42 @@ export default function TeacherExams() {
         }
       );
       toastAction(response.data.message || "Tickets created successfully", "success");
+
+      // Second: send flagged evaluations for this exam
+      try {
+        const flaggedRes = await axios.post(
+          `http://localhost:${PORT}/api/teacher/exams/${examId}/send-flagged-evaluations?generateTickets=true`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        toastAction(flaggedRes.data.message || "Flagged evaluations sent successfully", "success");
+      } catch (flaggedErr: any) {
+        let msg = flaggedErr.response?.data?.message || "Sending flagged evaluations failed";
+        if (flaggedErr.response?.status === 404) {
+          msg =
+            flaggedErr.response?.data?.error === "Exam not found"
+              ? "Exam not found."
+              : flaggedErr.response?.data?.error === "No completed evaluations found"
+              ? "No completed evaluations found for this exam."
+              : msg;
+        }
+        toastAction(msg, "error");
+      }
     } catch (err: any) {
-      toastAction(err.response?.data?.message || "Ticket generation failed", "error");
+      let msg = err.response?.data?.message || "Ticket generation failed";
+      if (err.response?.status === 404) {
+        msg =
+          err.response?.data?.error === "Exam not found"
+            ? "Exam not found."
+            : err.response?.data?.error === "No completed evaluations found"
+            ? "No completed evaluations found for this exam."
+            : msg;
+      }
+      toastAction(msg, "error");
     }
   };
 

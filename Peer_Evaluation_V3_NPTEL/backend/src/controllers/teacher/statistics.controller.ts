@@ -16,7 +16,6 @@ export const generateEvaluationStatistics = async (
   const { examId } = req.params;
   const { generateTickets = false } = req.query;
 
-  // 1. Auth: Only teachers allowed
   if (req.user?.role !== "teacher") {
     res.status(403).json({ error: "Only teachers can perform this action." });
     return;
@@ -42,7 +41,6 @@ export const generateEvaluationStatistics = async (
       return;
     }
 
-    // Group evaluations by evaluatee
     const studentMap = new Map<string, number[]>(); // studentId -> [totalMarks]
 
     for (const evaluation of allEvals) {
@@ -50,7 +48,6 @@ export const generateEvaluationStatistics = async (
       if (!studentMap.has(studentId)) {
         studentMap.set(studentId, []);
       }
-
       const total = evaluation.marks.reduce((a, b) => a + b, 0);
       studentMap.get(studentId)?.push(total);
     }
@@ -58,6 +55,7 @@ export const generateEvaluationStatistics = async (
     let flaggedCount = 0;
     const flaggedStudentIds: string[] = [];
     const statDocs: any[] = [];
+    const outlierEvaluatorsMap: Record<string, Types.ObjectId | null> = {};
 
     if (k <= 3) {
       const studentAverages = Array.from(studentMap.values())
@@ -94,10 +92,18 @@ export const generateEvaluationStatistics = async (
         if (isFlagged) {
           flaggedCount++;
           flaggedStudentIds.push(studentId);
+
+          const studentEvals = allEvals.filter(e => e.evaluatee.toString() === studentId);
+          const outlier = studentEvals.reduce((worst: (typeof studentEvals)[0] | null, curr) => {
+            const currTotal = curr.marks.reduce((a, b) => a + b, 0);
+            const currDev = Math.abs(currTotal - avg);
+            const worstDev = worst ? Math.abs(worst.marks.reduce((a, b) => a + b, 0) - avg) : -1;
+            return currDev > worstDev ? curr : worst;
+          }, null as (typeof studentEvals)[0] | null);
+          outlierEvaluatorsMap[studentId] = outlier?.evaluator ?? null;
         }
       }
     } else {
-      // k > 3: Per-student SD logic
       for (const [studentId, marksArr] of studentMap.entries()) {
         if (marksArr.length < k) continue;
 
@@ -125,6 +131,15 @@ export const generateEvaluationStatistics = async (
         if (isFlagged) {
           flaggedCount++;
           flaggedStudentIds.push(studentId);
+
+          const studentEvals = allEvals.filter(e => e.evaluatee.toString() === studentId);
+          const outlier = studentEvals.reduce((worst: (typeof studentEvals)[0] | null, curr) => {
+            const currTotal = curr.marks.reduce((a, b) => a + b, 0);
+            const currDev = Math.abs(currTotal - avg);
+            const worstDev = worst ? Math.abs(worst.marks.reduce((a, b) => a + b, 0) - avg) : -1;
+            return currDev > worstDev ? curr : worst;
+          }, null as (typeof studentEvals)[0] | null);
+          outlierEvaluatorsMap[studentId] = outlier?.evaluator ?? null;
         }
       }
     }
@@ -133,7 +148,6 @@ export const generateEvaluationStatistics = async (
       await Statistics.bulkWrite(statDocs);
     }
 
-    // Optional: Auto-create tickets for flagged students
     if (generateTickets === "true") {
       for (const studentId of flaggedStudentIds) {
         const existingTicket = await Ticket.findOne({
@@ -153,7 +167,7 @@ export const generateEvaluationStatistics = async (
 
         const ticket = new Ticket({
           student: studentId,
-          evaluator: null,
+          evaluator: outlierEvaluatorsMap[studentId] ?? undefined,
           ta: taId,
           exam: examId,
           message: "Flagged via statistics",
@@ -166,7 +180,7 @@ export const generateEvaluationStatistics = async (
     }
 
     res.status(201).json({
-      message: "Statistics generated",
+      message: "Evaluations Flagged Successfully",
       totalStudents: studentMap.size,
       flagged: flaggedCount,
       flaggedStudents: flaggedStudentIds,
