@@ -10,6 +10,7 @@ import { Exam } from "../../models/Exam.ts";
 import { Submission } from "../../models/Submission.ts";
 import { UIDMap } from "../../models/UIDMap.ts";
 import { Types } from "mongoose";
+import { runWithConcurrency } from "../../utils/runWithConcurrency.ts";
 
 const require = createRequire(import.meta.url);
 const jsQR = require("jsqr");
@@ -89,7 +90,7 @@ const extractPdfWithoutFirstPage = async (pdfBuffer: Buffer): Promise<Buffer> =>
   pages.forEach(page => newDoc.addPage(page));
 
   const uint8Array = await newDoc.save();
-  return Buffer.from(uint8Array); // 👈 Fix: convert to proper Node.js Buffer
+  return Buffer.from(uint8Array);
 };
 
 export const handleBulkUploadScans = async (
@@ -106,14 +107,7 @@ export const handleBulkUploadScans = async (
       return;
     }
 
-    const results: {
-      fileName: string;
-      studentId?: string;
-      imagePath?: string;
-      error?: string;
-    }[] = [];
-
-    for (const file of files) {
+    const tasks = files.map(file => async () => {
       let imagePath = "";
       try {
         if (!file.buffer || file.buffer.length < 100) {
@@ -151,20 +145,22 @@ export const handleBulkUploadScans = async (
           { upsert: true }
         );
 
-        results.push({
+        return {
           fileName: file.originalname,
           studentId: uidEntry.studentId.toString(),
           imagePath
-        });
+        };
       } catch (err) {
-        results.push({
+        return {
           fileName: file.originalname,
           error: err instanceof Error ? err.message : "Unknown error"
-        });
+        };
       } finally {
         if (imagePath && fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
       }
-    }
+    });
+
+    const results = await runWithConcurrency(3, tasks); // 👈 concurrency set to 3
 
     res.status(200).json({
       message: "Step 1–5 complete. Submissions saved to DB.",

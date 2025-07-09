@@ -13,8 +13,8 @@ export interface ITicket extends Document {
 
 const ticketSchema = new Schema<ITicket>({
   student: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  evaluator: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  ta: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  evaluator: { type: Schema.Types.ObjectId, ref: "User", required: false },
+  ta: { type: Schema.Types.ObjectId, ref: "User", required: false },
   exam: { type: Schema.Types.ObjectId, ref: "Exam", required: true },
   message: { type: String, required: true },
   status: { type: String, enum: ["open", "closed"], default: "open" },
