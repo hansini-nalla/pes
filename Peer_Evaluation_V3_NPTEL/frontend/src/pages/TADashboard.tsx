@@ -12,8 +12,10 @@ import {
   FiUsers, // For enrollments icon
   FiCheck, // For accept icon
   FiX, // For decline icon
+  FiClipboard, // For unchecked evals icon
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from "framer-motion"; // For advanced animations
+import UncheckedEvaluations from '../components/TA/UncheckedEvaluations';
 
 // Update TAProfile interface
 interface TAProfile {
@@ -495,10 +497,11 @@ const handleUpdateMarks = async (ticketId: string) => {
   };
 
   const renderContent = () => {
-    const pages: Record<string, JSX.Element> = {
-      home: (
-        <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
-          <h1 className="text-4xl font-bold text-center mb-6" style={{ color: currentPalette['text-dark'] }}>
+      const pages: Record<string, JSX.Element> = {
+        'unchecked-evals': <UncheckedEvaluations currentPalette={currentPalette} commonCardClasses={commonCardClasses} getCardStyles={getCardStyles} />,
+        home: (
+          <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
+            <h1 className="text-4xl font-bold text-center mb-6" style={{ color: currentPalette['text-dark'] }}>
             Welcome to TA Dashboard
           </h1>
 
@@ -908,6 +911,7 @@ const handleUpdateMarks = async (ticketId: string) => {
               <ul className="space-y-3 w-full">
                   {[
                       { key: 'home', icon: FiHome, label: 'Dashboard' },
+                      { key: 'unchecked-evals', icon: FiClipboard, label: 'Unchecked Evals' },
                       { key: 'tickets', icon: FiShield, label: 'Student Tickets' },
                       { key: 'enrollments', icon: FiUsers, label: 'Manage Enrollments' }
                   ].map(({ key, icon: Icon, label }) => (
