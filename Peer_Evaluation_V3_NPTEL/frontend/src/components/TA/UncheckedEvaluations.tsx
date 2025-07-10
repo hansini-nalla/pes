@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiDownload, FiEdit, FiSave, FiX } from 'react-icons/fi';
+import { FiDownload, FiEdit, FiSave, FiX, FiFileText } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface UncheckedTicket {
@@ -19,6 +19,8 @@ interface UncheckedTicket {
     _id: string;
     title: string;
     numQuestions: number;
+    answerKeyPdf?: Buffer;
+    answerKeyMimeType?: string;
     course: {
       name: string;
       code: string;
@@ -113,6 +115,40 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
     } catch (err) {
       console.error('Error downloading submission:', err);
       setError('Failed to download submission. Please try again.');
+    }
+  };
+
+  const handleDownloadAnswerKey = async (ticket: UncheckedTicket) => {
+    try {
+      const response = await fetch(`http://localhost:${PORT}/api/ta/unchecked-answer-key/${ticket._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Answer key not found for this exam.');
+        } else {
+          throw new Error('Failed to download answer key');
+        }
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `answer_key_${ticket.exam.title}.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Error downloading answer key:', err);
+      setError('Failed to download answer key. Please try again.');
     }
   };
 
@@ -367,6 +403,13 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
                       style={{ color: currentPalette['accent-lilac'] }}
                     >
                       <FiDownload /> Download Submission
+                    </button>
+                    <button
+                      onClick={() => handleDownloadAnswerKey(ticket)}
+                      className="flex items-center gap-2 hover:underline"
+                      style={{ color: currentPalette['accent-pink'] }}
+                    >
+                      <FiFileText /> Download Answer Key
                     </button>
                     <button
                       onClick={() => handleStartEvaluation(ticket)}

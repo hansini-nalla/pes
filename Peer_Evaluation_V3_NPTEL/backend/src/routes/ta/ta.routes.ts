@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getStudentTickets,
   getSubmissionPdf,
+  getAnswerKeyPdf, // Add this import
   getTAStats,
   getTAProfile,
   getPendingEnrollments,
@@ -13,6 +14,7 @@ import {
 import {
   getUncheckedEvaluations,
   getUncheckedSubmissionPdf,
+  getUncheckedAnswerKeyPdf, // Add this import
   completeUncheckedEvaluation,
   getUncheckedEvaluationStats
 } from '../../controllers/ta/uncheckedEvaluations.controller.ts';
@@ -49,6 +51,9 @@ router.get('/student-tickets', asyncHandler(getStudentTickets));
 // Get submission PDF for a ticket
 router.get('/submission/:ticketId', asyncHandler(getSubmissionPdf));
 
+// Get answer key PDF for a ticket
+router.get('/answer-key/:ticketId', asyncHandler(getAnswerKeyPdf));
+
 // Resolve a student ticket
 router.post('/resolve-ticket/:ticketId', asyncHandler(resolveTicket));
 
@@ -61,6 +66,9 @@ router.get('/unchecked-evaluations', asyncHandler(getUncheckedEvaluations));
 
 // Get submission PDF for unchecked evaluation ticket
 router.get('/unchecked-submission/:ticketId', asyncHandler(getUncheckedSubmissionPdf));
+
+// Get answer key PDF for unchecked evaluation ticket
+router.get('/unchecked-answer-key/:ticketId', asyncHandler(getUncheckedAnswerKeyPdf));
 
 // Complete/grade an unchecked evaluation (resolve ticket)
 router.post('/complete-evaluation/:ticketId', asyncHandler(completeUncheckedEvaluation));

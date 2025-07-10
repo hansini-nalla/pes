@@ -194,7 +194,6 @@ export const handleEnrollmentDecision = async (
     next(error);
   }
 };
-// ...existing code...
 
 /**
  * Get all tickets for TA's assigned batches and courses (excluding unchecked evaluation tickets)
@@ -233,7 +232,7 @@ export const getStudentTickets = async (
     .populate('evaluator', 'name email')
     .populate({
       path: 'exam',
-      select: 'title startTime endTime numQuestions',
+      select: 'title startTime endTime numQuestions answerKeyPdf answerKeyMimeType',
       populate: {
         path: 'course',
         select: 'name code'
@@ -552,6 +551,70 @@ export const getTAStats = async (
     });
   } catch (error) {
     console.error('Error fetching TA stats:', error);
+    next(error);
+  }
+};
+
+// Add this function to the existing ta.controller.ts file
+
+/**
+ * Get the answer key PDF for an exam (for student tickets)
+ */
+export const getAnswerKeyPdf = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { ticketId } = req.params;
+    const taId = (req as any).user.id;
+
+    // Find the ticket first to get exam information
+    const ticket = await Ticket.findById(ticketId)
+      .populate('exam');
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // Verify TA is authorized to access this ticket
+    if (ticket.ta.toString() !== taId) {
+      res.status(403).json({ error: 'Not authorized to access this answer key' });
+      return;
+    }
+
+    // Verify the ticket is from TA's assigned batches
+    const batches = await Batch.find({ ta: taId });
+    const batchIds = batches.map(batch => batch._id);
+    const exam = await Exam.findOne({
+      _id: ticket.exam,
+      batch: { $in: batchIds }
+    });
+
+    if (!exam) {
+      res.status(403).json({ error: 'Not authorized to access this answer key' });
+      return;
+    }
+
+    // Validate answer key PDF data exists
+    if (!exam.answerKeyPdf || !exam.answerKeyMimeType) {
+      res.status(404).json({ error: 'Answer key PDF not found for this exam' });
+      return;
+    }
+
+    // Create a safe filename
+    const examTitle = exam.title || 'exam';
+    const safeFilename = `answer_key_${examTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+
+    // Set appropriate headers for PDF download
+    res.setHeader('Content-Type', exam.answerKeyMimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+
+    // Send the PDF data
+    res.send(exam.answerKeyPdf);
+  } catch (error) {
+    console.error('Error fetching answer key PDF:', error);
     next(error);
   }
 };
