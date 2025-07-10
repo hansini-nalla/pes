@@ -318,6 +318,7 @@ export const completeUncheckedEvaluation = async (
     }
     evaluation.status = 'completed';
     evaluation.flagged = false; // Remove the flag since it's now completed
+    evaluation.evaluator = taId; // Update evaluator to TA since TA completed it
     await evaluation.save();
 
     // Close the ticket
