@@ -241,13 +241,17 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       // Don't show error to avoid cluttering the UI if this is a secondary feature
     }
   };
-
+  // Add a function to clear error messages when switching pages
+  useEffect(() => {
+    setError(null);
+    setSuccessMessage(null);
+  }, [activePage]);
   // Update the useEffect to call our new functions
   useEffect(() => {
     fetchTAProfile();
     fetchStudentTickets();
     fetchPendingEnrollments();
-  }, [activePage]);
+  }, []);
 
   // // Helper function to find evaluation for a ticket
   // const findEvaluationForTicket = async (ticket: StudentTicket) => {

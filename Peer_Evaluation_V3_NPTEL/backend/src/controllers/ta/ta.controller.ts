@@ -194,9 +194,10 @@ export const handleEnrollmentDecision = async (
     next(error);
   }
 };
+// ...existing code...
 
 /**
- * Get all tickets for TA's assigned batches and courses
+ * Get all tickets for TA's assigned batches and courses (excluding unchecked evaluation tickets)
  */
 export const getStudentTickets = async (
   req: Request,
@@ -220,11 +221,13 @@ export const getStudentTickets = async (
     const examIds = exams.map(exam => exam._id);
     
     // Find tickets for these exams where TA is assigned and status is open
+    // EXCLUDE tickets with message "unchecked" as they are handled separately
     const tickets = await Ticket.find({
       ta: taId,
       exam: { $in: examIds },
       status: 'open',
-      escalatedToTeacher: false
+      escalatedToTeacher: false,
+      message: { $ne: "unchecked" } // Exclude unchecked evaluation tickets
     })
     .populate('student', 'name email')
     .populate('evaluator', 'name email')
