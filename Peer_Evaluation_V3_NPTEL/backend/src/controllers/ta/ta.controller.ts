@@ -138,8 +138,11 @@ export const handleEnrollmentDecision = async (
       return;
     }
     
-    // Find the enrollment
-    const enrollment = await Enrollment.findById(enrollmentId);
+    // Find the enrollment and populate the course and batch information
+    const enrollment = await Enrollment.findById(enrollmentId)
+      .populate('courseId', 'name code')
+      .populate('batchId', 'name');
+      
     if (!enrollment) {
       res.status(404).json({ error: 'Enrollment request not found' });
       return;
@@ -159,29 +162,29 @@ export const handleEnrollmentDecision = async (
     }
     await enrollment.save();
     
+    // Get course name for notifications
+    const courseName = (enrollment.courseId as any)?.name || 'the course';
+    
     // If approved, add student to the batch's students array
     if (decision === 'approve') {
-      batch.students.push(enrollment.studentId);
-      await batch.save();
+      // Check if student is already in the batch to avoid duplicates
+      if (!batch.students.includes(enrollment.studentId)) {
+        batch.students.push(enrollment.studentId);
+        await batch.save();
+      }
       
       // Notify the student that their enrollment was approved
+      // Remove relatedResource since 'course' is not in the enum
       await Notification.create({
         recipient: enrollment.studentId,
-        message: `Your enrollment for ${(enrollment.courseId as any).name || 'the course'} has been approved.`,
-        relatedResource: {
-          type: 'course',
-          id: enrollment.courseId
-        }
+        message: `Your enrollment for ${courseName} has been approved.`
       });
     } else {
       // Notify the student that their enrollment was rejected
+      // Remove relatedResource since 'course' is not in the enum
       await Notification.create({
         recipient: enrollment.studentId,
-        message: `Your enrollment for ${(enrollment.courseId as any).name || 'the course'} has been declined.`,
-        relatedResource: {
-          type: 'course',
-          id: enrollment.courseId
-        }
+        message: `Your enrollment for ${courseName} has been declined.`
       });
     }
     
@@ -191,7 +194,7 @@ export const handleEnrollmentDecision = async (
     });
   } catch (error) {
     console.error('Error handling enrollment decision:', error);
-    next(error);
+    res.status(500).json({ error: 'Internal server error while processing enrollment decision' });
   }
 };
 
