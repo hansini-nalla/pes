@@ -1,4 +1,4 @@
-import React, { useEffect, useState, type JSX } from "react";
+import React, { useEffect, useState, useCallback, useMemo, type JSX } from "react";
 import {
   FiMenu,
   FiLogOut,
@@ -159,8 +159,11 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
   >([]);
   const [taProfile, setTaProfile] = useState<TAProfile | null>(null);
 
-  const token = localStorage.getItem("token");
-  const currentPalette = getColors(darkMode); // Get current palette based on dark mode state
+  // Memoize token to prevent constant re-creation
+  const token = useMemo(() => localStorage.getItem("token"), []);
+  
+  // Memoize current palette to prevent unnecessary recalculations
+  const currentPalette = useMemo(() => getColors(darkMode), [darkMode]);
 
   // Effect to apply/remove dark mode class from the document html element
   useEffect(() => {
@@ -171,12 +174,39 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     }
   }, [darkMode]);
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = useCallback(() => {
     setDarkMode((prevMode) => !prevMode);
-  };
+  }, []);
+
+  // Memoize common styles to prevent recreation on every render
+  const commonCardClasses = useMemo(() => `
+    rounded-xl p-6 space-y-4 border transition-all duration-300
+    hover:shadow-xl transform hover:translate-y-[-4px]
+  `, []);
+
+  const getCardStyles = useCallback(() => ({
+    backgroundColor: currentPalette["bg-secondary"],
+    borderColor: currentPalette["border-soft"],
+    boxShadow: `0 8px 20px ${currentPalette["shadow-medium"]}`,
+  }), [currentPalette]);
+
+  const commonButtonClasses = useMemo(() => `
+    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
+    focus:outline-none focus:ring-2 focus:ring-offset-2
+  `, []);
+
+  const getButtonStyles = useCallback((
+    colorKey: keyof Palette,
+    textColorKey: keyof Palette = "text-dark"
+  ) => ({
+    backgroundColor: currentPalette[colorKey],
+    color: currentPalette[textColorKey],
+    boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
+    "--tw-ring-color": currentPalette[colorKey] + "50",
+  }), [currentPalette]);
 
   // Replace fetchFlaggedEvaluations with fetchStudentTickets
-  const fetchStudentTickets = async () => {
+  const fetchStudentTickets = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -204,10 +234,10 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   // Add new function to fetch TA profile
-  const fetchTAProfile = async () => {
+  const fetchTAProfile = useCallback(async () => {
     try {
       const response = await fetch(`http://localhost:${PORT}/api/ta/profile`, {
         method: "GET",
@@ -227,10 +257,10 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       console.error("Error fetching TA profile:", err);
       setError("Failed to load TA profile. Please try again.");
     }
-  };
+  }, [token]);
 
   // Add new function to fetch pending enrollments
-  const fetchPendingEnrollments = async () => {
+  const fetchPendingEnrollments = useCallback(async () => {
     try {
       const response = await fetch(
         `http://localhost:${PORT}/api/ta/pending-enrollments`,
@@ -253,40 +283,22 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       console.error("Error fetching pending enrollments:", err);
       // Don't show error to avoid cluttering the UI if this is a secondary feature
     }
-  };
+  }, [token]);
+
   // Add a function to clear error messages when switching pages
   useEffect(() => {
     setError(null);
     setSuccessMessage(null);
   }, [activePage]);
+
   // Update the useEffect to call our new functions
   useEffect(() => {
     fetchTAProfile();
     fetchStudentTickets();
     fetchPendingEnrollments();
-  }, []);
+  }, [fetchTAProfile, fetchStudentTickets, fetchPendingEnrollments]);
 
-  // // Helper function to find evaluation for a ticket
-  // const findEvaluationForTicket = async (ticket: StudentTicket) => {
-  //   try {
-  //     const response = await fetch(`http://localhost:${PORT}/api/ta/evaluation/${ticket.exam._id}/${ticket.evaluator._id}/${ticket.student._id}`, {
-  //       headers: {
-  //         'Authorization': `Bearer ${token}`
-  //       }
-  //     });
-
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       return data.evaluation;
-  //     }
-  //     return null;
-  //   } catch (err) {
-  //     console.error('Error fetching evaluation:', err);
-  //     return null;
-  //   }
-  // };
-
-  const handleDownloadTranscript = async (ticket: StudentTicket) => {
+  const handleDownloadTranscript = useCallback(async (ticket: StudentTicket) => {
     try {
       // Use the ticket ID directly instead of finding evaluation first
       const response = await fetch(
@@ -317,9 +329,9 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       console.error("Error downloading transcript:", err);
       setError("Failed to download submission. Please try again.");
     }
-  };
+  }, [token]);
 
-  const handleDownloadAnswerKey = async (ticket: StudentTicket) => {
+  const handleDownloadAnswerKey = useCallback(async (ticket: StudentTicket) => {
     try {
       const response = await fetch(
         `http://localhost:${PORT}/api/ta/answer-key/${ticket._id}`,
@@ -354,9 +366,9 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       console.error("Error downloading answer key:", err);
       setError("Failed to download answer key. Please try again.");
     }
-  };
+  }, [token]);
 
-  const handleUpdateMarks = async (ticketId: string) => {
+  const handleUpdateMarks = useCallback(async (ticketId: string) => {
     try {
       const ticket = studentTickets.find((t) => t._id === ticketId);
       if (!ticket) return;
@@ -376,14 +388,18 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       console.error("Error preparing marks update:", err);
       setError("Failed to prepare marks update. Please try again.");
     }
-  };
-  const handleMarkChange = (index: number, value: string) => {
-    const updatedMarks = [...newMarks];
-    updatedMarks[index] = Number(value);
-    setNewMarks(updatedMarks);
-  };
+  }, [studentTickets]);
 
-  const confirmUpdateMarks = async () => {
+  // Optimize the handleMarkChange function
+  const handleMarkChange = useCallback((index: number, value: string) => {
+    setNewMarks(prev => {
+      const updatedMarks = [...prev];
+      updatedMarks[index] = Number(value);
+      return updatedMarks;
+    });
+  }, []);
+
+  const confirmUpdateMarks = useCallback(async () => {
     if (!updateMarksDialog.id) return;
 
     try {
@@ -430,13 +446,18 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       setUpdateMarksDialog({ show: false, id: null });
       setNewMarks([]);
     }
-  };
+  }, [updateMarksDialog.id, newMarks, token, fetchStudentTickets]);
 
-  const handleSendToTeacher = (ticketId: string) => {
+  const handleSendToTeacher = useCallback((ticketId: string) => {
     setCommentDialog({ show: true, id: ticketId });
-  };
+  }, []);
 
-  const confirmSendToTeacher = async () => {
+  // Optimize the comment change handler
+  const handleCommentChange = useCallback((value: string) => {
+    setComment(value);
+  }, []);
+
+  const confirmSendToTeacher = useCallback(async () => {
     if (!commentDialog.id) return;
 
     try {
@@ -470,10 +491,10 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       setCommentDialog({ show: false, id: null });
       setComment("");
     }
-  };
+  }, [commentDialog.id, comment, token, fetchStudentTickets]);
 
   // Add function to handle enrollment decisions
-  const handleEnrollmentDecision = async (
+  const handleEnrollmentDecision = useCallback(async (
     enrollmentId: string,
     decision: "approve" | "reject"
   ) => {
@@ -512,35 +533,10 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, fetchPendingEnrollments]);
 
-  // Common Tailwind classes for cards and buttons based on the new palette
-  const commonCardClasses = `
-    rounded-xl p-6 space-y-4 border transition-all duration-300
-    hover:shadow-xl transform hover:translate-y-[-4px]
-  `;
-  const getCardStyles = () => ({
-    backgroundColor: currentPalette["bg-secondary"],
-    borderColor: currentPalette["border-soft"],
-    boxShadow: `0 8px 20px ${currentPalette["shadow-medium"]}`,
-  });
-
-  const commonButtonClasses = `
-    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
-    focus:outline-none focus:ring-2 focus:ring-offset-2
-  `;
-  const getButtonStyles = (
-    colorKey: keyof Palette,
-    textColorKey: keyof Palette = "text-dark"
-  ) => ({
-    backgroundColor: currentPalette[colorKey],
-    color: currentPalette[textColorKey],
-    boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
-    // @ts-ignore
-    "--tw-ring-color": currentPalette[colorKey] + "50", // For focus ring
-  });
-
-  const DialogBox = ({
+  // Memoize the DialogBox component
+  const DialogBox = useMemo(() => ({
     show,
     message,
     children,
@@ -569,7 +565,6 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
           }}
         >
           <div className="mb-2">
-            {/* The SVG color is static, so it will not change with dark mode */}
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
               <circle cx="28" cy="28" r="28" fill="#6ddf99" />
               <path
@@ -591,7 +586,9 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         </motion.div>
       </motion.div>
     );
-  };
+  }, [currentPalette]);
+
+// ...existing code from the first part...
 
   const renderContent = () => {
     const pages: Record<string, JSX.Element> = {
@@ -730,7 +727,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
           )}
 
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-            {/* Student Tickets Card (Renamed from Flagged Evaluations) */}
+            {/* Student Tickets Card */}
             <div className={`${commonCardClasses}`} style={getCardStyles()}>
               <h2
                 className="text-2xl font-bold mb-2"
@@ -916,7 +913,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         </div>
       ),
 
-      // Add a new page for enrollments
+      // Enrollments page
       enrollments: (
         <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
           <h2
@@ -1060,7 +1057,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         </div>
       ),
 
-      // Replace flagged page with tickets page
+      // Student Tickets page
       tickets: (
         <div className="flex flex-col items-center justify-start w-full h-full pt-10 pb-4">
           <h2
@@ -1282,12 +1279,12 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
     return (
       <AnimatePresence mode="wait">
         <motion.div
-          key={activePage} // Key is crucial for AnimatePresence to detect changes
+          key={activePage}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
-          className="w-full" // Ensure it takes full width within the container
+          className="w-full"
         >
           {pages[activePage]}
         </motion.div>
@@ -1300,7 +1297,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
       className="flex h-screen overflow-hidden relative"
       style={{ background: currentPalette["bg-primary"] }}
     >
-      {/* Subtle background pattern for visual interest, blending with white */}
+      {/* Subtle background pattern */}
       <div
         className="absolute inset-0 z-0 opacity-[0.03]"
         style={{
@@ -1409,7 +1406,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         </div>
         <motion.button
           onClick={() => setLogoutDialog(true)}
-          className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto" // Added mt-auto to push to bottom
+          className="flex items-center justify-center gap-2 hover:opacity-80 hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 mt-auto"
           style={{ color: currentPalette["text-sidebar-dark"] }}
           whileHover={{ scale: 1.03, x: 5 }}
           whileTap={{ scale: 0.98 }}
@@ -1428,8 +1425,8 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
         <div
           className="rounded-xl shadow-xl w-full h-auto mt-8 mb-8 p-6 flex items-start justify-center overflow-auto max-w-5xl mx-auto transform transition-all duration-300"
           style={{
-            minHeight: "calc(100vh - 64px)", // Adjusted minHeight based on p-4
-            backgroundColor: currentPalette["bg-secondary"], // Changed to bg-secondary for card
+            minHeight: "calc(100vh - 64px)",
+            backgroundColor: currentPalette["bg-secondary"],
             boxShadow: `0 10px 40px ${currentPalette["shadow-medium"]}`,
           }}
         >
@@ -1500,7 +1497,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
           >
             <textarea
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => handleCommentChange(e.target.value)}
               placeholder="Explain why you're escalating this ticket..."
               className="w-full border rounded-lg p-2 mb-4"
               style={{
@@ -1616,7 +1613,7 @@ const TADashboard = ({ onLogout }: { onLogout?: () => void }) => {
               backgroundColor: darkMode
                 ? currentPalette["accent-purple"]
                 : currentPalette["accent-lilac"],
-              color: "white", // Ensure text color is white for both modes
+              color: "white",
               boxShadow: darkMode
                 ? `0 4px 15px ${currentPalette["accent-purple"]}60`
                 : `0 4px 15px ${currentPalette["accent-lilac"]}60`,

@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FiDownload, FiEdit, FiSave, FiX, FiFileText } from 'react-icons/fi';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface UncheckedTicket {
   _id: string; // This is the ticket ID
@@ -40,7 +39,7 @@ interface UncheckedEvaluationsProps {
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
-const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
+const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = React.memo(({
   currentPalette,
   commonCardClasses,
   getCardStyles,
@@ -57,7 +56,22 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
 
   const token = localStorage.getItem('token');
 
-  const fetchUncheckedTickets = async () => {
+  // Memoize button styles to prevent recreation on every render
+  const commonButtonClasses = useMemo(() => `
+    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
+    focus:outline-none focus:ring-2 focus:ring-offset-2
+  `, []);
+  
+  const getButtonStyles = useCallback((
+    colorKey: keyof typeof currentPalette, 
+    textColorKey: keyof typeof currentPalette = 'text-dark'
+  ) => ({
+    backgroundColor: currentPalette[colorKey],
+    color: currentPalette[textColorKey],
+    boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
+  }), [currentPalette]);
+
+  const fetchUncheckedTickets = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -83,13 +97,13 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchUncheckedTickets();
-  }, []);
+  }, [fetchUncheckedTickets]);
 
-  const handleDownloadSubmission = async (ticket: UncheckedTicket) => {
+  const handleDownloadSubmission = useCallback(async (ticket: UncheckedTicket) => {
     try {
       const response = await fetch(`http://localhost:${PORT}/api/ta/unchecked-submission/${ticket._id}`, {
         headers: {
@@ -116,9 +130,9 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
       console.error('Error downloading submission:', err);
       setError('Failed to download submission. Please try again.');
     }
-  };
+  }, [token]);
 
-  const handleDownloadAnswerKey = async (ticket: UncheckedTicket) => {
+  const handleDownloadAnswerKey = useCallback(async (ticket: UncheckedTicket) => {
     try {
       const response = await fetch(`http://localhost:${PORT}/api/ta/unchecked-answer-key/${ticket._id}`, {
         headers: {
@@ -150,9 +164,9 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
       console.error('Error downloading answer key:', err);
       setError('Failed to download answer key. Please try again.');
     }
-  };
+  }, [token]);
 
-  const handleStartEvaluation = (ticket: UncheckedTicket) => {
+  const handleStartEvaluation = useCallback((ticket: UncheckedTicket) => {
     const numQuestions = ticket.exam.numQuestions || 5;
     const initialMarks = Array(numQuestions).fill(0);
     
@@ -161,21 +175,36 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
       marks: initialMarks,
       feedback: ''
     });
-  };
+  }, []);
 
-  const handleMarkChange = (index: number, value: string) => {
+  // Optimize the handleMarkChange function to prevent recreating the entire object
+  const handleMarkChange = useCallback((index: number, value: string) => {
     if (!editingTicket) return;
     
-    const updatedMarks = [...editingTicket.marks];
-    updatedMarks[index] = Number(value);
-    
-    setEditingTicket({
-      ...editingTicket,
-      marks: updatedMarks
+    setEditingTicket(prev => {
+      if (!prev) return prev;
+      const updatedMarks = [...prev.marks];
+      updatedMarks[index] = Number(value);
+      
+      return {
+        ...prev,
+        marks: updatedMarks
+      };
     });
-  };
+  }, [editingTicket?.id]); // Only depend on the ticket ID, not the entire object
 
-  const handleSaveEvaluation = async () => {
+  // Optimize the feedback change handler
+  const handleFeedbackChange = useCallback((value: string) => {
+    setEditingTicket(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        feedback: value
+      };
+    });
+  }, []);
+
+  const handleSaveEvaluation = useCallback(async () => {
     if (!editingTicket) return;
 
     try {
@@ -217,18 +246,11 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [editingTicket, token, fetchUncheckedTickets]);
 
-  const commonButtonClasses = `
-    px-6 py-2 rounded-lg hover:opacity-90 transition-all duration-200 shadow-md active:scale-95 transform
-    focus:outline-none focus:ring-2 focus:ring-offset-2
-  `;
-  
-  const getButtonStyles = (colorKey: keyof typeof currentPalette, textColorKey: keyof typeof currentPalette = 'text-dark') => ({
-    backgroundColor: currentPalette[colorKey],
-    color: currentPalette[textColorKey],
-    boxShadow: `0 4px 15px ${currentPalette[colorKey]}40`,
-  });
+  const handleCancelEdit = useCallback(() => {
+    setEditingTicket(null);
+  }, []);
 
   if (loading && !editingTicket) {
     return (
@@ -356,10 +378,7 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
                       </label>
                       <textarea
                         value={editingTicket.feedback}
-                        onChange={(e) => setEditingTicket({
-                          ...editingTicket,
-                          feedback: e.target.value
-                        })}
+                        onChange={(e) => handleFeedbackChange(e.target.value)}
                         rows={3}
                         className="w-full border rounded-lg p-2"
                         style={{
@@ -379,7 +398,7 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
 
                     <div className="flex justify-end space-x-4">
                       <button
-                        onClick={() => setEditingTicket(null)}
+                        onClick={handleCancelEdit}
                         className={`${commonButtonClasses} flex items-center gap-2`}
                         style={getButtonStyles('text-muted', 'text-dark')}
                       >
@@ -427,6 +446,8 @@ const UncheckedEvaluations: React.FC<UncheckedEvaluationsProps> = ({
       </div>
     </div>
   );
-};
+});
+
+UncheckedEvaluations.displayName = 'UncheckedEvaluations';
 
 export default UncheckedEvaluations;
