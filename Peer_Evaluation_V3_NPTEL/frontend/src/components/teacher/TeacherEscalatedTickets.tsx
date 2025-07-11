@@ -15,7 +15,10 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 const TeacherEscalatedTickets = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [remarks, setRemarks] = useState<Record<string, string>>({});
+  const [marks, setMarks] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const fetchTickets = async () => {
     try {
@@ -25,12 +28,9 @@ const TeacherEscalatedTickets = () => {
         },
       });
 
-      console.log("Fetched tickets:", data);
-
       if (Array.isArray(data.data)) {
         setTickets(data.data);
       } else {
-        console.warn("Unexpected response format:", data);
         setTickets([]);
       }
     } catch (error) {
@@ -42,19 +42,35 @@ const TeacherEscalatedTickets = () => {
   };
 
   const handleResolve = async (ticketId: string) => {
+    const remark = remarks[ticketId];
+    const marksUpdated = marks[ticketId];
+
+    if (!remark?.trim()) {
+      alert("Please enter a remark before resolving.");
+      return;
+    }
+
     try {
+      setResolvingId(ticketId);
       await axios.put(
         `${BASE_URL}/api/teacher/resolve-ticket/${ticketId}`,
-        {},
+        {
+          remark,
+          marksUpdated: marksUpdated?.trim() === "" ? null : Number(marksUpdated),
+        },
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
-      fetchTickets(); // Refresh list after resolving
+      setRemarks((prev) => ({ ...prev, [ticketId]: "" }));
+      setMarks((prev) => ({ ...prev, [ticketId]: "" }));
+      fetchTickets();
     } catch (error) {
       console.error("Error resolving ticket", error);
+    } finally {
+      setResolvingId(null);
     }
   };
 
@@ -78,24 +94,41 @@ const TeacherEscalatedTickets = () => {
             >
               <h3 className="text-lg font-bold">{ticket.subject}</h3>
               <p>{ticket.description}</p>
-              <p>
-                <strong>Student:</strong> {ticket.student?.name || "N/A"}
-              </p>
-              <p>
-                <strong>TA:</strong> {ticket.ta?.name || "N/A"}
-              </p>
-              <p>
-                <strong>Status:</strong>{" "}
-                {ticket.resolved ? "Resolved ✅" : "Pending ❌"}
-              </p>
+              <p><strong>Student:</strong> {ticket.student?.name || "N/A"}</p>
+              <p><strong>TA:</strong> {ticket.ta?.name || "N/A"}</p>
+              <p><strong>Status:</strong> {ticket.resolved ? "Resolved ✅" : "Pending ❌"}</p>
 
               {!ticket.resolved && (
-                <button
-                  onClick={() => handleResolve(ticket._id)}
-                  className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                >
-                  Mark as Resolved
-                </button>
+                <>
+                  <textarea
+                    className="w-full border mt-2 p-2 rounded"
+                    placeholder="Enter remark for resolution..."
+                    value={remarks[ticket._id] || ""}
+                    onChange={(e) =>
+                      setRemarks({ ...remarks, [ticket._id]: e.target.value })
+                    }
+                  />
+
+                  <input
+                    type="number"
+                    className="w-full border mt-2 p-2 rounded"
+                    placeholder="Enter updated marks (optional)"
+                    value={marks[ticket._id] || ""}
+                    onChange={(e) =>
+                      setMarks({ ...marks, [ticket._id]: e.target.value })
+                    }
+                  />
+
+                  <button
+                    onClick={() => handleResolve(ticket._id)}
+                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                    disabled={
+                      !remarks[ticket._id]?.trim() || resolvingId === ticket._id
+                    }
+                  >
+                    {resolvingId === ticket._id ? "Resolving..." : "Mark as Resolved"}
+                  </button>
+                </>
               )}
             </li>
           ))}

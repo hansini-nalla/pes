@@ -4,6 +4,7 @@ import multer from "multer";
 import { removeTAFromBatch } from "../../controllers/teacher/removeTAFromBatch.controller.ts";
 import {
   getAllEscalatedTickets,
+  getResolvedTickets,
   resolveTicket,
 } from "../../controllers/teacher/teacherEscalatedTicket.controller.ts";
 
@@ -83,5 +84,6 @@ router.post(
 // Escalated Tickets
 router.get("/escalated-tickets", authMiddleware, getAllEscalatedTickets);
 router.put("/resolve-ticket/:ticketId", authMiddleware, resolveTicket);
+router.get("/resolved-tickets", authMiddleware, getResolvedTickets);
 
 export default router;
