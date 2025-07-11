@@ -11,7 +11,6 @@ export const removeTAFromBatch = async (
   try {
     const { batchId, taId } = req.params;
 
-    console.log("Removing TA:", { batchId, taId });
 
     const batch = await Batch.findById(batchId);
     if (!batch) {

@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { PDFDocument } from "pdf-lib";
-import puppeteer from "puppeteer";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -14,6 +13,7 @@ import { runWithConcurrency } from "../../utils/runWithConcurrency.ts";
 
 const require = createRequire(import.meta.url);
 const jsQR = require("jsqr");
+const poppler = require("pdf-poppler");
 
 interface QRPayload {
   uid: string;
@@ -30,30 +30,26 @@ const convertPdfToImage = async (pdfBuffer: Buffer): Promise<string> => {
   const tempPdfPath = path.join(os.tmpdir(), `page1-${Date.now()}.pdf`);
   fs.writeFileSync(tempPdfPath, singlePageBuffer);
 
-  const outputImagePath = path.join(os.tmpdir(), `page1-${Date.now()}.png`);
+  const outputImageBase = path.join(os.tmpdir(), `page1-${Date.now()}`);
+  const expectedImagePath = `${outputImageBase}-1.png`; // 🟢 Important
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  const options = {
+    format: "png" as const,
+    out_dir: path.dirname(outputImageBase),
+    out_prefix: path.basename(outputImageBase),
+    page: 1,
+    scale: 500
+  };
 
-  const page = await browser.newPage();
-  await page.goto(`file://${tempPdfPath}`, { waitUntil: "networkidle0" });
+  await poppler.convert(tempPdfPath, options);
 
-  const clip = await page.evaluate(() => {
-    const { scrollWidth, scrollHeight } = document.documentElement;
-    return { x: 0, y: 0, width: scrollWidth, height: scrollHeight };
-  });
+  if (!fs.existsSync(expectedImagePath)) {
+    // Optional debug log
+    console.error("Available temp files:", fs.readdirSync(os.tmpdir()));
+    throw new Error(`Image was not generated: ${expectedImagePath}`);
+  }
 
-  await page.setViewport({ width: clip.width, height: clip.height });
-
-  await page.screenshot({
-    path: outputImagePath as `${string}.png`,
-    clip
-  });
-
-  await browser.close();
-  return outputImagePath;
+  return expectedImagePath;
 };
 
 const decodeQrFromImage = async (imagePath: string): Promise<QRPayload> => {
@@ -66,13 +62,11 @@ const decodeQrFromImage = async (imagePath: string): Promise<QRPayload> => {
   let parsed: any;
   try {
     parsed = JSON.parse(qrCode.data);
-  } catch (err) {
+  } catch {
     throw new Error("QR data is not valid JSON");
   }
 
-  if (!parsed.uid) {
-    throw new Error("QR payload missing UID");
-  }
+  if (!parsed.uid) throw new Error("QR payload missing UID");
 
   return parsed as QRPayload;
 };
@@ -81,12 +75,10 @@ const extractPdfWithoutFirstPage = async (pdfBuffer: Buffer): Promise<Buffer> =>
   const srcDoc = await PDFDocument.load(pdfBuffer);
   const totalPages = srcDoc.getPageCount();
 
-  if (totalPages <= 1) {
-    throw new Error("Cannot remove first page from a single-page PDF.");
-  }
+  if (totalPages <= 1) throw new Error("Cannot remove first page from a single-page PDF.");
 
   const newDoc = await PDFDocument.create();
-  const pages = await newDoc.copyPages(srcDoc, [...Array(totalPages - 1)].map((_, i) => i + 1));
+  const pages = await newDoc.copyPages(srcDoc, Array.from({ length: totalPages - 1 }, (_, i) => i + 1));
   pages.forEach(page => newDoc.addPage(page));
 
   const uint8Array = await newDoc.save();
@@ -118,9 +110,7 @@ export const handleBulkUploadScans = async (
         const qrData = await decodeQrFromImage(imagePath);
 
         const uidEntry = await UIDMap.findOne({ uid: qrData.uid });
-        if (!uidEntry) {
-          throw new Error("Invalid UID – not mapped");
-        }
+        if (!uidEntry) throw new Error("Invalid UID – not mapped");
 
         if (uidEntry.examId.toString() !== examId) {
           throw new Error("UID mismatch with target exam");
@@ -160,7 +150,7 @@ export const handleBulkUploadScans = async (
       }
     });
 
-    const results = await runWithConcurrency(3, tasks); // 👈 concurrency set to 3
+    const results = await runWithConcurrency(3, tasks);
 
     res.status(200).json({
       message: "Step 1–5 complete. Submissions saved to DB.",

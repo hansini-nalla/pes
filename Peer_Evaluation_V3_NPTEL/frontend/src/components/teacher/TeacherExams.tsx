@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { FiEdit, FiPlus, FiSend } from "react-icons/fi";
 import { FaRegTrashAlt, FaRegFilePdf, FaRegClone } from "react-icons/fa";
-import { HiOutlineMinusCircle } from "react-icons/hi";
+
 
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
@@ -38,7 +38,7 @@ interface Exam {
   endTime: string;
   numQuestions: number;
   k: number;
-  questions?: { q?: string; max?: number; questionText?: string; maxMarks?: number }[];
+  // questions?: { q?: string; max?: number; questionText?: string; maxMarks?: number }[];
 }
 
 export default function TeacherExams() {
@@ -56,7 +56,10 @@ export default function TeacherExams() {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [k, setK] = useState(1);
-  const [questions, setQuestions] = useState<{ q: string; max: number }[]>([{ q: "", max: 0 }]);
+  // Remove questions state, use numQuestions and questionPaperFile
+  const [numQuestions, setNumQuestions] = useState<number>(1);
+  const [maxMarks, setMaxMarks] = useState<number[]>([0]);
+  const [questionPaperFile, setQuestionPaperFile] = useState<File | null>(null);
 
   // Loading states
   const [allLoading, setAllLoading] = useState(true);
@@ -130,7 +133,9 @@ export default function TeacherExams() {
     setStartTime("");
     setEndTime("");
     setK(1);
-    setQuestions([{ q: "", max: 0 }]);
+    setNumQuestions(1);
+    setMaxMarks([0]);
+    setQuestionPaperFile(null);
   };
 
   // Toast for ALL actions
@@ -141,13 +146,14 @@ export default function TeacherExams() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Always send maxMarks
       await axios.post(`http://localhost:${PORT}/api/teacher/exams`, {
         title,
         startTime,
         endTime,
         k,
-        numQuestions: questions.length,
-        questions: questions.map((q) => ({ questionText: q.q, maxMarks: q.max })),
+        numQuestions,
+        maxMarks,
         course: selectedCourse,
         batch: selectedBatch,
       }, {
@@ -171,11 +177,8 @@ export default function TeacherExams() {
         startTime,
         endTime,
         k,
-        questions: questions.map(q => ({
-          questionText: q.q,
-          maxMarks: q.max
-        })),
-        numQuestions: questions.length,
+        numQuestions,
+        maxMarks,
       }, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -201,15 +204,9 @@ export default function TeacherExams() {
     setStartTime(toInputDatetime(exam.startTime));
     setEndTime(toInputDatetime(exam.endTime));
     setK(exam.k);
-    if (exam.questions && Array.isArray(exam.questions) && exam.questions.length > 0) {
-      setQuestions(exam.questions.map(q =>
-        q.q !== undefined && q.max !== undefined
-          ? { q: q.q ?? "", max: q.max ?? 0 }
-          : { q: q.questionText ?? "", max: q.maxMarks ?? 0 }
-      ));
-    } else {
-      setQuestions([{ q: "", max: 0 }]);
-    }
+    setNumQuestions(exam.numQuestions || 1);
+    setMaxMarks(exam.maxMarks || Array(exam.numQuestions).fill(0));
+    setQuestionPaperFile(null);
     setEditOpen(true);
   };
 
@@ -578,7 +575,7 @@ export default function TeacherExams() {
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <form
-            className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-6 w-[420px] max-w-full border-2 border-purple-400"
+            className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-6 w-[600px] max-w-full border-2 border-purple-400 max-h-[90vh] overflow-y-auto"
             onSubmit={handleCreate}
           >
             <h2 className="text-xl font-bold mb-4 text-purple-900 text-center">Schedule Exam</h2>
@@ -644,57 +641,49 @@ export default function TeacherExams() {
               </div>
             </div>
             <div>
-              <label className="font-semibold text-purple-700">Questions</label>
-              <div className="space-y-3 mb-1">
-                {questions.map((q, idx) => (
+              <label className="font-semibold text-purple-700">Number of Questions</label>
+              <input
+                type="number"
+                className="w-full border-2 border-purple-400 px-4 py-2 rounded-xl"
+                value={numQuestions}
+                min={1}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setNumQuestions(val);
+                  setMaxMarks((old) => {
+                    const arr = [...old];
+                    if (val > arr.length) {
+                      return arr.concat(Array(val - arr.length).fill(0));
+                    } else {
+                      return arr.slice(0, val);
+                    }
+                  });
+                }}
+                required
+                placeholder="Enter number of questions"
+              />
+              <div className="mt-4 space-y-2">
+                {Array.from({ length: numQuestions }).map((_, idx) => (
                   <div key={idx} className="flex gap-2 items-center">
-                    <input
-                      className="flex-1 border-2 border-purple-400 px-3 py-2 rounded-xl"
-                      placeholder={`Q${idx + 1} text`}
-                      value={q.q}
-                      onChange={e => {
-                        setQuestions(old => {
-                          const updated = [...old];
-                          updated[idx] = { ...updated[idx], q: e.target.value };
-                          return updated;
-                        });
-                      }}
-                      required
-                    />
+                    <span className="font-semibold text-purple-700">Q{idx + 1} Max Marks:</span>
                     <input
                       type="number"
-                      className="w-20 border-2 border-purple-400 px-2 py-2 rounded-xl"
-                      placeholder="Marks"
-                      value={q.max}
+                      className="w-24 border-2 border-purple-400 px-2 py-2 rounded-xl"
+                      value={maxMarks[idx] ?? 0}
                       min={0}
+                      placeholder={`Q${idx + 1} max marks`}
                       onChange={e => {
-                        setQuestions(old => {
-                          const updated = [...old];
-                          updated[idx] = { ...updated[idx], max: parseInt(e.target.value) || 0 };
-                          return updated;
+                        const val = Number(e.target.value);
+                        setMaxMarks(old => {
+                          const arr = [...old];
+                          arr[idx] = val;
+                          return arr;
                         });
                       }}
                       required
                     />
-                    {questions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
-                        className="text-red-500 text-2xl hover:text-red-700"
-                        title="Remove question"
-                      >
-                        <HiOutlineMinusCircle />
-                      </button>
-                    )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  className="bg-purple-100 text-purple-700 px-3 py-1 rounded-xl font-semibold mt-1 hover:bg-purple-200"
-                  onClick={() => setQuestions([...questions, { q: "", max: 0 }])}
-                >
-                  + Add Question
-                </button>
               </div>
             </div>
             <div>
@@ -731,7 +720,7 @@ export default function TeacherExams() {
       {isEditOpen && editExam && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <form
-            className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-6 w-[420px] max-w-full border-2 border-purple-400"
+            className="bg-white rounded-2xl shadow-xl px-8 py-8 flex flex-col gap-6 w-[600px] max-w-full border-2 border-purple-400 max-h-[90vh] overflow-y-auto"
             onSubmit={handleEdit}
           >
             <h2 className="text-xl font-bold mb-4 text-purple-900 text-center">Update Exam</h2>
@@ -797,57 +786,58 @@ export default function TeacherExams() {
               </div>
             </div>
             <div>
-              <label className="font-semibold text-purple-700">Questions</label>
-              <div className="space-y-3 mb-1">
-                {questions.map((q, idx) => (
+              <label className="font-semibold text-purple-700">Number of Questions</label>
+              <input
+                type="number"
+                className="w-full border-2 border-purple-400 px-4 py-2 rounded-xl"
+                value={numQuestions}
+                min={1}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setNumQuestions(val);
+                  setMaxMarks((old) => {
+                    const arr = [...old];
+                    if (val > arr.length) {
+                      return arr.concat(Array(val - arr.length).fill(0));
+                    } else {
+                      return arr.slice(0, val);
+                    }
+                  });
+                }}
+                required
+                placeholder="Enter number of questions"
+              />
+              <div className="mt-4 space-y-2">
+                {Array.from({ length: numQuestions }).map((_, idx) => (
                   <div key={idx} className="flex gap-2 items-center">
-                    <input
-                      className="flex-1 border-2 border-purple-400 px-3 py-2 rounded-xl"
-                      placeholder={`Q${idx + 1} text`}
-                      value={q.q}
-                      onChange={e => {
-                        setQuestions(old => {
-                          const updated = [...old];
-                          updated[idx] = { ...updated[idx], q: e.target.value };
-                          return updated;
-                        });
-                      }}
-                      required
-                    />
+                    <span className="font-semibold text-purple-700">Q{idx + 1} Max Marks:</span>
                     <input
                       type="number"
-                      className="w-20 border-2 border-purple-400 px-2 py-2 rounded-xl"
-                      placeholder="Marks"
-                      value={q.max}
+                      className="w-24 border-2 border-purple-400 px-2 py-2 rounded-xl"
+                      value={maxMarks[idx] ?? 0}
                       min={0}
+                      placeholder={`Q${idx + 1} max marks`}
                       onChange={e => {
-                        setQuestions(old => {
-                          const updated = [...old];
-                          updated[idx] = { ...updated[idx], max: parseInt(e.target.value) || 0 };
-                          return updated;
+                        const val = Number(e.target.value);
+                        setMaxMarks(old => {
+                          const arr = [...old];
+                          arr[idx] = val;
+                          return arr;
                         });
                       }}
                       required
                     />
-                    {questions.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setQuestions(questions.filter((_, i) => i !== idx))}
-                        className="text-red-500 text-2xl hover:text-red-700"
-                        title="Remove question"
-                      >
-                        <HiOutlineMinusCircle />
-                      </button>
-                    )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  className="bg-purple-100 text-purple-700 px-3 py-1 rounded-xl font-semibold mt-1 hover:bg-purple-200"
-                  onClick={() => setQuestions([...questions, { q: "", max: 0 }])}
-                >
-                  + Add Question
-                </button>
+              </div>
+              <div className="mt-2">
+                <label className="font-semibold text-purple-700">Upload Question Paper (PDF)</label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="w-full border-2 border-purple-400 px-4 py-2 rounded-xl"
+                    onChange={e => setQuestionPaperFile(e.target.files?.[0] || null)}
+                  />
               </div>
             </div>
             <div>
