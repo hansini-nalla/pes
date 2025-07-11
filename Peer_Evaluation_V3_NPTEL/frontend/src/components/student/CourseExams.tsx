@@ -11,10 +11,8 @@ type Exam = {
   startTime: string;
   endTime: string;
   batch: { name: string };
-  questions: {
-    questionText: string;
-    maxMarks: number;
-  }[];
+  numQuestions: number;
+  maxMarks: number[];
 };
 
 type Props = {
@@ -248,16 +246,15 @@ const CourseExams = ({ courseId, onBack }: Props) => {
                 </div>
               )}
 
-              {/* Text Questions */}
+              {/* Max Marks per Question */}
               <div className="w-2/5 overflow-auto pr-2 border border-gray-200 rounded-lg shadow-inner p-4 bg-gray-50">
                 <h4 className="text-sm text-gray-700 font-semibold mb-3">
-                  Text Questions
+                  Question Max Marks
                 </h4>
                 <ol className="list-decimal list-inside text-gray-800 space-y-3 text-sm">
-                  {viewingExam.questions.map((q, idx) => (
+                  {Array.from({ length: viewingExam.numQuestions }).map((_, idx) => (
                     <li key={idx}>
-                      {q.questionText}{" "}
-                      <span className="text-gray-500 italic">({q.maxMarks} marks)</span>
+                      Q{idx + 1} <span className="text-gray-500 italic">({viewingExam.maxMarks?.[idx] ?? 0} marks)</span>
                     </li>
                   ))}
                 </ol>

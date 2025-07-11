@@ -27,9 +27,19 @@ export const submitPeerEvaluation = async (
       res.status(404).json({ error: "Exam not found" });
       return;
     }
-    if (!Array.isArray(marks) || marks.length !== exam.questions.length) {
-      res.status(400).json({ error: "Marks array length mismatch" });
+
+    if (!Array.isArray(marks) || marks.length !== exam.numQuestions) {
+      res.status(400).json({ error: "Marks array length must match numQuestions" });
       return;
+    }
+    // Validate each mark does not exceed maxMarks
+    if (exam.maxMarks && Array.isArray(exam.maxMarks)) {
+      for (let i = 0; i < marks.length; i++) {
+        if (typeof marks[i] !== "number" || marks[i] < 0 || marks[i] > exam.maxMarks[i]) {
+          res.status(400).json({ error: `Mark for Q${i + 1} must be between 0 and ${exam.maxMarks[i]}` });
+          return;
+        }
+      }
     }
 
     evaluation.marks = marks;

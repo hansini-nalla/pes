@@ -5,6 +5,7 @@ import { Batch } from "../../models/Batch.ts";
 import AuthenticatedRequest from "../../middlewares/authMiddleware.ts";
 
 // Create a new exam
+// Create a new exam
 export const createExam = async (
   req: AuthenticatedRequest,
   res: Response,
@@ -17,9 +18,9 @@ export const createExam = async (
       endTime,
       course,
       batch,
-      questions,
       numQuestions,
       k,
+      maxMarks,
     } = req.body;
 
     if (!req.user?._id) {
@@ -33,9 +34,9 @@ export const createExam = async (
       endTime,
       course,
       batch,
-      questions,
       numQuestions,
       k,
+      maxMarks,
       createdBy: req.user._id,
     });
 
@@ -48,6 +49,7 @@ export const createExam = async (
     next(error);
   }
 };
+
 
 // Get a single exam
 export const getSingleExam = async (
@@ -80,7 +82,7 @@ export const updateExam = async (
 ): Promise<void> => {
   try {
     const { examId } = req.params;
-    const updates = req.body; // includes optional `k`
+    const updates = req.body; // includes optional `k` and maxMarks
     const exam = await Exam.findByIdAndUpdate(examId, updates, { new: true });
 
     if (!exam) {

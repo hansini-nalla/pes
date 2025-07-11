@@ -7,8 +7,8 @@ import { PiExam } from "react-icons/pi";
 const PORT = import.meta.env.VITE_BACKEND_PORT || 5000;
 
 interface Question {
-  questionText: string;
-  maxMarks: number;
+  // questionText: string;
+  // maxMarks: number;
 }
 
 interface Evaluation {
@@ -16,7 +16,8 @@ interface Evaluation {
   exam: {
     _id: string;
     title: string;
-    questions: Question[];
+    numQuestions: number;
+    maxMarks: number[];
   };
   submissionId: string | null;
   pdfUrl: string | null;
@@ -69,10 +70,10 @@ const PeerEvaluationsPending = () => {
 
   const openEvaluation = async (ev: Evaluation) => {
     setOpenEval(ev);
-    setMarks(Array(ev.exam.questions.length).fill(""));
+    setMarks(Array(ev.exam.numQuestions).fill(""));
     setFeedback("");
     setSubmitStatus("idle");
-    setMarkErrors(Array(ev.exam.questions.length).fill(""));
+    setMarkErrors(Array(ev.exam.numQuestions).fill(""));
     setPdfUrl(null);
     setAnswerKeyUrl(null);
 
@@ -115,7 +116,7 @@ const PeerEvaluationsPending = () => {
     } else {
       const num = Number(value);
       newMarks[idx] = num;
-      if (openEval && num > openEval.exam.questions[idx].maxMarks) {
+      if (openEval && num > openEval.exam.maxMarks[idx]) {
         newErrors[idx] = "Value greater than max marks";
       } else if (num < 0) {
         newErrors[idx] = "Value cannot be negative";
@@ -130,7 +131,7 @@ const PeerEvaluationsPending = () => {
   const isSubmitDisabled =
     submitStatus === "submitting" ||
     !openEval ||
-    marks.length !== openEval.exam.questions.length ||
+    marks.length !== openEval.exam.numQuestions ||
     marks.some(m => m === "" || typeof m !== "number") ||
     markErrors.some(e => e);
 
@@ -263,10 +264,10 @@ const PeerEvaluationsPending = () => {
                 Evaluate: {openEval.exam.title}
               </h3>
 
-              {openEval.exam.questions.map((q, idx) => (
+              {Array.from({ length: openEval.exam.numQuestions }).map((_, idx) => (
                 <div key={idx} className="space-y-1">
                   <label className="block font-medium text-gray-700">
-                    Q{idx + 1}: {q.questionText} (Max: {q.maxMarks})
+                    Q{idx + 1} (Max: {openEval.exam.maxMarks[idx]})
                   </label>
                   <input
                     type="number"
@@ -275,7 +276,7 @@ const PeerEvaluationsPending = () => {
                     onChange={(e) => handleMarkChange(idx, e.target.value)}
                     placeholder="Enter marks"
                     min={0}
-                    max={q.maxMarks}
+                    max={openEval.exam.maxMarks[idx]}
                   />
                   {markErrors[idx] && (
                     <p className="text-red-500 text-sm">{markErrors[idx]}</p>
