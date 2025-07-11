@@ -792,10 +792,44 @@ export default function TeacherExams() {
                 className="w-full border-2 border-purple-400 px-4 py-2 rounded-xl"
                 value={numQuestions}
                 min={1}
-                onChange={e => setNumQuestions(Number(e.target.value))}
+                onChange={e => {
+                  const val = Number(e.target.value);
+                  setNumQuestions(val);
+                  setMaxMarks((old) => {
+                    const arr = [...old];
+                    if (val > arr.length) {
+                      return arr.concat(Array(val - arr.length).fill(0));
+                    } else {
+                      return arr.slice(0, val);
+                    }
+                  });
+                }}
                 required
                 placeholder="Enter number of questions"
               />
+              <div className="mt-4 space-y-2">
+                {Array.from({ length: numQuestions }).map((_, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <span className="font-semibold text-purple-700">Q{idx + 1} Max Marks:</span>
+                    <input
+                      type="number"
+                      className="w-24 border-2 border-purple-400 px-2 py-2 rounded-xl"
+                      value={maxMarks[idx] ?? 0}
+                      min={0}
+                      placeholder={`Q${idx + 1} max marks`}
+                      onChange={e => {
+                        const val = Number(e.target.value);
+                        setMaxMarks(old => {
+                          const arr = [...old];
+                          arr[idx] = val;
+                          return arr;
+                        });
+                      }}
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
               <div className="mt-2">
                 <label className="font-semibold text-purple-700">Upload Question Paper (PDF)</label>
                   <input
