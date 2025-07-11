@@ -138,8 +138,11 @@ export const handleEnrollmentDecision = async (
       return;
     }
     
-    // Find the enrollment
-    const enrollment = await Enrollment.findById(enrollmentId);
+    // Find the enrollment and populate the course and batch information
+    const enrollment = await Enrollment.findById(enrollmentId)
+      .populate('courseId', 'name code')
+      .populate('batchId', 'name');
+      
     if (!enrollment) {
       res.status(404).json({ error: 'Enrollment request not found' });
       return;
@@ -159,29 +162,29 @@ export const handleEnrollmentDecision = async (
     }
     await enrollment.save();
     
+    // Get course name for notifications
+    const courseName = (enrollment.courseId as any)?.name || 'the course';
+    
     // If approved, add student to the batch's students array
     if (decision === 'approve') {
-      batch.students.push(enrollment.studentId);
-      await batch.save();
+      // Check if student is already in the batch to avoid duplicates
+      if (!batch.students.includes(enrollment.studentId)) {
+        batch.students.push(enrollment.studentId);
+        await batch.save();
+      }
       
       // Notify the student that their enrollment was approved
+      // Remove relatedResource since 'course' is not in the enum
       await Notification.create({
         recipient: enrollment.studentId,
-        message: `Your enrollment for ${(enrollment.courseId as any).name || 'the course'} has been approved.`,
-        relatedResource: {
-          type: 'course',
-          id: enrollment.courseId
-        }
+        message: `Your enrollment for ${courseName} has been approved.`
       });
     } else {
       // Notify the student that their enrollment was rejected
+      // Remove relatedResource since 'course' is not in the enum
       await Notification.create({
         recipient: enrollment.studentId,
-        message: `Your enrollment for ${(enrollment.courseId as any).name || 'the course'} has been declined.`,
-        relatedResource: {
-          type: 'course',
-          id: enrollment.courseId
-        }
+        message: `Your enrollment for ${courseName} has been declined.`
       });
     }
     
@@ -191,12 +194,12 @@ export const handleEnrollmentDecision = async (
     });
   } catch (error) {
     console.error('Error handling enrollment decision:', error);
-    next(error);
+    res.status(500).json({ error: 'Internal server error while processing enrollment decision' });
   }
 };
 
 /**
- * Get all tickets for TA's assigned batches and courses
+ * Get all tickets for TA's assigned batches and courses (excluding unchecked evaluation tickets)
  */
 export const getStudentTickets = async (
   req: Request,
@@ -220,17 +223,19 @@ export const getStudentTickets = async (
     const examIds = exams.map(exam => exam._id);
     
     // Find tickets for these exams where TA is assigned and status is open
+    // EXCLUDE tickets with message "unchecked" as they are handled separately
     const tickets = await Ticket.find({
       ta: taId,
       exam: { $in: examIds },
       status: 'open',
-      escalatedToTeacher: false
+      escalatedToTeacher: false,
+      message: { $ne: "unchecked" } // Exclude unchecked evaluation tickets
     })
     .populate('student', 'name email')
     .populate('evaluator', 'name email')
     .populate({
       path: 'exam',
-      select: 'title startTime endTime numQuestions',
+      select: 'title startTime endTime numQuestions answerKeyPdf answerKeyMimeType',
       populate: {
         path: 'course',
         select: 'name code'
@@ -549,6 +554,70 @@ export const getTAStats = async (
     });
   } catch (error) {
     console.error('Error fetching TA stats:', error);
+    next(error);
+  }
+};
+
+// Add this function to the existing ta.controller.ts file
+
+/**
+ * Get the answer key PDF for an exam (for student tickets)
+ */
+export const getAnswerKeyPdf = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { ticketId } = req.params;
+    const taId = (req as any).user.id;
+
+    // Find the ticket first to get exam information
+    const ticket = await Ticket.findById(ticketId)
+      .populate('exam');
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' });
+      return;
+    }
+
+    // Verify TA is authorized to access this ticket
+    if (ticket.ta.toString() !== taId) {
+      res.status(403).json({ error: 'Not authorized to access this answer key' });
+      return;
+    }
+
+    // Verify the ticket is from TA's assigned batches
+    const batches = await Batch.find({ ta: taId });
+    const batchIds = batches.map(batch => batch._id);
+    const exam = await Exam.findOne({
+      _id: ticket.exam,
+      batch: { $in: batchIds }
+    });
+
+    if (!exam) {
+      res.status(403).json({ error: 'Not authorized to access this answer key' });
+      return;
+    }
+
+    // Validate answer key PDF data exists
+    if (!exam.answerKeyPdf || !exam.answerKeyMimeType) {
+      res.status(404).json({ error: 'Answer key PDF not found for this exam' });
+      return;
+    }
+
+    // Create a safe filename
+    const examTitle = exam.title || 'exam';
+    const safeFilename = `answer_key_${examTitle.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+
+    // Set appropriate headers for PDF download
+    res.setHeader('Content-Type', exam.answerKeyMimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+
+    // Send the PDF data
+    res.send(exam.answerKeyPdf);
+  } catch (error) {
+    console.error('Error fetching answer key PDF:', error);
     next(error);
   }
 };
