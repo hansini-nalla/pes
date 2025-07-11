@@ -1,5 +1,3 @@
-console.log("✅ getTeacherCourses controller loaded");
-
 import { Response, NextFunction } from "express";
 import { Batch, IBatch } from "../../models/Batch.ts";
 import { ICourse } from "../../models/Course.ts";

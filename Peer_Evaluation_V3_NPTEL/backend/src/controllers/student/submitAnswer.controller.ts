@@ -8,7 +8,6 @@ export const submitAnswer = async (
   next: NextFunction
 ) => {
   try {
-    console.log("submitAnswer called");
     const { examId } = req.body;
 
     const studentId = req.user?._id?.toString() || req.body.studentId;
@@ -86,7 +85,6 @@ export const submitAnswer = async (
 
     // await Evaluation.insertMany(evaluationDocs);
     // console.log(`Assigned evaluation to ${peerIds.length} peers`);
-    console.log("PDF answer submitted successfully");
     res.json({ message: "PDF answer submitted successfully" });
   } catch (err) {
     console.error(err);
