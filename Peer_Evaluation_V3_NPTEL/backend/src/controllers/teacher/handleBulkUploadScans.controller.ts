@@ -146,16 +146,7 @@ export const handleBulkUploadScans = async (
           error: err instanceof Error ? err.message : "Unknown error"
         };
       } finally {
-        if (imagePath && fs.existsSync(imagePath)) {
-          const debugDir = path.join(process.cwd(), "qr_debug_logs");
-          if (!fs.existsSync(debugDir)) fs.mkdirSync(debugDir);
-
-          const debugCopyPath = path.join(debugDir, path.basename(imagePath));
-          fs.copyFileSync(imagePath, debugCopyPath);
-
-          // Optionally delete temp file after copying
-          // fs.unlinkSync(imagePath);
-        }
+        if (imagePath && fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
       }
     });
 
