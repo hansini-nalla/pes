@@ -42,15 +42,24 @@ export const assignTaToBatch = async (
     const existingTABatch = await Batch.findOne({ ta: student._id });
     if (existingTABatch) {
       res.status(400).json({
-        message: "This student is already a TA for another batch/course and cannot be assigned again.",
+        message:
+          "This student is already a TA for another batch/course and cannot be assigned again.",
       });
       return;
     }
 
+    // Check if the student is enrolled in the batch
+    if (batch.students.includes(studentId)) {
+      res.status(400).json({
+        message:
+          "Student must not be enrolled in the batch to be assigned as TA",
+      });
+      return;
+    }
     batch.ta.push(student._id as Types.ObjectId);
     await batch.save();
     const batchID = batch._id as Types.ObjectId;
-    sendTAAssignmentEmails(batchID.toString());
+    sendTAAssignmentEmails(studentId.toString(),batchID.toString());
 
     res.json({
       message: "Student promoted to TA and assigned to batch",

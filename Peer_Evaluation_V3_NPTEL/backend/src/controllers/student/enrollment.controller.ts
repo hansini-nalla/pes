@@ -22,13 +22,29 @@ export const createEnrollment = async (
       studentId,
       courseId,
       batchId,
-      status: "pending",
     });
     if (existing) {
-      res
-        .status(400)
-        .json({ message: "Enrollment request already exists and is pending." });
-      return;
+      if (existing.status === "pending") {
+        res.status(400).json({
+          message: "Enrollment request already exists and is pending.",
+        });
+        return; 
+      }
+
+      if (existing.status === "rejected") {
+        res.status(400).json({
+          message:
+          "Enrollment request was already rejected. You cannot reapply.",
+        });
+        return;
+      }
+
+      if (existing.status === "completed") {
+        res.status(400).json({
+          message: "You are already enrolled in this course and batch.",
+        });
+        return; 
+      }
     }
 
     const enrollment = new Enrollment({

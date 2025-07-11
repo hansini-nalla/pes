@@ -322,6 +322,88 @@ export default function TeacherExams() {
     };
   };
 
+
+  // Upload Question Paper PDF
+  const handleUploadQuestionPaper = async (examId: string) => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "application/pdf";
+    fileInput.click();
+
+    fileInput.onchange = async () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("questionPaperPdf", file);
+
+      try {
+        await axios.post(`http://localhost:${PORT}/api/teacher/exams/${examId}/question-paper`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        toastAction("Question paper uploaded successfully", "success");
+      } catch (error: any) {
+        toastAction(error.response?.data?.message || "Upload failed", "error");
+      }
+    };
+  };
+
+  // Generate Tickets for Pending Evaluations
+  const handleGenerateTickets = async (examId: string) => {
+    try {
+      // First: generate tickets for pending evaluations
+      const response = await axios.post(
+        `http://localhost:${PORT}/api/teacher/exams/${examId}/generate-pending`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      toastAction(response.data.message || "Tickets created successfully", "success");
+
+      // Second: send flagged evaluations for this exam
+      try {
+        const flaggedRes = await axios.post(
+          `http://localhost:${PORT}/api/teacher/exams/${examId}/send-flagged-evaluations?generateTickets=true`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        toastAction(flaggedRes.data.message || "Flagged evaluations sent successfully", "success");
+      } catch (flaggedErr: any) {
+        let msg = flaggedErr.response?.data?.message || "Sending flagged evaluations failed";
+        if (flaggedErr.response?.status === 404) {
+          msg =
+            flaggedErr.response?.data?.error === "Exam not found"
+              ? "Exam not found."
+              : flaggedErr.response?.data?.error === "No completed evaluations found"
+              ? "No completed evaluations found for this exam."
+              : msg;
+        }
+        toastAction(msg, "error");
+      }
+    } catch (err: any) {
+      let msg = err.response?.data?.message || "Ticket generation failed";
+      if (err.response?.status === 404) {
+        msg =
+          err.response?.data?.error === "Exam not found"
+            ? "Exam not found."
+            : err.response?.data?.error === "No completed evaluations found"
+            ? "No completed evaluations found for this exam."
+            : msg;
+      }
+      toastAction(msg, "error");
+    }
+  };
+
   // Table: always white background, colored actions
   function renderExamTable(data: Exam[]) {
     return (
@@ -405,6 +487,21 @@ export default function TeacherExams() {
                 >
                   <FaRegFilePdf className="text-blue-700 text-lg" />
                 </button>
+                <button
+                  onClick={() => handleUploadQuestionPaper(exam._id)}
+                  className="p-2 bg-orange-100 rounded-full hover:bg-orange-200 shadow"
+                  title="Upload Question Paper PDF"
+                >
+                  <FaRegFilePdf className="text-orange-600 text-lg" />
+                </button>
+                <button
+                  onClick={() => handleGenerateTickets(exam._id)}
+                  className="p-2 bg-red-100 rounded-full hover:bg-red-200 shadow"
+                  title="Generate Tickets for Pending Evaluations"
+                >
+                  <FaRegFilePdf className="text-red-600 text-lg" />
+                </button>
+
               </td>
             </tr>
           ))}
@@ -451,11 +548,11 @@ export default function TeacherExams() {
           className={`px-6 py-2 rounded-xl shadow-md text-white font-bold text-base transition
             ${selectedCourse && selectedBatch
               ? "bg-[#ae36ff] hover:bg-[#8d2bc3] cursor-pointer"
-             : "bg-[#d9a8ff] cursor-not-allowed"}
+              : "bg-[#d9a8ff] cursor-not-allowed"}
         `}
-         onClick={() => { resetForm(); setCreateOpen(true); }}
-         disabled={!selectedCourse || !selectedBatch}
-       >
+          onClick={() => { resetForm(); setCreateOpen(true); }}
+          disabled={!selectedCourse || !selectedBatch}
+        >
           <FiPlus className="inline-block mr-2" /> Schedule Exam
         </button>
       </div>

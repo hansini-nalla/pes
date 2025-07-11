@@ -6,6 +6,7 @@ import { Batch } from '../models/Batch.js';
 import { Course } from '../models/Course.js';
 import { UIDMap } from '../models/UIDMap.js';
 import { PeerEvaluation } from '../models/PeerEvaluation.js';
+import { TA } from '../models/TA.js';
 import fs from 'fs';
 
 export const getStudentDashboardStats = async (req, res) => {
@@ -15,10 +16,12 @@ export const getStudentDashboardStats = async (req, res) => {
 
     const coursesEnrolled = await Enrollment.countDocuments({ student: studentId , status: 'active' });
 
-    const pendingEvaluations = await PeerEvaluation.countDocuments({
+    const evaluations = await PeerEvaluation.find({
       evaluator: studentId,
       eval_status: 'pending'
-    });
+    }).populate('exam', 'flags');
+
+    const pendingEvaluations = evaluations.filter(evaluation =>  evaluation.exam && evaluation.exam.flags === false).length;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -112,6 +115,15 @@ export const requestEnrollment = async (req, res) => {
     const { courseId, batchId } = req.body;
     const studentId = req.user._id;
 
+    const existingTA = await TA.findOne({
+      batch: batchId,
+      userId: studentId
+    });
+
+    if (existingTA) {
+      return res.status(400).json({ message: 'You are already a TA for this batch and cannot enroll as a student!' });
+    }
+
     const existingEnrollment = await Enrollment.findOne({
       student: studentId,
       batch: batchId,
@@ -120,13 +132,13 @@ export const requestEnrollment = async (req, res) => {
     });
 
     if (existingEnrollment && existingEnrollment.status === 'active') {
-      return res.status(400).json({ message: 'Already enrolled in this course!' });
+      return res.status(400).json({ message: 'Already enrolled in this batch!' });
     }
     else if (existingEnrollment && existingEnrollment.status === 'pending') {
-      return res.status(400).json({ message: 'You have a pending enrollment request for this course!' });
+      return res.status(400).json({ message: 'You have a pending enrollment request for this batch!' });
     }
     else if (existingEnrollment && existingEnrollment.status === 'dropped') {
-      return res.status(400).json({ message: 'Your enrollment request for this course was already rejected or you have dropped!' });
+      return res.status(400).json({ message: 'You have been dropped from this batch!' });
     }
 
     const newEnrollment = new Enrollment({
@@ -351,10 +363,11 @@ export const submitEvaluation = async (req, res) => {
     evaluation.feedback = feedback;
     evaluation.evaluated_on = new Date();
     evaluation.eval_status = 'completed';
+    evaluation.evaluated_by = req.user._id;
 
     await evaluation.save();
 
-    res.status(200).json({ message: "Evaluation updated successfully!" });
+    res.status(200).json({ message: "Evaluation submitted successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Failed to submit evaluation!" });
   }

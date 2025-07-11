@@ -6,7 +6,9 @@ import EnrolledCoursesSection from '../components/Student/EnrolledCoursesSection
 import EnrollmentRequestSection from '../components/Student/EnrollmentRequestSection';
 import StudentExamsTab from '../components/Student/StudentExamsTab';
 import EvaluationsTable from '../components/Student/EvaluationTable';
+import ResultsTable from '../components/Student/ResultsTable';
 import TAPanel from '../components/TA/TAPanel';
+import TAEvalOverlay from '../components/TA/TAEvalOverlay';
 import { containerStyle, sidebarStyle, mainStyle, contentStyle, sidebarToggleBtnStyle, buttonStyle, sectionHeading } from '../styles/Student/StudentDashboard.js'
 import { FaBook, FaClipboardList, FaLaptopCode } from 'react-icons/fa';
 import { showMessage } from '../utils/Message';
@@ -36,6 +38,12 @@ export default function StudentDashboard() {
   const [manageTAData, setManageTAData] = useState(null);
   const [pendingEnrollments, setPendingEnrollments] = useState([]);
   const [flaggedEvaluations, setFlaggedEvaluations] = useState([]);
+  const [selectedTAExam, setSelectedTAExam] = useState("");
+  const [showTAEvalOverlay, setShowTAEvalOverlay] = useState(false);
+  const [selectedTAEvaluation, setSelectedTAEvaluation] = useState(null);
+  const [results, setResults] = useState([]);
+  const [resultExams, setResultExams] = useState([]);
+  const [selectedResultExam, setSelectedResultExam] = useState("");
   const fileInputRefs = useRef({});
   const navigate = useNavigate();
 
@@ -154,6 +162,11 @@ export default function StudentDashboard() {
     fetchEvaluations();
   }, [activeTab]);
 
+  useEffect(() => {
+    if (activeTab !== 'result') return;
+    fetchResults();
+  }, [activeTab]);
+
   const fetchDashboardStats = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -238,6 +251,39 @@ export default function StudentDashboard() {
       console.error('Failed to fetch evaluations:', error);
       setEvaluations([]);
       setEvaluationExams([]);
+    }
+  };
+
+const fetchResults = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/student/results', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setResults(data);
+        // Extract unique exams for dropdown
+        const uniqueExams = data.reduce((acc, result) => {
+          if (!acc.some(exam => exam.examId === result.examId)) {
+            acc.push({
+              examId: result.examId,
+              name: result.examName,
+              courseName: result.courseName,
+              batchName: result.batchName,
+            });
+          }
+          return acc;
+        }, []);
+        setResultExams(uniqueExams);
+      } else {
+        setResults([]);
+        setResultExams([]);
+      }
+    } catch (error) {
+      setResults([]);
+      setResultExams([]);
     }
   };
 
@@ -377,8 +423,8 @@ export default function StudentDashboard() {
     // console.log("Assignment clicked:", assignment);
     const enrollmentsData = await fetchTAPendingEnrollments(assignment.batch_id);
     setPendingEnrollments(enrollmentsData);
-    // const evaluationsData = await fetchTAFlaggedEvaluations(assignment.batch_id);
-    // setFlaggedEvaluations(evaluationsData);
+    const evaluationsData = await fetchTAFlaggedEvaluations(assignment.batch_id);
+    setFlaggedEvaluations(evaluationsData);
   };
 
   const closeTAManageOverlay = () => {
@@ -391,7 +437,6 @@ export default function StudentDashboard() {
   const fetchTAPendingEnrollments = async (batchId) => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    console.log("Fetching pending enrollments for batch:", batchId);
     try {
       const res = await fetch(
         `http://localhost:5000/api/ta/pending_enrollments/${batchId}`,
@@ -416,10 +461,11 @@ export default function StudentDashboard() {
     if (!token) return;
     try {
       const res = await fetch(
-        `http://localhost:5000/api/ta/evaluations/${batchId}`,
+        `http://localhost:5000/api/ta/flagged_evaluations/${batchId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
@@ -465,7 +511,7 @@ export default function StudentDashboard() {
       const res = await fetch(
         `http://localhost:5000/api/ta/decline/${enrollmentId}`,
         {
-          method: "PUT",
+          method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -477,6 +523,109 @@ export default function StudentDashboard() {
         showMessage(data.message, "success");
         const updatedEnrollments = await fetchTAPendingEnrollments(manageTAData.batch_id);
         setPendingEnrollments(updatedEnrollments);
+      }
+    } catch (error) {
+      showMessage(error.message, "error");
+    }
+  };
+
+  const TAEditEval = async (evaluation) => {
+    setSelectedTAEvaluation(evaluation);
+    setShowTAEvalOverlay(true);
+  };
+
+  const TAFlagEval = async (evaluation) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/ta/flag-evaluation/${evaluation._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showMessage(data.message, "success");
+        if (manageTAData?.batch_id) {
+          const evaluationsData = await fetchTAFlaggedEvaluations(manageTAData.batch_id);
+          setFlaggedEvaluations(evaluationsData);
+        }
+      } else {
+        showMessage(data.message, "error");
+      }
+    } catch (error) {
+      showMessage(error.message, "error");
+    }
+  };
+
+  const TADelEval = async (evaluation) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      if (evaluation?.eval_status === 'pending') {
+        showMessage("Cannot remove/reject pending evaluations!", "error");
+        return;
+      }
+      const response = await fetch(`http://localhost:5000/api/ta/remove-evaluation/${evaluation._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showMessage(data.message, "success");
+        if (manageTAData?.batch_id) {
+          const evaluationsData = await fetchTAFlaggedEvaluations(manageTAData.batch_id);
+          setFlaggedEvaluations(evaluationsData);
+        }
+      } else {
+        showMessage(data.message, "error");
+      }
+    } catch (error) {
+      showMessage("Error rejecting evaluation!", "error");
+    }
+  };
+
+  const closeTAEvalOverlay = () => {
+    setShowTAEvalOverlay(false);
+    setSelectedTAEvaluation(null);
+  };
+
+  const handleTAEvaluationUpdate = async (updateData) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/ta/update-evaluation/${updateData.evaluationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          score: updateData.score,
+          feedback: updateData.feedback,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showMessage(data.message || "Evaluation updated successfully!", "success");
+        closeTAEvalOverlay();
+        if (manageTAData?.batch_id) {
+          const evaluationsData = await fetchTAFlaggedEvaluations(manageTAData.batch_id);
+          setFlaggedEvaluations(evaluationsData);
+        }
+      } else {
+        showMessage(data.message || "Failed to update evaluation!", "error");
       }
     } catch (error) {
       showMessage(error.message, "error");
@@ -565,6 +714,7 @@ export default function StudentDashboard() {
             <button onClick={() => setActiveTab('course')} style={buttonStyle(activeTab === 'course')}>📚 Courses & Enrollment</button>
             <button onClick={() => setActiveTab('exam')} style={buttonStyle(activeTab === 'exam')}>📋 Exams</button>
             <button onClick={() => setActiveTab('evaluation')} style={buttonStyle(activeTab === 'evaluation')}>📝 Evaluations</button>
+            <button onClick={() => setActiveTab('result')} style={buttonStyle(activeTab === 'result')}>📊 Results</button>
             {user.isTA && (
               <button onClick={() => setActiveTab('ta')} style={buttonStyle(activeTab === 'ta')}>🧑‍🏫 TA Panel</button>
             )}
@@ -720,6 +870,18 @@ export default function StudentDashboard() {
             </div>
           )}
 
+          {activeTab === 'result' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', color: '#2d3559', width: '100%' }}>
+              <h2 style={{ ...sectionHeading, marginTop: 0, marginBottom: '2rem', color: '#3f3d56' }}>Results</h2>
+              <ResultsTable
+                results={results}
+                resultExams={resultExams}
+                selectedResultExam={selectedResultExam}
+                setSelectedResultExam={setSelectedResultExam}
+              />
+            </div>
+          )}
+
           {activeTab === 'ta' && user.isTA && (
             <TAPanel
               taBatchInfo={taBatchInfo}
@@ -734,11 +896,24 @@ export default function StudentDashboard() {
               flaggedEvaluations={flaggedEvaluations}
               acceptEnrollment={acceptEnrollment}
               declineEnrollment={declineEnrollment}
+              selectedTAExam={selectedTAExam}
+              setSelectedTAExam={setSelectedTAExam}
+              TAEditEval={TAEditEval}
+              TAFlagEval={TAFlagEval}
+              TADelEval={TADelEval}
             />
           )}
 
         </div>
       </main>
+      {showTAEvalOverlay && (
+        <TAEvalOverlay
+          isTAOverlayOpen={showTAEvalOverlay}
+          selectedTAEvaluation={selectedTAEvaluation}
+          closeTAEvalOverlay={closeTAEvalOverlay}
+          handleTAEvaluationUpdate={handleTAEvaluationUpdate}
+        />
+      )}
     </div>
   );
 }

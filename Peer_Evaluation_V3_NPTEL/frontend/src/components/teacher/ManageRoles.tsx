@@ -38,7 +38,7 @@ const ManageRoles = () => {
     if (!selectedBatch) return;
 
     axios
-      .get(`http://localhost:${PORT}/api/teacher/batch/${selectedBatch}/students`, {
+      .get(`http://localhost:${PORT}/api/teacher/ta-candidates/${selectedCourse}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => setStudents(res.data.students));
@@ -49,7 +49,7 @@ const ManageRoles = () => {
       })
       .then((res) => setTAs(res.data.ta || []))
       .catch(() => setTAs([]));
-  }, [selectedBatch]);
+  }, [selectedCourse]);
 
   const handleAssignTA = async () => {
     try {

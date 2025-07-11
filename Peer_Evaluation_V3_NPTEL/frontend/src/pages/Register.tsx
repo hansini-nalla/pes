@@ -169,7 +169,7 @@ export default function Register() {
             <option value="student">Student</option>
             <option value="teacher">Professor</option>
             {/*<option value="ta">TA</option>*/}
-            <option value="admin">Admin</option>
+            {/*<option value="admin">Admin</option>*/}
           </select>
 
           <button
