@@ -8,7 +8,6 @@ export const raiseTicket = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  console.log("HIT /raise-ticket controller");
 
   try {
     const studentId = req.user?._id;

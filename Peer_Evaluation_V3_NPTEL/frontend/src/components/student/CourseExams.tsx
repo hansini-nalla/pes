@@ -1,4 +1,3 @@
-// frontend/src/components/student/CourseExams.tsx
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState, useRef, useEffect } from 'react';
@@ -18,6 +17,7 @@ type Exam = {
 type Props = {
   courseId: string;
   onBack: () => void;
+  darkMode: boolean;
 };
 
 const fetchExams = async (courseId: string): Promise<Exam[]> => {
@@ -52,7 +52,7 @@ const getCountdown = (target: string) => {
   return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 };
 
-const CourseExams = ({ courseId, onBack }: Props) => {
+const CourseExams = ({ courseId, onBack, darkMode }: Props) => {
   const { data: exams, isLoading, error } = useQuery({
     queryKey: ['courseExams', courseId],
     queryFn: () => fetchExams(courseId),
@@ -119,7 +119,6 @@ const CourseExams = ({ courseId, onBack }: Props) => {
   const handleViewExam = async (exam: Exam) => {
     setViewingExam(exam);
     setPdfUrl(null);
-    // Collapse the navbar if present
     const collapseBtn = document.querySelector('button:has(svg.text-2xl)') as HTMLButtonElement;
     if (collapseBtn) collapseBtn.click();
     try {
@@ -138,18 +137,17 @@ const CourseExams = ({ courseId, onBack }: Props) => {
     setViewingExam(null);
     if (pdfUrl) URL.revokeObjectURL(pdfUrl);
     setPdfUrl(null);
-    // Open the navbar if it was collapsed
     const collapseBtn = document.querySelector('button:has(svg.text-2xl)') as HTMLButtonElement;
     if (collapseBtn) collapseBtn.click();
   };
 
-  if (isLoading) return <div className="text-center p-4 text-gray-700">Loading exams...</div>;
+  if (isLoading) return <div className={`text-center p-4 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>Loading exams...</div>;
   if (error) return <div className="text-center p-4 text-red-600">Failed to load exams.</div>;
 
   return (
     <div className="grid grid-cols-fill-minmax-300 gap-8 relative z-10 sm:grid-cols-1 sm:gap-5">
       <button
-        className="bg-gradient-to-r from-gray-700 to-gray-800 text-white px-6 py-3 rounded-xl font-semibold shadow mb-4 w-fit"
+        className={`px-6 py-3 rounded-xl font-semibold shadow mb-4 w-fit ${darkMode ? "bg-gray-700 text-white" : "bg-gradient-to-r from-gray-700 to-gray-800 text-white"}`}
         onClick={onBack}
       >
         ← Back to Courses
@@ -168,15 +166,15 @@ const CourseExams = ({ courseId, onBack }: Props) => {
         return (
           <div
             key={exam._id}
-            className="bg-white rounded-2xl p-6 shadow hover:shadow-xl border border-gray-200 transition-all relative"
+            className={`rounded-2xl p-6 shadow border transition-all relative ${darkMode ? "bg-[#1A1A2E] text-white border-gray-700" : "bg-white text-gray-800 border-gray-200"}`}
           >
-            <h3 className="text-xl font-bold mb-2 text-gray-800">{exam.title}</h3>
-            <p className="text-sm text-gray-600 mb-1">Batch: {exam.batch?.name}</p>
-            <p className="text-sm text-gray-600 mb-2">
+            <h3 className="text-xl font-bold mb-2">{exam.title}</h3>
+            <p className="text-sm mb-1">Batch: {exam.batch?.name}</p>
+            <p className="text-sm mb-2">
               ⏰ {formatIST(exam.startTime)} → {formatIST(exam.endTime)}
             </p>
             {countdownText && (
-              <p className="text-xs italic text-indigo-600 mb-3">{countdownText}</p>
+              <p className="text-xs italic text-indigo-500 mb-3">{countdownText}</p>
             )}
 
             <button
@@ -214,7 +212,7 @@ const CourseExams = ({ courseId, onBack }: Props) => {
                   <span className="text-xs text-gray-500 ml-2">{selectedFile.name}</span>
                 )}
                 {uploadMsg && (
-                  <div className="text-sm text-gray-700 mt-1">{uploadMsg}</div>
+                  <div className={`text-sm mt-1 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>{uploadMsg}</div>
                 )}
               </div>
             )}
@@ -224,13 +222,12 @@ const CourseExams = ({ courseId, onBack }: Props) => {
 
       {viewingExam && (
         <div className="fixed inset-0 z-50 backdrop-blur-sm bg-black/30 flex items-center justify-center px-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-6xl h-[90vh] p-6 relative overflow-hidden flex flex-col">
-            <h3 className="text-lg font-bold text-indigo-800 mb-4">
+          <div className={`rounded-xl shadow-xl w-full max-w-6xl h-[90vh] p-6 relative overflow-hidden flex flex-col ${darkMode ? "bg-[#1A1A2E] text-white" : "bg-white text-gray-800"}`}>
+            <h3 className="text-lg font-bold text-indigo-500 mb-4">
               {viewingExam.title} – Questions
             </h3>
 
             <div className="flex-1 flex gap-4 overflow-hidden">
-              {/* PDF Viewer */}
               {pdfUrl ? (
                 <div className="flex-1 overflow-auto border border-gray-300 rounded-lg shadow-inner">
                   <iframe
@@ -241,20 +238,19 @@ const CourseExams = ({ courseId, onBack }: Props) => {
                   />
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-500 border border-dashed border-gray-300 rounded-lg">
+                <div className="flex-1 flex items-center justify-center border border-dashed border-gray-300 rounded-lg">
                   PDF not available
                 </div>
               )}
 
-              {/* Max Marks per Question */}
-              <div className="w-2/5 overflow-auto pr-2 border border-gray-200 rounded-lg shadow-inner p-4 bg-gray-50">
-                <h4 className="text-sm text-gray-700 font-semibold mb-3">
+              <div className={`w-2/5 overflow-auto pr-2 border rounded-lg shadow-inner p-4 ${darkMode ? "bg-[#121212] text-white border-gray-600" : "bg-gray-50 text-gray-800 border-gray-200"}`}>
+                <h4 className="text-sm font-semibold mb-3">
                   Question Max Marks
                 </h4>
-                <ol className="list-decimal list-inside text-gray-800 space-y-3 text-sm">
+                <ol className="list-decimal list-inside space-y-3 text-sm">
                   {Array.from({ length: viewingExam.numQuestions }).map((_, idx) => (
                     <li key={idx}>
-                      Q{idx + 1} <span className="text-gray-500 italic">({viewingExam.maxMarks?.[idx] ?? 0} marks)</span>
+                      Q{idx + 1} <span className="italic">({viewingExam.maxMarks?.[idx] ?? 0} marks)</span>
                     </li>
                   ))}
                 </ol>
@@ -262,7 +258,7 @@ const CourseExams = ({ courseId, onBack }: Props) => {
             </div>
 
             <button
-              className="absolute top-4 right-4 text-sm text-gray-600 hover:text-red-600"
+              className="absolute top-4 right-4 text-sm hover:text-red-600"
               onClick={handleCloseModal}
             >
               ✕ Close
@@ -270,7 +266,6 @@ const CourseExams = ({ courseId, onBack }: Props) => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

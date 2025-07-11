@@ -19,7 +19,6 @@ import "./models/Batch.ts";
 import "./models/Exam.ts";
 import "./models/User.ts";
 import "./models/Flag.ts"; 
-import "./jobs/evaluationReminder.job.ts";
 import "./models/UIDMap.ts";
 
 import cors from 'cors';
