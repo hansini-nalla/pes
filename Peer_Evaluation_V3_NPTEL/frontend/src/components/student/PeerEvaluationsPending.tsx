@@ -192,7 +192,7 @@ const PeerEvaluationsPending = ({ darkMode }: Props) => {
                   <BsStars className="text-blue-400" /> {ev.exam.title}
                 </div>
                 <div className="mb-2">
-                  <span className="font-medium">Questions:</span> {ev.exam.questions.length}
+                  <span className="font-medium">Questions:</span> {ev.exam.numQuestions}
                 </div>
               </div>
               <button

@@ -19,7 +19,7 @@ export const getPendingEvaluations = async (
     })
       .populate({
         path: "exam",
-        select: "title questions answerKeyPdf answerKeyMimeType",
+        select: "title questions numQuestions maxMarks answerKeyPdf answerKeyMimeType",
       })
       .lean();
 
@@ -29,6 +29,8 @@ export const getPendingEvaluations = async (
           _id: string;
           title: string;
           questions: { questionText: string; maxMarks: number }[];
+          numQuestions?: number;
+          maxMarks?: number[];
           answerKeyPdf?: Buffer;
           answerKeyMimeType?: string;
         };
@@ -53,6 +55,8 @@ export const getPendingEvaluations = async (
             _id: exam._id,
             title: exam.title,
             questions: exam.questions,
+            numQuestions: exam.numQuestions ?? (exam.questions ? exam.questions.length : 0),
+            maxMarks: exam.maxMarks ?? (exam.questions ? exam.questions.map(q => q.maxMarks) : []),
           },
           submissionId: submission ? submission._id : null,
           pdfUrl: submission
