@@ -94,6 +94,7 @@ const StudentDashboard = () => {
 
     return (
         <div className="flex h-screen overflow-hidden" style={{ backgroundColor: currentPalette['bg-primary'] }}>
+            {/* Sidebar */}
             <motion.div className={`flex flex-col justify-between py-6 px-4 rounded-r-3xl shadow-xl z-20 overflow-hidden ${showSidebar ? 'w-64' : 'w-20'}`} style={{ backgroundColor: currentPalette['sidebar-bg'] }}>
                 <button onClick={() => setShowSidebar(!showSidebar)} className="self-start mb-6 p-2 rounded-full border-2" style={{ borderColor: currentPalette['accent-lilac'] }}>
                     <FiMenu className="text-2xl" style={{ color: currentPalette['text-sidebar-dark'] }} />
@@ -103,6 +104,7 @@ const StudentDashboard = () => {
                         {showSidebar ? 'Student Panel' : 'SP'}
                     </h2>
                     <ul className="space-y-3 w-full">
+                        {/* ...existing code... */}
                         {[
                             { key: 'dashboard', icon: FiHome, label: 'Dashboard' },
                             { key: 'courses', icon: FiBook, label: 'Courses' },
@@ -126,12 +128,74 @@ const StudentDashboard = () => {
                 </button>
             </motion.div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            {/* Main Content + Top Bar */}
+            <div className="flex-1 overflow-y-auto p-6 relative">
+                {/* Top Right Profile Icon and TA Dashboard Button */}
+                <div className="absolute top-6 right-6 flex items-center gap-4 z-40">
+                    {/* Profile Icon */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowProfilePopup((p) => !p)}
+                            className="h-12 w-12 rounded-full flex items-center justify-center shadow-md border-2"
+                            style={{ backgroundColor: currentPalette['accent-lilac'], color: currentPalette.white, borderColor: currentPalette['accent-purple'] }}
+                            title="Profile"
+                        >
+                            <FiUser className="w-6 h-6" />
+                        </button>
+                        {showProfilePopup && (
+                            <div
+                                className="absolute right-0 mt-3 w-80 p-4 rounded-b-3xl shadow-lg z-50"
+                                style={{
+                                    backgroundColor: currentPalette['bg-secondary'],
+                                    borderTopLeftRadius: 0,
+                                    borderTopRightRadius: 0,
+                                    boxShadow: `0 4px 14px ${currentPalette['shadow-medium']}`,
+                                    color: currentPalette['text-dark'],
+                                }}
+                            >
+                                <div className="flex justify-between items-center mb-2">
+                                    <h2 className="text-xl font-bold">Profile Info</h2>
+                                    <button
+                                        onClick={() => setShowProfilePopup(false)}
+                                        className="text-xl px-2 py-1 rounded-full"
+                                        style={{ backgroundColor: currentPalette['accent-pink'], color: currentPalette.white }}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                                <div className="space-y-2 mb-4">
+                                    <p><strong>Name:</strong> {profileData.name}</p>
+                                    <p><strong>Email:</strong> {profileData.email}</p>
+                                    <p><strong>Role:</strong> {profileData.role}</p>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <button
+                                        onClick={() => { setActiveMenu('profile'); setSelectedCourseId(null); setShowProfilePopup(false); }}
+                                        className="px-4 py-2 rounded-lg font-semibold shadow-md"
+                                        style={{ backgroundColor: currentPalette['accent-lilac'], color: currentPalette['accent-purple'] }}
+                                    >
+                                        Go to Profile
+                                    </button>
+                                    {profileData.isTA && (
+                                        <button
+                                            onClick={() => { navigate('/ta'); setShowProfilePopup(false); }}
+                                            className="px-4 py-2 rounded-lg font-semibold shadow-md"
+                                            style={{ backgroundColor: currentPalette['accent-purple'], color: currentPalette.white }}
+                                        >
+                                            Go to TA Dashboard
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <div className="w-full max-w-7xl mx-auto">
                     {renderContent()}
                 </div>
             </div>
 
+            {/* Logout Dialog */}
             {logoutDialog && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="p-6 rounded-lg shadow-xl w-80 text-center"
@@ -145,6 +209,7 @@ const StudentDashboard = () => {
                 </div>
             )}
 
+            {/* Dark Mode Toggle */}
             <div className="fixed bottom-6 right-6 z-50">
                 <button onClick={() => setDarkMode(!darkMode)} className="h-12 w-12 rounded-full flex items-center justify-center shadow-md"
                     style={{ backgroundColor: darkMode ? currentPalette['accent-purple'] : currentPalette['accent-lilac'], color: 'white' }}>
